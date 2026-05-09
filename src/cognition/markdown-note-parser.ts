@@ -22,7 +22,7 @@ export function parseMarkdownNote(markdown: string): ParsedCognitionNote {
     summary: sections.Summary,
     sections,
     relatedFiles: unique(extractMatches(combined, PATH_REF)),
-    relatedSymbols: unique(extractSymbolRefs(combined)),
+    relatedSymbols: unique(extractSymbolRefs(sections)),
     warnings,
   };
 }
@@ -81,29 +81,12 @@ function extractMatches(text: string, regex: RegExp): string[] {
   return [...text.matchAll(regex)].map((match) => match[1]);
 }
 
-function extractSymbolRefs(text: string): string[] {
-  const stopwords = new Set([
-    'Summary',
-    'Related',
-    'Files',
-    'Functions',
-    'Decisions',
-    'Debugging',
-    'Conclusions',
-  ]);
-  // Backtick-quoted: accept any identifier in backticks
-  const backtickSymbols = [...text.matchAll(/`([A-Za-z_$][\w$]{2,})`/g)].map(
-    (m) => m[1],
-  );
-  // Plain text: only camelCase, PascalCase, ALL_CAPS, or snake_case (must contain uppercase or underscore after first char)
-  const plainSymbols = [...text.matchAll(/\b([A-Za-z_$][\w$]{2,})\b/g)]
-    .map((m) => m[1])
-    .filter((item) => /[A-Z_]/.test(item.slice(1)));
-  return unique(
-    [...backtickSymbols, ...plainSymbols].filter(
-      (item) => !stopwords.has(item) && !item.includes('.'),
-    ),
-  );
+function extractSymbolRefs(sections: Record<string, string>): string[] {
+  // Prefer declared symbols in the Key Symbols section; fall back to backtick
+  // items across all sections. Never use plain-text heuristics — they produce
+  // false positives for domain vocabulary like JWT, CSRF, TODO, Next, etc.
+  const text = sections['Key Symbols'] ?? Object.values(sections).join('\n');
+  return [...text.matchAll(/`([A-Za-z_$][\w$]{2,})`/g)].map((m) => m[1]);
 }
 
 function unique<T>(items: T[]): T[] {
