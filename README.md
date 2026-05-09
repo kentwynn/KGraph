@@ -44,27 +44,27 @@ Public npm usage is the intended distribution path once the package is published
 Install and run a specific stable release:
 
 ```bash
-npx kgraph@0.1.0 init
+npx @kentwynn/kgraph@0.1.0 init
 ```
 
 Or run the latest published release:
 
 ```bash
-npx kgraph@latest init
+npx @kentwynn/kgraph@latest init
 ```
 
 Use the CLI directly after initialization:
 
 ```bash
-npx kgraph@latest scan
-npx kgraph@latest update
-npx kgraph@latest context "auth token refresh"
+npx @kentwynn/kgraph@latest scan
+npx @kentwynn/kgraph@latest update
+npx @kentwynn/kgraph@latest context "auth token refresh"
 ```
 
 Optional global installation:
 
 ```bash
-npm install -g kgraph@latest
+npm install -g @kentwynn/kgraph@latest
 kgraph --version
 kgraph init
 kgraph scan
@@ -84,7 +84,7 @@ npm run kgraph -- update
 npm run kgraph -- context "auth token refresh"
 ```
 
-Until the npm package is publicly released, use the local development commands or the package artifact produced by the release workflow.
+Until the npm package is publicly released, use the local development commands or install directly from the release workflow artifact.
 
 ## MVP CLI
 

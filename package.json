@@ -1,5 +1,5 @@
 {
-  "name": "kgraph",
+  "name": "@kentwynn/kgraph",
   "version": "0.1.0",
   "description": "Persistent repo intelligence for AI coding assistants.",
   "type": "module",
