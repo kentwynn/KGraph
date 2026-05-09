@@ -7,13 +7,24 @@ import { registerScanCommand } from "./commands/scan.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { registerContextCommand } from "./commands/context.js";
 import { registerIntegrateCommand } from "./commands/integrate.js";
+import { renderRootHelp } from "./help.js";
 
 export function createProgram(): Command {
   const program = new Command();
   program
     .name("kgraph")
     .description("Persistent repo intelligence for AI coding assistants")
-    .version("0.1.1");
+    .version("0.1.2")
+    .addHelpText("beforeAll", renderRootHelp())
+    .helpOption(false);
+
+  program.option("-h, --help", "Show this help");
+  program.hook("preAction", (thisCommand) => {
+    if (thisCommand.opts().help) {
+      console.log(renderRootHelp());
+      process.exitCode = 0;
+    }
+  });
 
   registerInitCommand(program);
   registerScanCommand(program);
@@ -24,7 +35,12 @@ export function createProgram(): Command {
 }
 
 if (isCliEntrypoint()) {
-  await createProgram().parseAsync(process.argv);
+  const program = createProgram();
+  if (process.argv.length <= 2 || process.argv.includes("-h") || process.argv.includes("--help")) {
+    console.log(renderRootHelp());
+  } else {
+    await program.parseAsync(process.argv);
+  }
 }
 
 function isCliEntrypoint(): boolean {

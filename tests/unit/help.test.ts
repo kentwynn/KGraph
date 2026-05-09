@@ -1,0 +1,13 @@
+import { describe, expect, it } from "vitest";
+import { renderRootHelp } from "../../src/cli/help.js";
+
+describe("root help", () => {
+  it("renders branded command guidance without color", () => {
+    const help = renderRootHelp(false);
+    expect(help).toContain("_  __  ____");
+    expect(help).toContain("KGraph Persistent repo intelligence");
+    expect(help).toContain("init --integrations codex,cursor");
+    expect(help).toContain("context \"auth token refresh\"");
+    expect(help).toContain("integrate add codex copilot");
+  });
+});
