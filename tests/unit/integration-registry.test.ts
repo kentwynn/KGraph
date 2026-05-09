@@ -18,6 +18,9 @@ describe('integration registry', () => {
   it('defines command files for integrations that support reusable commands', () => {
     expect(
       getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
+    ).toContain('.github/prompts/kgraph.prompt.md');
+    expect(
+      getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
     ).toContain('.github/prompts/kgraph-scan.prompt.md');
     expect(
       getIntegrationAdapter('codex').commandFiles?.map((file) => file.path),

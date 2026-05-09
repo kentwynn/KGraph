@@ -11,7 +11,11 @@ alwaysApply: true
 
 ## KGraph Workflow
 
-Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. Run \`kgraph scan\` and \`kgraph update\` manually when needed. Run \`kgraph visualize\` to open the interactive dependency graph at http://localhost:4242. Run \`kgraph history\` to review the timeline of past cognition sessions.
+- Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence.
+- After durable discoveries (architecture decisions, debugging insights, structural findings), write a concise Markdown note to \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
+- If you created, moved, deleted, or renamed files or symbols, run \`kgraph scan\`.
+- Run \`kgraph visualize\` to open the interactive dependency graph at http://localhost:4242 with PNG export.
+- Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
 `,
   obsoleteCommandFiles: ['.cursor/rules/kgraph-commands.mdc'],
 };

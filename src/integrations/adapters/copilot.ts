@@ -6,9 +6,30 @@ export const copilotAdapter: IntegrationAdapter = {
   targetPath: '.github/copilot-instructions.md',
   instructions: `## KGraph Workflow
 
-Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. Use /kgraph-scan and /kgraph-update for manual maintenance.
+Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence.
+After durable discoveries (architecture decisions, debugging insights, structural findings), write a concise Markdown note to \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
+If you created, moved, deleted, or renamed files or symbols, run \`kgraph scan\`.
+Use /kgraph for the full automated workflow. Use /kgraph-scan, /kgraph-update, /kgraph-visualize, and /kgraph-history for manual steps.
 `,
   commandFiles: [
+    {
+      path: '.github/prompts/kgraph.prompt.md',
+      content: `---
+description: Use KGraph persistent repo intelligence for the current coding task
+agent: agent
+---
+
+Use KGraph persistent repo intelligence for the current request.
+
+1. Infer the topic from the user's request.
+2. Run \`kgraph context "<topic>"\`.
+3. Use the returned files, symbols, relationships, and cognition before broad exploration.
+4. After durable discoveries, write a concise Markdown note to \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
+5. If you created, moved, deleted, or renamed files or symbols during this session, run \`kgraph scan\`. Skip it otherwise.
+6. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+7. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
+`,
+    },
     {
       path: '.github/prompts/kgraph-scan.prompt.md',
       content: `---
@@ -50,5 +71,5 @@ Run \`kgraph history\` to display the timeline of all processed cognition sessio
 `,
     },
   ],
-  obsoleteCommandFiles: ['.github/prompts/kgraph.prompt.md'],
+  obsoleteCommandFiles: [],
 };
