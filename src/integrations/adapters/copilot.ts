@@ -1,9 +1,9 @@
-import type { IntegrationAdapter } from "../integration-registry.js";
+import type { IntegrationAdapter } from '../integration-registry.js';
 
 export const copilotAdapter: IntegrationAdapter = {
-  name: "copilot",
-  label: "GitHub Copilot",
-  targetPath: ".github/copilot-instructions.md",
+  name: 'copilot',
+  label: 'GitHub Copilot',
+  targetPath: '.github/copilot-instructions.md',
   instructions: `## KGraph Workflow
 
 - Use \`kgraph context "<topic>"\` before scanning many files manually.
@@ -14,7 +14,7 @@ export const copilotAdapter: IntegrationAdapter = {
 `,
   commandFiles: [
     {
-      path: ".github/prompts/kgraph.prompt.md",
+      path: '.github/prompts/kgraph.prompt.md',
       content: `---
 mode: agent
 description: Use KGraph persistent repo intelligence for this request
@@ -27,8 +27,28 @@ Use KGraph for the current task.
 3. If you discover durable architecture, debugging, workflow, or gotcha knowledge, create a Markdown note in \`.kgraph/inbox/\`.
 4. If you add an inbox note, run \`kgraph update\`.
 5. If code structure changed, run \`kgraph scan\`.
-`
-    }
+`,
+    },
+    {
+      path: '.github/prompts/kgraph-scan.prompt.md',
+      content: `---
+mode: agent
+description: Refresh KGraph file, symbol, import, and relationship maps
+---
+
+Run \`kgraph scan\` to refresh the repository maps, then summarize what changed.
+`,
+    },
+    {
+      path: '.github/prompts/kgraph-update.prompt.md',
+      content: `---
+mode: agent
+description: Process KGraph inbox notes into durable cognition
+---
+
+Run \`kgraph update\` to process any pending Markdown notes in \`.kgraph/inbox/\` into durable cognition.
+`,
+    },
   ],
-  obsoleteCommandFiles: [".github/prompts/kgraph-update.prompt.md", ".github/prompts/kgraph-scan.prompt.md"]
+  obsoleteCommandFiles: [],
 };
