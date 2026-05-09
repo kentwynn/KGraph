@@ -10,6 +10,6 @@ export const claudeCodeAdapter: IntegrationAdapter = {
 - Convert stable discoveries from chat into Markdown notes under \`.kgraph/inbox/\`.
 - Run \`kgraph update\` to preserve those notes as durable cognition.
 - Run \`kgraph scan\` after structural code changes.
-- Run \`kgraph visualize\` when the user wants to inspect the current knowledge map.
+- Run \`kgraph visualize\` when visualization support is available and the user wants to inspect the current knowledge map.
 `
 };

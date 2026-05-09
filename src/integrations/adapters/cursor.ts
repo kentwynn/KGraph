@@ -15,6 +15,6 @@ alwaysApply: true
 - Store durable chat, debugging, architecture, and workflow discoveries as Markdown notes in \`.kgraph/inbox/\`.
 - Run \`kgraph update\` after adding useful notes.
 - Run \`kgraph scan\` after refactors, moved folders, renamed functions, or other structure changes.
-- Run \`kgraph visualize\` when asked to inspect the KGraph map.
+- Run \`kgraph visualize\` when visualization support is available and the developer asks to inspect the KGraph map.
 `
 };

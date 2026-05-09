@@ -1,244 +1,165 @@
 # KGraph
 
-Persistent repo intelligence for AI coding assistants.
+Persistent repository intelligence for AI coding tools.
 
-KGraph is a local-first CLI for building an inspectable knowledge layer around a codebase. It helps AI coding sessions stop rediscovering the same repository structure, workflows, architecture decisions, and debugging history every time a new chat starts.
+KGraph is a local-first CLI that builds an inspectable knowledge layer for a codebase. It helps tools like Codex, GitHub Copilot, Cursor, and Claude Code reuse repository structure, workflow knowledge, debugging history, and architecture decisions instead of rediscovering them in every chat.
 
-## Why KGraph
+## Why It Matters
 
-The biggest waste in AI-assisted coding is often not generation. It is repeated exploration:
+AI coding sessions spend a large part of their budget finding context: reading files, tracing imports, locating the right functions, and re-learning decisions that were already discovered in previous work.
 
-- rereading the same files
-- rediscovering the same architecture
-- re-inferring the same workflows
-- repeating prior debugging conclusions
-- spending tokens just to find the right place to work
+KGraph turns that repeated exploration into durable repository intelligence:
 
-KGraph stores durable repository context in a local `.kgraph/` workspace so future AI sessions can navigate directly to relevant files, symbols, domains, and prior cognition.
-
-## What KGraph Is
-
-KGraph is:
-
-- persistent repo cognition
-- semantic navigation infrastructure
-- a context engineering layer
-- local filesystem-based project intelligence
-- an inspectable map of structure, relationships, and durable notes
-
-KGraph is not:
-
-- an AI coding assistant
-- a chatbot
-- a vector database
-- a simple RAG wrapper
-- a cloud service
-- an autonomous agent system
-
-## Install And Run
-
-KGraph is designed to feel like other developer-native CLI tools: one command to try it, optional global install if you use it often, and a quick version check before running commands.
-
-Install and run a specific stable release:
-
-```bash
-npx @kentwynn/kgraph@0.1.0 init
+```text
+AI chat or developer note
+-> KGraph cognition inbox
+-> structured repo knowledge
+-> compact context for future AI sessions
 ```
 
-Or run the latest published release:
+The result is faster navigation, lower token waste, and more consistent understanding across coding sessions.
+
+## Install
+
+Run the latest published package:
 
 ```bash
 npx @kentwynn/kgraph@latest init
 ```
 
-Use the CLI directly after initialization:
+Run a specific stable version:
 
 ```bash
-npx @kentwynn/kgraph@latest scan
-npx @kentwynn/kgraph@latest update
-npx @kentwynn/kgraph@latest integrate list
-npx @kentwynn/kgraph@latest context "auth token refresh"
+npx @kentwynn/kgraph@0.1.0 init
 ```
 
-Optional global installation:
+Install globally if you use KGraph often:
 
 ```bash
 npm install -g @kentwynn/kgraph@latest
 kgraph --version
-kgraph init
-kgraph integrate add codex cursor
+```
+
+## Quick Start
+
+Initialize KGraph in a repository and connect your AI tools:
+
+```bash
+kgraph init --integrations codex,copilot,cursor
+```
+
+Scan the codebase:
+
+```bash
 kgraph scan
-kgraph update
+```
+
+Ask for compact context before working on an area:
+
+```bash
 kgraph context "auth token refresh"
 ```
 
-Current local development flow from a fresh clone:
+Process saved chat notes and debugging conclusions:
+
+```bash
+kgraph update
+```
+
+## CLI
+
+```bash
+kgraph init
+kgraph init --integrations codex,cursor
+kgraph integrate list
+kgraph integrate add codex copilot cursor claude-code
+kgraph integrate remove cursor
+kgraph scan
+kgraph update
+kgraph context "auth token refresh"
+kgraph context "auth token refresh" --json
+```
+
+## AI Tool Integrations
+
+KGraph writes local instruction files so AI tools know how to use the repository knowledge layer during normal coding chats.
+
+| Integration | Instruction file |
+| --- | --- |
+| Codex | `AGENTS.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| Cursor | `.cursor/rules/kgraph.mdc` |
+| Claude Code | `CLAUDE.md` |
+
+Example:
+
+```bash
+kgraph integrate add codex cursor
+kgraph integrate list
+```
+
+Generated instructions teach AI tools to:
+
+- query `kgraph context "<topic>"` before broad repo exploration
+- save useful architecture, workflow, and debugging discoveries to `.kgraph/inbox/`
+- run `kgraph update` to turn notes into durable cognition
+- run `kgraph scan` after refactors, file moves, or renamed functions
+
+KGraph-managed instruction blocks preserve existing user-authored content.
+
+## Features
+
+- Local `.kgraph/` workspace for repository intelligence
+- JavaScript and TypeScript file, import, export, function, class, and method maps
+- Deterministic relationship maps between files and symbols
+- Markdown cognition inbox for AI chat summaries, decisions, gotchas, and debugging notes
+- Compact context output for AI assistants and scripts
+- JSON output for tool-friendly context retrieval
+- Integration management for Codex, Copilot, Cursor, and Claude Code
+- Stale-reference handling when code changes over time
+- Local-first storage with human-readable JSON, YAML, and Markdown
+
+## How KGraph Grows
+
+KGraph is designed to improve as the project changes:
+
+```text
+kgraph scan
+  refreshes current structure
+
+AI chat or developer note
+  captures useful reasoning in .kgraph/inbox/
+
+kgraph update
+  converts notes into durable cognition
+
+kgraph context "<topic>"
+  returns focused repository context for future work
+```
+
+This creates a feedback loop where normal development and AI-assisted debugging gradually improve the repository knowledge map.
+
+## Local-First
+
+KGraph stores project intelligence in local files inside `.kgraph/`. The MVP does not require accounts, telemetry, hosted services, databases, model providers, embeddings, or background daemons.
+
+## Development
 
 ```bash
 npm install
 npm run build
-npm run kgraph -- --version
+npm test
 npm run kgraph -- init --integrations codex,cursor
-npm run kgraph -- integrate list
-npm run kgraph -- scan
-npm run kgraph -- update
-npm run kgraph -- context "auth token refresh"
 ```
 
-For contributing or local development, clone the repo and use the local commands above.
+## Release
 
-## MVP CLI
-
-The MVP command surface is intentionally small:
-
-```bash
-kgraph init
-kgraph integrate list
-kgraph integrate add codex cursor
-kgraph integrate remove cursor
-kgraph scan
-kgraph update
-kgraph context "auth token refresh"
-```
-
-`init` creates the local `.kgraph/` workspace. `integrate` manages AI tool instruction files. `scan` refreshes deterministic structure maps. `update` processes Markdown cognition notes. `context` returns compact repository context for a topic.
-
-## AI Tool Integrations
-
-KGraph integrations are local instruction adapters. They do not run background daemons or call AI providers. They write KGraph-managed blocks into tool-specific files so normal AI chats know how to use the project knowledge layer.
-
-Initialize with integrations:
-
-```bash
-kgraph init --integrations codex,cursor
-kgraph init --integration codex --integration copilot
-```
-
-Manage integrations after initialization:
-
-```bash
-kgraph integrate list
-kgraph integrate add claude-code
-kgraph integrate remove cursor
-```
-
-Initial integration targets:
-
-```text
-codex       -> AGENTS.md
-copilot     -> .github/copilot-instructions.md
-cursor      -> .cursor/rules/kgraph.mdc
-claude-code -> CLAUDE.md
-```
-
-Generated instructions teach AI tools this loop:
-
-```text
-query KGraph context before broad exploration
-write useful chat/debugging/workflow notes to .kgraph/inbox/
-run kgraph update to preserve cognition
-run kgraph scan after refactors or moved files
-run kgraph visualize when asked to inspect the map
-```
-
-The MVP includes CI and release artifact packaging. New versions are published to npm automatically when a version tag is pushed.
-
-## Local-First Privacy
-
-KGraph writes project intelligence to local files in `.kgraph/`.
-
-The MVP does not require:
-
-- accounts
-- telemetry
-- cloud infrastructure
-- hosted services
-- databases
-- LLM providers
-- embeddings
-- vector search
-- background daemons
-
-Generated KGraph data is meant to be human-readable and inspectable with normal text tools.
-
-## MVP Scope
-
-The first version focuses on:
-
-- initializing `.kgraph/`
-- scanning repository files
-- extracting JavaScript and TypeScript symbols
-- writing file, symbol, dependency, and relationship maps
-- processing Markdown cognition notes
-- configuring AI tool instruction files
-- returning compact context for a query
-- keeping maps current as code changes
-
-Out of scope for the MVP:
-
-- npm publishing automation
-- deployment
-- cloud infrastructure
-- hosted dashboards
-- graph databases
-- vector databases
-- embeddings
-- autonomous agents
-- VS Code extension
-
-## CI
-
-The CI pipeline is intentionally small and practical. It runs on pushes to `main` and pull requests targeting `main`, and validates:
-
-```bash
-npm ci
-npm run build
-npm test
-npm pack --dry-run
-npm run check:artifacts
-```
-
-`check:artifacts` fails if local/generated Spec Kit or KGraph artifacts are committed by mistake, including:
-
-- `.kgraph/`
-- `.specify/`
-- `.agents/`
-- `AGENTS.md`
-- `REQUIREMENTS.md`
-- `specs/`
-
-## CD
-
-For a CLI package, CD means packaging an intentional release, not deploying infrastructure.
-
-KGraph includes a release package workflow that runs only when a maintainer pushes a version tag such as `v0.1.0` or starts the workflow manually. It repeats the core gates, creates the npm tarball, publishes to npm with `NPM_TOKEN`, and uploads the package as a GitHub Actions artifact:
-
-```bash
-npm ci
-npm run build
-npm test
-npm run check:artifacts
-npm pack
-npm publish --access public
-```
-
-This keeps releases intentional and inspectable while still supporting npm publishing from tagged releases.
+CI runs build, tests, package checks, and generated-artifact hygiene on pushes and pull requests. Tagged releases publish the npm package and upload the packed artifact through GitHub Actions.
 
 ## Roadmap
 
-Near-term:
-
-- stabilize the CLI contract
-- improve JS/TS symbol extraction
-- improve cognition note parsing
-- validate context quality against real repositories
-- make package publishing safe and intentional
-
-Later:
-
 - richer language scanners
+- better cognition extraction
+- graph visualization
 - Git-aware history and rename detection
-- optional MCP integration
-- optional editor integrations
-- visual graph exploration
-- optional LLM-assisted cognition extraction
+- optional editor and MCP integrations

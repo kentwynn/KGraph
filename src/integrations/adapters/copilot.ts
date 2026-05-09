@@ -10,6 +10,6 @@ export const copilotAdapter: IntegrationAdapter = {
 - Preserve stable findings by creating Markdown notes in \`.kgraph/inbox/\`.
 - Use \`kgraph update\` to process chat summaries and debugging conclusions into durable cognition.
 - Use \`kgraph scan\` when code structure changes.
-- Use \`kgraph visualize\` when the developer asks to inspect the repository knowledge map.
+- Use \`kgraph visualize\` when visualization support is available and the developer asks to inspect the repository knowledge map.
 `
 };

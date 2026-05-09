@@ -10,6 +10,6 @@ export const codexAdapter: IntegrationAdapter = {
 - After useful debugging, architecture discovery, workflow learning, or implementation work, write a concise Markdown note into \`.kgraph/inbox/\`.
 - Run \`kgraph update\` after adding inbox notes so KGraph preserves durable cognition.
 - Run \`kgraph scan\` after file moves, function renames, refactors, or other structural changes.
-- When asked to inspect KGraph, run \`kgraph visualize\` and report the generated local artifact.
+- When visualization support is available and the developer asks to inspect KGraph, run \`kgraph visualize\` and report the generated local artifact.
 `
 };
