@@ -6,10 +6,7 @@ export const claudeCodeAdapter: IntegrationAdapter = {
   targetPath: 'CLAUDE.md',
   instructions: `## KGraph Workflow
 
-- Start repository work by checking \`kgraph context "<topic>"\` when the user asks about a domain, bug, workflow, or feature.
-- Convert stable discoveries from chat into Markdown notes under \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
-- If you created, moved, deleted, or renamed any files or symbols during this session, run \`kgraph scan\`. Skip it if you only read files or wrote cognition notes.
-- Run \`kgraph visualize\` when visualization support is available and the user wants to inspect the current knowledge map.
+Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. Use /kgraph for the full automated workflow. Run \`kgraph scan\` and \`kgraph update\` manually when needed.
 `,
   commandFiles: [
     {

@@ -6,10 +6,7 @@ export const codexAdapter: IntegrationAdapter = {
   targetPath: 'AGENTS.md',
   instructions: `## KGraph Workflow
 
-- Before broad repository exploration, run \`kgraph context "<topic>"\` to load current repo intelligence.
-- After useful debugging, architecture discovery, workflow learning, or implementation work, write a concise Markdown note into \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
-- If you created, moved, deleted, or renamed any files or symbols during this session, run \`kgraph scan\`. Skip it if you only read files or wrote cognition notes.
-- When visualization support is available and the developer asks to inspect KGraph, run \`kgraph visualize\` and report the generated local artifact.
+Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. The /kgraph skill handles the full automated workflow. Run \`kgraph scan\` and \`kgraph update\` manually when needed.
 `,
   commandFiles: [
     {

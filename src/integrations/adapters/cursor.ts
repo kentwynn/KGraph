@@ -11,10 +11,7 @@ alwaysApply: true
 
 ## KGraph Workflow
 
-- Query \`kgraph context "<topic>"\` before broad file searches when repo cognition may already exist.
-- Store durable chat, debugging, architecture, and workflow discoveries as Markdown notes in \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
-- If you created, moved, deleted, or renamed any files or symbols during this session, run \`kgraph scan\`. Skip it if you only read files or wrote cognition notes.
-- Run \`kgraph visualize\` when visualization support is available and the developer asks to inspect the KGraph map.
+Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. Run \`kgraph scan\` and \`kgraph update\` manually when needed.
 `,
   obsoleteCommandFiles: ['.cursor/rules/kgraph-commands.mdc'],
 };

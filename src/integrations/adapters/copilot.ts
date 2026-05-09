@@ -6,10 +6,7 @@ export const copilotAdapter: IntegrationAdapter = {
   targetPath: '.github/copilot-instructions.md',
   instructions: `## KGraph Workflow
 
-- Use \`kgraph context "<topic>"\` before scanning many files manually.
-- After stable findings, write a Markdown note to \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
-- If you created, moved, deleted, or renamed any files or symbols during this session, run \`kgraph scan\`. Skip it if you only read files or wrote cognition notes.
-- Use \`kgraph visualize\` when visualization support is available and the developer asks to inspect the repository knowledge map.
+Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. Use /kgraph-scan and /kgraph-update for manual maintenance.
 `,
   commandFiles: [
     {
