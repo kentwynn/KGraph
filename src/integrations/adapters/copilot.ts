@@ -39,6 +39,16 @@ description: Open interactive KGraph dependency graph in browser
 Run \`kgraph visualize\` to start the interactive dependency graph at http://localhost:4242, then summarize what nodes and connections are visible.
 `,
     },
+    {
+      path: '.github/prompts/kgraph-history.prompt.md',
+      content: `---
+mode: agent
+description: Show timeline of KGraph cognition sessions with git attribution
+---
+
+Run \`kgraph history\` to display the timeline of all processed cognition sessions. Summarize who contributed what and when. Use \`--last <n>\` to limit entries.
+`,
+    },
   ],
   obsoleteCommandFiles: ['.github/prompts/kgraph.prompt.md'],
 };

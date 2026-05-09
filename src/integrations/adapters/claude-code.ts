@@ -19,6 +19,7 @@ Before exploring the repository, run \`kgraph context "<topic>"\` to load existi
 4. Save durable discoveries to \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
 5. If you created, moved, deleted, or renamed files or symbols during this session, run \`kgraph scan\` and report the summary. Skip it otherwise.
 6. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+7. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
 `,
     },
     {
@@ -34,6 +35,11 @@ Before exploring the repository, run \`kgraph context "<topic>"\` to load existi
     {
       path: '.claude/commands/kgraph-visualize.md',
       content: `Run \`kgraph visualize\` to start an interactive dependency graph at http://localhost:4242. Opens in browser automatically. Use \`--no-open\` to print URL only, \`--port <n>\` for a custom port.
+`,
+    },
+    {
+      path: '.claude/commands/kgraph-history.md',
+      content: `Run \`kgraph history\` to show a timeline of all processed cognition sessions. Includes git author attribution when available. Use \`--last <n>\` to limit entries, \`--json\` for machine-readable output.
 `,
     },
   ],

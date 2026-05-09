@@ -37,6 +37,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'visualize',
       'Interactive dependency graph at http://localhost:4242',
     ),
+    command('history', 'Timeline of processed cognition sessions'),
     '',
     theme.bold('Integrations'),
     command('integrate list', 'Show configured AI tool integrations'),

@@ -4,6 +4,7 @@ import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { registerContextCommand } from './commands/context.js';
+import { registerHistoryCommand } from './commands/history.js';
 import { registerInitCommand } from './commands/init.js';
 import { registerIntegrateCommand } from './commands/integrate.js';
 import { registerScanCommand } from './commands/scan.js';
@@ -37,6 +38,7 @@ export function createProgram(): Command {
   registerContextCommand(program);
   registerIntegrateCommand(program);
   registerVisualizeCommand(program);
+  registerHistoryCommand(program);
   return program;
 }
 

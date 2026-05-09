@@ -180,6 +180,10 @@ kgraph integrate remove cursor                  # remove an integration
 kgraph visualize                                # interactive graph at http://localhost:4242
 kgraph visualize --port 3000                    # custom port
 kgraph visualize --no-open                      # print URL, don't open browser
+
+kgraph history                                  # timeline of processed cognition sessions
+kgraph history --last 10                        # show last 10 entries
+kgraph history --json                           # machine-readable output
 ```
 
 ---
