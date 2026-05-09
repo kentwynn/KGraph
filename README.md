@@ -149,14 +149,14 @@ kgraph integrate add codex copilot cursor claude-code
 kgraph integrate list
 ```
 
-| Tool           | Always-on instruction             | Skill / command                                                     |
+| Tool           | Always-on instruction             | Skills / commands                                                   |
 | -------------- | --------------------------------- | ------------------------------------------------------------------- |
-| GitHub Copilot | `.github/copilot-instructions.md` | `.github/prompts/kgraph-scan.prompt.md` + `kgraph-update.prompt.md` |
-| Codex          | `AGENTS.md`                       | `.agents/skills/kgraph/SKILL.md` (Agent Skills standard)            |
+| GitHub Copilot | `.github/copilot-instructions.md` | `/kgraph-scan` · `/kgraph-update` · `/kgraph-visualize`             |
+| Codex          | `AGENTS.md`                       | `.agents/skills/kgraph/SKILL.md` (VS Code Agent Skills standard)    |
 | Cursor         | `.cursor/rules/kgraph.mdc`        | Built into the rule                                                 |
-| Claude Code    | `CLAUDE.md`                       | `.claude/commands/kgraph.md`                                        |
+| Claude Code    | `CLAUDE.md`                       | `/kgraph` · `/kgraph-scan` · `/kgraph-update` · `/kgraph-visualize` |
 
-Each integration installs a `/kgraph` skill or command that handles the full workflow automatically: load context → work → capture findings → update cognition. `/kgraph-scan` and `/kgraph-update` are available for manual maintenance.
+Each integration installs a `/kgraph` skill or command that handles the full workflow automatically: load context → work → capture findings → update cognition. `/kgraph-scan`, `/kgraph-update`, and `/kgraph-visualize` are available for manual maintenance.
 
 Existing user content in `AGENTS.md`, `CLAUDE.md`, etc. is preserved — KGraph manages only its own clearly-marked blocks.
 
@@ -176,6 +176,10 @@ kgraph update                                   # process inbox notes into cogni
 kgraph integrate list                           # show integration status
 kgraph integrate add codex copilot cursor       # add integrations
 kgraph integrate remove cursor                  # remove an integration
+
+kgraph visualize                                # interactive graph at http://localhost:4242
+kgraph visualize --port 3000                    # custom port
+kgraph visualize --no-open                      # print URL, don't open browser
 ```
 
 ---
@@ -246,9 +250,29 @@ CI verifies the tag matches `package.json`, checks the version is unpublished, p
 
 ---
 
+## Visualization
+
+```bash
+kgraph visualize
+```
+
+Starts a local server at `http://localhost:4242` and opens an interactive dependency graph in your browser. No install required — two CDN scripts (Cytoscape.js + dagre layout) are loaded at view time.
+
+**What you see:**
+
+- File nodes colored by language (TypeScript, JavaScript, Markdown, YAML, …)
+- Cognition notes as diamonds, colored by health (green = current, amber = mixed, red = stale)
+- Import edges showing real dependency flow
+- Dashed blue edges linking cognition notes to the files they describe
+- Click any node for a metadata panel (path, size, domain, related symbols)
+- Toggle cognition overlay on/off
+- Switch layout: Hierarchical (default), Force-directed, Grid, Concentric
+- **Export PNG** — 2× resolution, dark background, ready for reports or slides
+
+---
+
 ## Roadmap
 
-- graph visualization (`kgraph visualize`)
 - Git-aware history and rename tracking
 - richer language scanners (deeper AST, cross-file type resolution)
 - MCP server for editor tool-call access

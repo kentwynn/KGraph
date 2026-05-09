@@ -29,6 +29,16 @@ description: Process KGraph inbox notes into durable cognition
 Run \`kgraph update\` to process any pending Markdown notes in \`.kgraph/inbox/\` into durable cognition.
 `,
     },
+    {
+      path: '.github/prompts/kgraph-visualize.prompt.md',
+      content: `---
+mode: agent
+description: Open interactive KGraph dependency graph in browser
+---
+
+Run \`kgraph visualize\` to start the interactive dependency graph at http://localhost:4242, then summarize what nodes and connections are visible.
+`,
+    },
   ],
   obsoleteCommandFiles: ['.github/prompts/kgraph.prompt.md'],
 };

@@ -11,7 +11,7 @@ alwaysApply: true
 
 ## KGraph Workflow
 
-Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. Run \`kgraph scan\` and \`kgraph update\` manually when needed.
+Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. Run \`kgraph scan\` and \`kgraph update\` manually when needed. Run \`kgraph visualize\` to open the interactive dependency graph at http://localhost:4242.
 `,
   obsoleteCommandFiles: ['.cursor/rules/kgraph-commands.mdc'],
 };

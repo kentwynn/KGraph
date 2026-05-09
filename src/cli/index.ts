@@ -8,6 +8,7 @@ import { registerInitCommand } from './commands/init.js';
 import { registerIntegrateCommand } from './commands/integrate.js';
 import { registerScanCommand } from './commands/scan.js';
 import { registerUpdateCommand } from './commands/update.js';
+import { registerVisualizeCommand } from './commands/visualize.js';
 import { renderRootHelp } from './help.js';
 
 const require = createRequire(import.meta.url);
@@ -35,6 +36,7 @@ export function createProgram(): Command {
   registerUpdateCommand(program);
   registerContextCommand(program);
   registerIntegrateCommand(program);
+  registerVisualizeCommand(program);
   return program;
 }
 
