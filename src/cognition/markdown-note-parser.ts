@@ -1,47 +1,58 @@
-import YAML from "yaml";
-import type { ParsedCognitionNote } from "../types/cognition.js";
+import YAML from 'yaml';
+import type { ParsedCognitionNote } from '../types/cognition.js';
 
-const PATH_REF = /(?:^|\s)([\w./-]+\.(?:ts|tsx|js|jsx|json|md|yaml|yml))(?:\s|$|[),.;])/g;
-const SYMBOL_REF = /`?([A-Za-z_$][\w$]{2,})`?/g;
+const PATH_REF =
+  /(?:^|\s|`?)([\w./-]+\.(?:ts|tsx|js|jsx|json|md|yaml|yml))(?:\s|$|[),.;`])/g;
 
 export function parseMarkdownNote(markdown: string): ParsedCognitionNote {
   const warnings: string[] = [];
   const { frontmatter, body } = splitFrontmatter(markdown, warnings);
   const sections = parseSections(body);
-  const frontmatterTitle = typeof frontmatter.title === "string" ? frontmatter.title : undefined;
-  const title = extractTitle(body) ?? frontmatterTitle ?? "Untitled Cognition Note";
-  const combined = Object.values(sections).join("\n");
+  const frontmatterTitle =
+    typeof frontmatter.title === 'string' ? frontmatter.title : undefined;
+  const title =
+    extractTitle(body) ?? frontmatterTitle ?? 'Untitled Cognition Note';
+  const combined = Object.values(sections).join('\n');
 
   return {
     title,
-    domain: typeof frontmatter.domain === "string" ? frontmatter.domain : undefined,
+    domain:
+      typeof frontmatter.domain === 'string' ? frontmatter.domain : undefined,
     tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     summary: sections.Summary,
     sections,
     relatedFiles: unique(extractMatches(combined, PATH_REF)),
     relatedSymbols: unique(extractSymbolRefs(combined)),
-    warnings
+    warnings,
   };
 }
 
-function splitFrontmatter(markdown: string, warnings: string[]): { frontmatter: Record<string, unknown>; body: string } {
-  if (!markdown.startsWith("---\n")) {
+function splitFrontmatter(
+  markdown: string,
+  warnings: string[],
+): { frontmatter: Record<string, unknown>; body: string } {
+  if (!markdown.startsWith('---\n')) {
     return { frontmatter: {}, body: markdown };
   }
 
-  const end = markdown.indexOf("\n---", 4);
+  const end = markdown.indexOf('\n---', 4);
   if (end === -1) {
-    warnings.push("Frontmatter start found without closing delimiter.");
+    warnings.push('Frontmatter start found without closing delimiter.');
     return { frontmatter: {}, body: markdown };
   }
 
   try {
     return {
-      frontmatter: (YAML.parse(markdown.slice(4, end)) ?? {}) as Record<string, unknown>,
-      body: markdown.slice(end + 4)
+      frontmatter: (YAML.parse(markdown.slice(4, end)) ?? {}) as Record<
+        string,
+        unknown
+      >,
+      body: markdown.slice(end + 4),
     };
   } catch (error) {
-    warnings.push(`Invalid frontmatter: ${error instanceof Error ? error.message : String(error)}`);
+    warnings.push(
+      `Invalid frontmatter: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return { frontmatter: {}, body: markdown.slice(end + 4) };
   }
 }
@@ -61,7 +72,7 @@ function parseSections(body: string): Record<string, string> {
     sections[heading] = body.slice(start, end).trim();
   }
   if (Object.keys(sections).length === 0) {
-    sections.Summary = body.replace(/^#\s+.+$/m, "").trim();
+    sections.Summary = body.replace(/^#\s+.+$/m, '').trim();
   }
   return sections;
 }
@@ -71,10 +82,28 @@ function extractMatches(text: string, regex: RegExp): string[] {
 }
 
 function extractSymbolRefs(text: string): string[] {
-  const stopwords = new Set(["Summary", "Related", "Files", "Functions", "Decisions", "Debugging", "Conclusions"]);
-  return [...text.matchAll(SYMBOL_REF)]
-    .map((match) => match[1])
-    .filter((item) => !stopwords.has(item) && !item.includes("."));
+  const stopwords = new Set([
+    'Summary',
+    'Related',
+    'Files',
+    'Functions',
+    'Decisions',
+    'Debugging',
+    'Conclusions',
+  ]);
+  // Backtick-quoted: accept any identifier in backticks
+  const backtickSymbols = [...text.matchAll(/`([A-Za-z_$][\w$]{2,})`/g)].map(
+    (m) => m[1],
+  );
+  // Plain text: only camelCase, PascalCase, ALL_CAPS, or snake_case (must contain uppercase or underscore after first char)
+  const plainSymbols = [...text.matchAll(/\b([A-Za-z_$][\w$]{2,})\b/g)]
+    .map((m) => m[1])
+    .filter((item) => /[A-Z_]/.test(item.slice(1)));
+  return unique(
+    [...backtickSymbols, ...plainSymbols].filter(
+      (item) => !stopwords.has(item) && !item.includes('.'),
+    ),
+  );
 }
 
 function unique<T>(items: T[]): T[] {
