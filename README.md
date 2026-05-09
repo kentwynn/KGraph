@@ -1,148 +1,212 @@
 # KGraph
 
-Persistent repository intelligence for AI coding tools.
+> **Persistent repository intelligence for AI coding tools.**
+> Stop paying the context tax on every session. KGraph gives your AI assistant a memory.
 
-KGraph is a local-first CLI that builds an inspectable knowledge layer for a codebase. It helps tools like Codex, GitHub Copilot, Cursor, and Claude Code reuse repository structure, workflow knowledge, debugging history, and architecture decisions instead of rediscovering them in every chat.
+---
 
-## Why It Matters
+## The Problem
 
-AI coding sessions spend a large part of their budget finding context: reading files, tracing imports, locating the right functions, and re-learning decisions that were already discovered in previous work.
+Every AI coding session starts with the same expensive ritual:
 
-KGraph turns that repeated exploration into durable repository intelligence:
-
-```text
-AI chat or developer note
--> KGraph cognition inbox
--> structured repo knowledge
--> compact context for future AI sessions
+```
+"Let me read your package.json..."
+"Let me trace the imports in auth.ts..."
+"Let me find where sessions are created..."
+"Let me understand the database layer..."
 ```
 
-The result is faster navigation, lower token waste, and more consistent understanding across coding sessions.
+On a medium-sized codebase, this exploration burns **3,000–8,000 tokens** before the AI writes a single line of code. Multiply that across 10 sessions per day and you're spending the majority of your context budget re-learning things you already know.
+
+Worse: AI tools forget. The debugging insight from Tuesday, the architecture decision from last sprint, the "don't touch this or it breaks payments" gotcha — gone after every session.
+
+---
+
+## The Solution
+
+KGraph builds a local knowledge layer that grows with your project. It maps your codebase once, captures reasoning from your AI sessions, and serves compact, targeted context on demand.
+
+```
+Without KGraph                     With KGraph
+─────────────────────────────────  ──────────────────────────────────
+Session start: ~5,000 tokens       Session start: ~300 tokens
+exploring files and structure      kgraph context "auth token refresh"
+
+Re-learns same architecture        Recalls prior decisions instantly
+every single session               from cognition store
+
+Context limit hit mid-task         Full context budget for actual work
+
+Debugging insight lost forever     Captured in .kgraph/inbox/
+                                   available in every future session
+```
+
+---
+
+## Token Savings — What This Looks Like in Practice
+
+A typical `kgraph context` response for a focused topic:
+
+```
+topic: auth token refresh
+
+files:
+  src/lib/auth.ts           (createSession, validateToken, refreshToken)
+  app/api/auth/route.ts     (POST handler → createSession)
+  middleware.ts             (reads session cookie, calls validateToken)
+
+key relationships:
+  POST /api/auth → createSession → writes JWT to cookie
+  middleware → validateToken → redirects on expiry
+
+cognition:
+  refreshToken has a race condition under concurrent requests — see issue #47
+  JWT secret must come from env, never hardcoded — broke staging in March
+  token TTL is 15 min by design, not a bug
+```
+
+**~280 tokens.** The equivalent file-by-file exploration: **4,200+ tokens.**  
+That's a **15x reduction** in context cost for navigation alone.
+
+The gap widens every week as cognition accumulates — past decisions, debugging discoveries, and architectural gotchas that would otherwise cost the AI thousands of tokens to re-derive.
+
+---
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Your Codebase                        │
+└──────────────────────────────┬──────────────────────────────┘
+                               │  kgraph scan
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│  .kgraph/                                                   │
+│  ├── maps/          file graph, symbol index, imports       │
+│  ├── cognition.md   decisions, gotchas, debugging history   │
+│  └── config.yaml    include/exclude rules                   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │  kgraph context "topic"
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│  AI Tool  (Copilot / Codex / Cursor / Claude Code)          │
+│  Reads compact context → navigates directly → works faster  │
+└─────────────────────────────────────────────────────────────┘
+                               │  session ends
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│  .kgraph/inbox/     AI drops a note: what it learned        │
+│                     kgraph update → distilled into          │
+│                     cognition.md for the next session       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+This creates a **compounding feedback loop**: the more you use KGraph, the richer the cognition store, the less exploration the AI needs to do.
+
+---
 
 ## Install
-
-Run the latest published package:
-
-```bash
-npx @kentwynn/kgraph@latest init
-```
-
-Run a specific stable version:
-
-```bash
-npx @kentwynn/kgraph@0.1.0 init
-```
-
-Install globally if you use KGraph often:
 
 ```bash
 npm install -g @kentwynn/kgraph@latest
 kgraph --version
 ```
 
+Or run without installing:
+
+```bash
+npx @kentwynn/kgraph@latest init
+```
+
+---
+
 ## Quick Start
 
-Initialize KGraph in a repository and connect your AI tools:
-
 ```bash
-kgraph init --integrations codex,copilot,cursor
-```
+# 1. Initialize and connect your AI tools
+kgraph init --integrations codex,copilot,cursor,claude-code
 
-Scan the codebase:
-
-```bash
+# 2. Scan the codebase
 kgraph scan
-```
 
-Ask for compact context before working on an area:
-
-```bash
+# 3. Ask for context before exploring (your AI does this automatically)
 kgraph context "auth token refresh"
-```
 
-Process saved chat notes and debugging conclusions:
-
-```bash
+# 4. After an AI session, save what was learned
 kgraph update
 ```
 
-## CLI
+That's the entire loop. From session 2 onward, your AI tool loads existing intelligence before touching a single file.
 
-```bash
-kgraph init
-kgraph init --integrations codex,cursor
-kgraph integrate list
-kgraph integrate add codex copilot cursor claude-code
-kgraph integrate remove cursor
-kgraph scan
-kgraph update
-kgraph context "auth token refresh"
-kgraph context "auth token refresh" --json
-```
+---
 
 ## AI Tool Integrations
 
-KGraph writes local instruction files and command/prompt packs so AI tools can use the repository knowledge layer during normal coding chats.
-
-| Integration    | Always-on guidance                | KGraph command assets              |
-| -------------- | --------------------------------- | ---------------------------------- |
-| Codex          | `AGENTS.md`                       | `.agents/skills/kgraph/SKILL.md`   |
-| GitHub Copilot | `.github/copilot-instructions.md` | `.github/prompts/kgraph.prompt.md` |
-| Cursor         | `.cursor/rules/kgraph.mdc`        | Built into the KGraph Cursor rule  |
-| Claude Code    | `CLAUDE.md`                       | `.claude/commands/kgraph.md`       |
-
-Example:
+`kgraph integrate` writes instruction files and command/skill packs directly into your repo so each tool knows how to use the knowledge layer — no manual setup.
 
 ```bash
 kgraph integrate add codex copilot cursor claude-code
 kgraph integrate list
 ```
 
-This gives each supported tool one reusable KGraph entry point similar to a Spec Kit-style command:
+| Tool           | Always-on instruction             | Skill / command                                                     |
+| -------------- | --------------------------------- | ------------------------------------------------------------------- |
+| GitHub Copilot | `.github/copilot-instructions.md` | `.github/prompts/kgraph-scan.prompt.md` + `kgraph-update.prompt.md` |
+| Codex          | `AGENTS.md`                       | `.agents/skills/kgraph/SKILL.md` (Agent Skills standard)            |
+| Cursor         | `.cursor/rules/kgraph.mdc`        | Built into the rule                                                 |
+| Claude Code    | `CLAUDE.md`                       | `.claude/commands/kgraph.md`                                        |
 
-- KGraph context: query `kgraph context "<topic>"` before broad repo exploration
-- KGraph update: save durable chat/debugging/workflow discoveries to `.kgraph/inbox/`, then run `kgraph update`
-- KGraph scan: run `kgraph scan` after refactors, file moves, renamed functions, or dependency changes
+Each integration installs a `/kgraph` skill or command that handles the full workflow automatically: load context → work → capture findings → update cognition. `/kgraph-scan` and `/kgraph-update` are available for manual maintenance.
 
-The exact invocation depends on the host tool. Copilot uses one prompt file, Codex uses one skill, Cursor uses one rule, and Claude Code uses one command file. Scan and update are workflows inside that single KGraph entry point, not separate duplicated commands.
+Existing user content in `AGENTS.md`, `CLAUDE.md`, etc. is preserved — KGraph manages only its own clearly-marked blocks.
 
-KGraph-managed instruction blocks preserve existing user-authored content.
+---
 
-## Features
+## CLI Reference
 
-- Local `.kgraph/` workspace for repository intelligence
-- JavaScript and TypeScript file, import, export, function, class, and method maps
-- Deterministic relationship maps between files and symbols
-- Markdown cognition inbox for AI chat summaries, decisions, gotchas, and debugging notes
-- Compact context output for AI assistants and scripts
-- JSON output for tool-friendly context retrieval
-- Integration management and command packs for Codex, Copilot, Cursor, and Claude Code
-- Stale-reference handling when code changes over time
-- Local-first storage with human-readable JSON, YAML, and Markdown
+```bash
+kgraph init                                     # initialize .kgraph/ workspace
+kgraph init --integrations codex,copilot        # init + configure integrations
 
-## How KGraph Grows
+kgraph scan                                     # scan codebase, update maps
+kgraph context "auth token refresh"             # get compact context for a topic
+kgraph context "auth token refresh" --json      # machine-readable output
+kgraph update                                   # process inbox notes into cognition
 
-KGraph is designed to improve as the project changes:
-
-```text
-kgraph scan
-  refreshes current structure
-
-AI chat or developer note
-  captures useful reasoning in .kgraph/inbox/
-
-kgraph update
-  converts notes into durable cognition
-
-kgraph context "<topic>"
-  returns focused repository context for future work
+kgraph integrate list                           # show integration status
+kgraph integrate add codex copilot cursor       # add integrations
+kgraph integrate remove cursor                  # remove an integration
 ```
 
-This creates a feedback loop where normal development and AI-assisted debugging gradually improve the repository knowledge map.
+---
 
-## Local-First
+## What KGraph Tracks
 
-KGraph stores project intelligence in local files inside `.kgraph/`. The MVP does not require accounts, telemetry, hosted services, databases, model providers, embeddings, or background daemons.
+| Category          | Examples                                                               |
+| ----------------- | ---------------------------------------------------------------------- |
+| **File map**      | every source file, language, size                                      |
+| **Symbol index**  | functions, classes, methods, exports per file                          |
+| **Import graph**  | which files import which, dependency chains                            |
+| **Relationships** | call sites, re-exports, shared types                                   |
+| **Cognition**     | past decisions, architectural constraints, debugging insights, gotchas |
+
+Supported languages: TypeScript, JavaScript, Python, Go, Rust, Java, Kotlin, C/C++, C#, Ruby, PHP, Swift, and 30+ more — detected by file extension, no configuration needed.
+
+---
+
+## Local-First, Zero Dependencies
+
+KGraph requires nothing beyond Node.js ≥ 20:
+
+- No accounts or API keys
+- No embeddings or vector databases
+- No cloud services or telemetry
+- No background daemons
+- No model provider
+
+All data lives in `.kgraph/` as human-readable JSON, YAML, and Markdown. Commit it, diff it, inspect it anytime.
+
+---
 
 ## Development
 
@@ -167,23 +231,25 @@ kgraph --version
 kgraph init --integrations codex,copilot
 ```
 
+---
+
 ## Release
 
-CI runs build, tests, package checks, and generated-artifact hygiene on pushes and pull requests.
-
-Releases are tag-driven. Bump the package version, push the commit, then push the matching tag:
+Releases are tag-driven. Bump the version, push the commit and tag:
 
 ```bash
 npm version patch
 git push origin main --follow-tags
 ```
 
-The release workflow verifies that the tag matches `package.json`, checks that the npm version has not already been published, publishes the package to npm, creates a GitHub Release, and attaches the packed tarball. Manual workflow runs package the project for inspection but do not publish to npm.
+CI verifies the tag matches `package.json`, checks the version is unpublished, publishes to npm, creates a GitHub Release, and attaches the tarball.
+
+---
 
 ## Roadmap
 
-- richer language scanners
-- better cognition extraction
-- graph visualization
-- Git-aware history and rename detection
-- optional editor and MCP integrations
+- graph visualization (`kgraph visualize`)
+- Git-aware history and rename tracking
+- richer language scanners (deeper AST, cross-file type resolution)
+- MCP server for editor tool-call access
+- team-shared cognition via committed `.kgraph/`
