@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import { registerInitCommand } from "./commands/init.js";
 import { registerScanCommand } from "./commands/scan.js";
@@ -9,12 +10,15 @@ import { registerContextCommand } from "./commands/context.js";
 import { registerIntegrateCommand } from "./commands/integrate.js";
 import { renderRootHelp } from "./help.js";
 
+const require = createRequire(import.meta.url);
+const { version } = require("../../package.json") as { version: string };
+
 export function createProgram(): Command {
   const program = new Command();
   program
     .name("kgraph")
     .description("Persistent repo intelligence for AI coding assistants")
-    .version("0.1.2")
+    .version(version)
     .addHelpText("beforeAll", renderRootHelp())
     .helpOption(false);
 
