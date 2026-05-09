@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import YAML from "yaml";
-import type { KGraphConfig, KGraphWorkspace } from "../types/config.js";
+import type { IntegrationConfig, KGraphConfig, KGraphWorkspace } from "../types/config.js";
 import { pathExists } from "../storage/kgraph-paths.js";
 import { KGraphError } from "../cli/errors.js";
 
@@ -11,7 +11,8 @@ export const DEFAULT_CONFIG: KGraphConfig = {
     precise: [".js", ".jsx", ".ts", ".tsx"]
   },
   maxContextItems: 8,
-  domainHints: {}
+  domainHints: {},
+  integrations: []
 };
 
 export async function writeDefaultConfig(workspace: KGraphWorkspace): Promise<boolean> {
@@ -21,6 +22,10 @@ export async function writeDefaultConfig(workspace: KGraphWorkspace): Promise<bo
 
   await writeFile(workspace.configPath, YAML.stringify(DEFAULT_CONFIG), "utf8");
   return true;
+}
+
+export async function saveConfig(workspace: KGraphWorkspace, config: KGraphConfig): Promise<void> {
+  await writeFile(workspace.configPath, YAML.stringify(config), "utf8");
 }
 
 export async function loadConfig(workspace: KGraphWorkspace): Promise<KGraphConfig> {
@@ -51,6 +56,39 @@ export function normalizeConfig(config: Partial<KGraphConfig>): KGraphConfig {
       typeof config.maxContextItems === "number" && config.maxContextItems > 0
         ? config.maxContextItems
         : DEFAULT_CONFIG.maxContextItems,
-    domainHints: config.domainHints && typeof config.domainHints === "object" ? config.domainHints : {}
+    domainHints: config.domainHints && typeof config.domainHints === "object" ? config.domainHints : {},
+    integrations: normalizeIntegrations(config.integrations)
   };
+}
+
+function normalizeIntegrations(value: unknown): IntegrationConfig[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const integrations: IntegrationConfig[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const candidate = item as Partial<IntegrationConfig>;
+    if (
+      typeof candidate.name !== "string" ||
+      typeof candidate.targetPath !== "string" ||
+      seen.has(candidate.name)
+    ) {
+      continue;
+    }
+    if (!["claude-code", "codex", "copilot", "cursor"].includes(candidate.name)) {
+      continue;
+    }
+    seen.add(candidate.name);
+    integrations.push({
+      name: candidate.name,
+      enabled: candidate.enabled !== false,
+      targetPath: candidate.targetPath
+    } as IntegrationConfig);
+  }
+  return integrations;
 }

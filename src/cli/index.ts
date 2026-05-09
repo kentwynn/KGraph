@@ -4,6 +4,7 @@ import { registerInitCommand } from "./commands/init.js";
 import { registerScanCommand } from "./commands/scan.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { registerContextCommand } from "./commands/context.js";
+import { registerIntegrateCommand } from "./commands/integrate.js";
 
 export function createProgram(): Command {
   const program = new Command();
@@ -16,6 +17,7 @@ export function createProgram(): Command {
   registerScanCommand(program);
   registerUpdateCommand(program);
   registerContextCommand(program);
+  registerIntegrateCommand(program);
   return program;
 }
 

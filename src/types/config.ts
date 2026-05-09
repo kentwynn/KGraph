@@ -6,11 +6,20 @@ export interface KGraphConfig {
   };
   maxContextItems: number;
   domainHints: Record<string, DomainHint>;
+  integrations: IntegrationConfig[];
 }
 
 export interface DomainHint {
   paths?: string[];
   tags?: string[];
+}
+
+export type IntegrationName = "claude-code" | "codex" | "copilot" | "cursor";
+
+export interface IntegrationConfig {
+  name: IntegrationName;
+  enabled: boolean;
+  targetPath: string;
 }
 
 export interface KGraphWorkspace {
