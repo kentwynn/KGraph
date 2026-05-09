@@ -12,11 +12,13 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node scripts/clean-dist.mjs",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "test": "vitest run",
     "kgraph": "tsx src/cli/index.ts",
     "check:artifacts": "node scripts/check-clean-artifacts.mjs",
-    "pack:dry": "npm pack --dry-run"
+    "pack:dry": "npm pack --dry-run",
+    "release:pack": "npm run build && npm test && npm run check:artifacts && npm pack"
   },
   "keywords": [
     "ai",

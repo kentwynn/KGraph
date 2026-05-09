@@ -64,7 +64,7 @@ npm install -g kgraph
 kgraph init
 ```
 
-The package is prepared for npm-style CLI distribution, but publishing and release automation are not part of the MVP.
+The package is prepared for npm-style CLI distribution. The MVP includes CI and release artifact packaging, but automatic npm publishing is intentionally left for a later release policy.
 
 ## Local-First Privacy
 
@@ -99,7 +99,6 @@ The first version focuses on:
 Out of scope for the MVP:
 
 - npm publishing automation
-- release automation
 - deployment
 - cloud infrastructure
 - hosted dashboards
@@ -111,7 +110,7 @@ Out of scope for the MVP:
 
 ## CI
 
-The first CI pipeline is intentionally small and practical. It validates:
+The CI pipeline is intentionally small and practical. It runs on pushes to `main` and pull requests targeting `main`, and validates:
 
 ```bash
 npm ci
@@ -129,6 +128,22 @@ npm run check:artifacts
 - `AGENTS.md`
 - `REQUIREMENTS.md`
 - `specs/`
+
+## CD
+
+For a CLI package, CD means packaging an intentional release, not deploying infrastructure.
+
+KGraph includes a release package workflow that runs only when a maintainer pushes a version tag such as `v0.1.0` or starts the workflow manually. It repeats the core gates, creates the npm tarball, and uploads the package as a GitHub Actions artifact:
+
+```bash
+npm ci
+npm run build
+npm test
+npm run check:artifacts
+npm pack
+```
+
+This gives maintainers an inspectable package artifact before public npm publishing is enabled.
 
 ## Roadmap
 

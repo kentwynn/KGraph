@@ -8,7 +8,8 @@ export function parseMarkdownNote(markdown: string): ParsedCognitionNote {
   const warnings: string[] = [];
   const { frontmatter, body } = splitFrontmatter(markdown, warnings);
   const sections = parseSections(body);
-  const title = extractTitle(body) ?? frontmatter.title ?? "Untitled Cognition Note";
+  const frontmatterTitle = typeof frontmatter.title === "string" ? frontmatter.title : undefined;
+  const title = extractTitle(body) ?? frontmatterTitle ?? "Untitled Cognition Note";
   const combined = Object.values(sections).join("\n");
 
   return {

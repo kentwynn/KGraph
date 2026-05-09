@@ -21,6 +21,8 @@ export async function runCli(repoPath: string, args: string[]): Promise<{ stdout
   const originalCwd = process.cwd();
   const originalStdout = process.stdout.write;
   const originalStderr = process.stderr.write;
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
   const originalExitCode = process.exitCode;
   let stdout = "";
   let stderr = "";
@@ -34,13 +36,21 @@ export async function runCli(repoPath: string, args: string[]): Promise<{ stdout
     stderr += chunk.toString();
     return true;
   }) as typeof process.stderr.write;
+  console.log = (...items: unknown[]) => {
+    stdout += `${items.map(String).join(" ")}\n`;
+  };
+  console.error = (...items: unknown[]) => {
+    stderr += `${items.map(String).join(" ")}\n`;
+  };
 
   try {
-    await createProgram().parseAsync(["node", "kgraph", ...args], { from: "user" });
+    await createProgram().parseAsync(["node", "kgraph", ...args], { from: "node" });
     return { stdout, stderr, code: typeof process.exitCode === "number" ? process.exitCode : 0 };
   } finally {
     process.stdout.write = originalStdout;
     process.stderr.write = originalStderr;
+    console.log = originalConsoleLog;
+    console.error = originalConsoleError;
     process.exitCode = originalExitCode;
     process.chdir(originalCwd);
   }
