@@ -35,34 +35,69 @@ KGraph is not:
 - a cloud service
 - an autonomous agent system
 
-## MVP CLI
+## Install And Run
 
-During local development:
+KGraph is designed to feel like other developer-native CLI tools: one command to try it, optional global install if you use it often, and a quick version check before running commands.
+
+Public npm usage is the intended distribution path once the package is published.
+
+Install and run a specific stable release:
+
+```bash
+npx kgraph@0.1.0 init
+```
+
+Or run the latest published release:
+
+```bash
+npx kgraph@latest init
+```
+
+Use the CLI directly after initialization:
+
+```bash
+npx kgraph@latest scan
+npx kgraph@latest update
+npx kgraph@latest context "auth token refresh"
+```
+
+Optional global installation:
+
+```bash
+npm install -g kgraph@latest
+kgraph --version
+kgraph init
+kgraph scan
+kgraph update
+kgraph context "auth token refresh"
+```
+
+Current local development flow from a fresh clone:
 
 ```bash
 npm install
 npm run build
+npm run kgraph -- --version
 npm run kgraph -- init
 npm run kgraph -- scan
 npm run kgraph -- update
 npm run kgraph -- context "auth token refresh"
 ```
 
-The intended public package flow is:
+Until the npm package is publicly released, use the local development commands or the package artifact produced by the release workflow.
+
+## MVP CLI
+
+The MVP command surface is intentionally small:
 
 ```bash
-npx kgraph init
-npx kgraph scan
-npx kgraph update
-npx kgraph context "auth token refresh"
-```
-
-Optional global installation may be supported later:
-
-```bash
-npm install -g kgraph
 kgraph init
+kgraph scan
+kgraph update
+kgraph context "auth token refresh"
 ```
+
+`init` creates the local `.kgraph/` workspace. `scan` refreshes deterministic structure maps. `update` processes Markdown cognition notes. `context` returns compact repository context for a topic.
 
 The package is prepared for npm-style CLI distribution. The MVP includes CI and release artifact packaging, but automatic npm publishing is intentionally left for a later release policy.
 
