@@ -23,7 +23,7 @@ Workflow:
 1. Infer the current topic from the user request.
 2. Run \`kgraph context "<topic>"\` before broad repo exploration.
 3. Use KGraph's returned files, symbols, relationships, and cognition as navigation hints.
-4. **After completing the work**, always write a Markdown note to \`.kgraph/inbox/<slug>.md\` capturing what was built or changed, which files and symbols were touched, and any decisions made. Then immediately run \`kgraph update\`.
+4. **After completing the work**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` **only if** you discovered something a future session would need to re-derive — a gotcha, constraint, non-obvious decision, or bug. Skip capture for read-only reviews or sessions where nothing new was found. When you do capture, immediately run \`kgraph update\`.
 5. If you created, moved, deleted, or renamed files or symbols during this session, run \`kgraph scan\`. Skip it otherwise.
 6. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
 7. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.

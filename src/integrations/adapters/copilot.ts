@@ -7,7 +7,7 @@ export const copilotAdapter: IntegrationAdapter = {
   instructions: `## KGraph Workflow
 
 1. **Before exploring the repository**, run \`kgraph context "<topic>"\` to load existing repo intelligence. Use the returned files, symbols, and cognition before any broad exploration.
-2. **After every meaningful implementation or discovery session**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` capturing what was built, which files were touched, which symbols matter, and any decisions made. Then immediately run \`kgraph update\`.
+2. **After completing work**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` **only if** you discovered something a future session would need to re-derive — a gotcha, architectural constraint, non-obvious decision, or bug. For routine or read-only sessions where nothing new was found, skip capture entirely. When you do capture, immediately run \`kgraph update\`.
 3. If you created, moved, deleted, or renamed files or symbols, run \`kgraph scan\`.
 
 The inbox note must use this structure:
