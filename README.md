@@ -39,8 +39,6 @@ KGraph is not:
 
 KGraph is designed to feel like other developer-native CLI tools: one command to try it, optional global install if you use it often, and a quick version check before running commands.
 
-Public npm usage is the intended distribution path once the package is published.
-
 Install and run a specific stable release:
 
 ```bash
@@ -84,7 +82,7 @@ npm run kgraph -- update
 npm run kgraph -- context "auth token refresh"
 ```
 
-Until the npm package is publicly released, use the local development commands or install directly from the release workflow artifact.
+For contributing or local development, clone the repo and use the local commands above.
 
 ## MVP CLI
 
@@ -99,7 +97,7 @@ kgraph context "auth token refresh"
 
 `init` creates the local `.kgraph/` workspace. `scan` refreshes deterministic structure maps. `update` processes Markdown cognition notes. `context` returns compact repository context for a topic.
 
-The package is prepared for npm-style CLI distribution. The MVP includes CI and release artifact packaging, but automatic npm publishing is intentionally left for a later release policy.
+The MVP includes CI and release artifact packaging. New versions are published to npm automatically when a version tag is pushed.
 
 ## Local-First Privacy
 
