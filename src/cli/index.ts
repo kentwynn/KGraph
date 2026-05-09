@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { registerInitCommand } from "./commands/init.js";
 import { registerScanCommand } from "./commands/scan.js";
@@ -11,7 +13,7 @@ export function createProgram(): Command {
   program
     .name("kgraph")
     .description("Persistent repo intelligence for AI coding assistants")
-    .version("0.1.0");
+    .version("0.1.1");
 
   registerInitCommand(program);
   registerScanCommand(program);
@@ -21,6 +23,18 @@ export function createProgram(): Command {
   return program;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isCliEntrypoint()) {
   await createProgram().parseAsync(process.argv);
+}
+
+function isCliEntrypoint(): boolean {
+  if (!process.argv[1]) {
+    return false;
+  }
+
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return import.meta.url === `file://${process.argv[1]}`;
+  }
 }
