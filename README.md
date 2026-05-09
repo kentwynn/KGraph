@@ -154,7 +154,16 @@ npm run kgraph -- init --integrations codex,cursor
 
 ## Release
 
-CI runs build, tests, package checks, and generated-artifact hygiene on pushes and pull requests. Tagged releases publish the npm package and upload the packed artifact through GitHub Actions.
+CI runs build, tests, package checks, and generated-artifact hygiene on pushes and pull requests.
+
+Releases are tag-driven. Bump the package version, push the commit, then push the matching tag:
+
+```bash
+npm version patch
+git push origin main --follow-tags
+```
+
+The release workflow verifies that the tag matches `package.json`, checks that the npm version has not already been published, publishes the package to npm, creates a GitHub Release, and attaches the packed tarball. Manual workflow runs package the project for inspection but do not publish to npm.
 
 ## Roadmap
 

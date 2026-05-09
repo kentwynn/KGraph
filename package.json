@@ -4,7 +4,7 @@
   "description": "Persistent repo intelligence for AI coding assistants.",
   "type": "module",
   "bin": {
-    "kgraph": "./dist/cli/index.js"
+    "kgraph": "dist/cli/index.js"
   },
   "files": [
     "dist",
