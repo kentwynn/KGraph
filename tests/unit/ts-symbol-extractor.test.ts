@@ -1,0 +1,26 @@
+import { describe, expect, it } from "vitest";
+import { extractTsSymbols } from "../../src/scanner/ts-symbol-extractor.js";
+
+describe("ts symbol extractor", () => {
+  it("extracts imports, functions, classes, and methods", () => {
+    const result = extractTsSymbols(
+      `
+import { b } from "./b";
+export function a() { return b(); }
+export class C { run() { return true; } }
+`,
+      "src/a.ts"
+    );
+
+    expect(result.dependencies).toEqual(
+      expect.arrayContaining([expect.objectContaining({ specifier: "./b", kind: "local" })])
+    );
+    expect(result.symbols).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "a", kind: "function", exported: true }),
+        expect.objectContaining({ name: "C", kind: "class", exported: true }),
+        expect.objectContaining({ name: "run", kind: "method", parentName: "C" })
+      ])
+    );
+  });
+});

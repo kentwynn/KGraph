@@ -1,0 +1,42 @@
+{
+  "name": "kgraph",
+  "version": "0.1.0",
+  "description": "Persistent repo intelligence for AI coding assistants.",
+  "type": "module",
+  "bin": {
+    "kgraph": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "kgraph": "tsx src/cli/index.ts"
+  },
+  "keywords": [
+    "ai",
+    "code-intelligence",
+    "cli",
+    "repository",
+    "context"
+  ],
+  "author": "Kent Wynn",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "fast-glob": "^3.3.2",
+    "yaml": "^2.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

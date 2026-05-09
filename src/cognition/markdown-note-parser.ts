@@ -1,0 +1,81 @@
+import YAML from "yaml";
+import type { ParsedCognitionNote } from "../types/cognition.js";
+
+const PATH_REF = /(?:^|\s)([\w./-]+\.(?:ts|tsx|js|jsx|json|md|yaml|yml))(?:\s|$|[),.;])/g;
+const SYMBOL_REF = /`?([A-Za-z_$][\w$]{2,})`?/g;
+
+export function parseMarkdownNote(markdown: string): ParsedCognitionNote {
+  const warnings: string[] = [];
+  const { frontmatter, body } = splitFrontmatter(markdown, warnings);
+  const sections = parseSections(body);
+  const title = extractTitle(body) ?? frontmatter.title ?? "Untitled Cognition Note";
+  const combined = Object.values(sections).join("\n");
+
+  return {
+    title,
+    domain: typeof frontmatter.domain === "string" ? frontmatter.domain : undefined,
+    tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
+    summary: sections.Summary,
+    sections,
+    relatedFiles: unique(extractMatches(combined, PATH_REF)),
+    relatedSymbols: unique(extractSymbolRefs(combined)),
+    warnings
+  };
+}
+
+function splitFrontmatter(markdown: string, warnings: string[]): { frontmatter: Record<string, unknown>; body: string } {
+  if (!markdown.startsWith("---\n")) {
+    return { frontmatter: {}, body: markdown };
+  }
+
+  const end = markdown.indexOf("\n---", 4);
+  if (end === -1) {
+    warnings.push("Frontmatter start found without closing delimiter.");
+    return { frontmatter: {}, body: markdown };
+  }
+
+  try {
+    return {
+      frontmatter: (YAML.parse(markdown.slice(4, end)) ?? {}) as Record<string, unknown>,
+      body: markdown.slice(end + 4)
+    };
+  } catch (error) {
+    warnings.push(`Invalid frontmatter: ${error instanceof Error ? error.message : String(error)}`);
+    return { frontmatter: {}, body: markdown.slice(end + 4) };
+  }
+}
+
+function extractTitle(body: string): string | undefined {
+  return body.match(/^#\s+(.+)$/m)?.[1]?.trim();
+}
+
+function parseSections(body: string): Record<string, string> {
+  const sections: Record<string, string> = {};
+  const matches = [...body.matchAll(/^##\s+(.+)$/gm)];
+  for (let index = 0; index < matches.length; index += 1) {
+    const match = matches[index];
+    const heading = match[1].trim();
+    const start = (match.index ?? 0) + match[0].length;
+    const end = matches[index + 1]?.index ?? body.length;
+    sections[heading] = body.slice(start, end).trim();
+  }
+  if (Object.keys(sections).length === 0) {
+    sections.Summary = body.replace(/^#\s+.+$/m, "").trim();
+  }
+  return sections;
+}
+
+function extractMatches(text: string, regex: RegExp): string[] {
+  return [...text.matchAll(regex)].map((match) => match[1]);
+}
+
+function extractSymbolRefs(text: string): string[] {
+  const stopwords = new Set(["Summary", "Related", "Files", "Functions", "Decisions", "Debugging", "Conclusions"]);
+  return [...text.matchAll(SYMBOL_REF)]
+    .map((match) => match[1])
+    .filter((item) => !stopwords.has(item) && !item.includes("."));
+}
+
+function unique<T>(items: T[]): T[] {
+  return [...new Set(items)];
+}

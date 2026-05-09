@@ -1,0 +1,111 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import type { KGraphWorkspace } from "../types/config.js";
+import type { CognitionNote, DomainRecord, ReferenceStatus } from "../types/cognition.js";
+import type { ScanResult } from "../types/maps.js";
+import { parseMarkdownNote } from "./markdown-note-parser.js";
+import {
+  archiveInboxNote,
+  readCognitionNotes,
+  listInboxNotes,
+  slugify,
+  writeCognitionNote,
+  writeDomainRecord
+} from "../storage/cognition-store.js";
+
+export interface UpdateResult {
+  processed: CognitionNote[];
+  warnings: string[];
+}
+
+export async function updateCognition(
+  workspace: KGraphWorkspace,
+  currentMaps: Pick<ScanResult, "files" | "symbols">,
+  dryRun = false
+): Promise<UpdateResult> {
+  const inboxNotes = await listInboxNotes(workspace);
+  const processed: CognitionNote[] = [];
+  const warnings: string[] = [];
+
+  for (const inboxPath of inboxNotes) {
+    try {
+      const raw = await readFile(inboxPath, "utf8");
+      const parsed = parseMarkdownNote(raw);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const id = `${timestamp}-${slugify(parsed.title) || path.basename(inboxPath, ".md")}`;
+      const archivedPath = path.join(workspace.processedInteractionsPath, `${timestamp}-${path.basename(inboxPath)}`);
+      const note: CognitionNote = {
+        ...parsed,
+        id,
+        sourceInboxPath: path.relative(workspace.rootPath, inboxPath).split(path.sep).join("/"),
+        processedPath: path.relative(workspace.rootPath, archivedPath).split(path.sep).join("/"),
+        createdAt: new Date().toISOString(),
+        referencesStatus: evaluateReferenceStatus(parsed.relatedFiles, parsed.relatedSymbols, currentMaps)
+      };
+
+      processed.push(note);
+      warnings.push(...parsed.warnings.map((warning) => `${path.basename(inboxPath)}: ${warning}`));
+
+      if (!dryRun) {
+        await archiveInboxNote(workspace, inboxPath, timestamp);
+        await writeCognitionNote(workspace, note);
+        await writeDomainRecord(workspace, toDomainRecord(note, currentMaps));
+      }
+    } catch (error) {
+      warnings.push(`${path.basename(inboxPath)}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return { processed, warnings };
+}
+
+export async function refreshCognitionReferenceStatuses(
+  workspace: KGraphWorkspace,
+  currentMaps: Pick<ScanResult, "files" | "symbols">
+): Promise<void> {
+  const notes = await readCognitionNotes(workspace);
+  for (const note of notes) {
+    const nextStatus = evaluateReferenceStatus(note.relatedFiles, note.relatedSymbols, currentMaps);
+    if (nextStatus !== note.referencesStatus) {
+      await writeCognitionNote(workspace, { ...note, referencesStatus: nextStatus });
+    }
+  }
+}
+
+export function evaluateReferenceStatus(
+  relatedFiles: string[],
+  relatedSymbols: string[],
+  currentMaps: Pick<ScanResult, "files" | "symbols">
+): ReferenceStatus {
+  const filePaths = new Set(currentMaps.files.map((file) => file.path));
+  const symbolNames = new Set(currentMaps.symbols.map((symbol) => symbol.name));
+  const references = [
+    ...relatedFiles.map((file) => filePaths.has(file)),
+    ...relatedSymbols.map((symbol) => symbolNames.has(symbol))
+  ];
+
+  if (references.length === 0) {
+    return "unresolved";
+  }
+  if (references.every(Boolean)) {
+    return "current";
+  }
+  if (references.every((value) => !value)) {
+    return "stale";
+  }
+  return "mixed";
+}
+
+function toDomainRecord(note: CognitionNote, currentMaps: Pick<ScanResult, "files" | "symbols">): DomainRecord {
+  const name = note.domain ?? "general";
+  const fileSet = new Set(currentMaps.files.map((file) => file.path));
+  const symbolSet = new Set(currentMaps.symbols.map((symbol) => symbol.name));
+  return {
+    name,
+    pathHints: note.relatedFiles,
+    tags: note.tags,
+    files: note.relatedFiles.filter((file) => fileSet.has(file)),
+    symbols: note.relatedSymbols.filter((symbol) => symbolSet.has(symbol)),
+    cognitionNotes: [note.id]
+  };
+}

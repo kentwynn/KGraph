@@ -1,0 +1,11 @@
+src/
+tests/
+specs/
+.agents/
+.specify/
+.kgraph/
+REQUIREMENTS.md
+AGENTS.md
+*.log
+.env*
+node_modules/
