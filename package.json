@@ -14,7 +14,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "kgraph": "tsx src/cli/index.ts"
+    "kgraph": "tsx src/cli/index.ts",
+    "check:artifacts": "node scripts/check-clean-artifacts.mjs",
+    "pack:dry": "npm pack --dry-run"
   },
   "keywords": [
     "ai",
@@ -25,6 +27,14 @@
   ],
   "author": "Kent Wynn",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kentwynn/KGraph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kentwynn/KGraph/issues"
+  },
+  "homepage": "https://github.com/kentwynn/KGraph#readme",
   "dependencies": {
     "commander": "^12.1.0",
     "fast-glob": "^3.3.2",

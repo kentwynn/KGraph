@@ -17,5 +17,7 @@ coverage/
 
 # Logs and local environment
 *.log
+.npm-cache/
+*.tgz
 .env
 .env.*

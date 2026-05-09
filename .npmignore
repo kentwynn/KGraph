@@ -6,6 +6,10 @@ specs/
 .kgraph/
 REQUIREMENTS.md
 AGENTS.md
+scripts/
+.github/
+coverage/
+dist/**/*.map
 *.log
 .env*
 node_modules/
