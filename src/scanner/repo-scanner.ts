@@ -8,6 +8,8 @@ import type {
   RepositoryFile,
   ScanResult,
 } from '../types/maps.js';
+import { extractCSymbols } from './c-symbol-extractor.js';
+import { extractCSharpSymbols } from './csharp-symbol-extractor.js';
 import {
   buildFastGlobIgnore,
   detectLanguage,
@@ -15,7 +17,37 @@ import {
   readGitignorePatterns,
   shouldExclude,
 } from './file-classifier.js';
+import { extractGoSymbols } from './go-symbol-extractor.js';
+import { extractJvmSymbols } from './jvm-symbol-extractor.js';
+import { extractPythonSymbols } from './python-symbol-extractor.js';
+import { extractRustSymbols } from './rust-symbol-extractor.js';
 import { extractTsSymbols } from './ts-symbol-extractor.js';
+
+const C_EXTS = new Set(['.c', '.h', '.cpp', '.cc', '.cxx', '.hpp', '.hxx']);
+const JVM_EXTS = new Set(['.java', '.kt', '.kts']);
+
+function extractSymbols(text: string, repoPath: string) {
+  const ext = path.extname(repoPath);
+  if (ext === '.py' || ext === '.pyw' || ext === '.pyi') {
+    return extractPythonSymbols(text, repoPath);
+  }
+  if (ext === '.go') {
+    return extractGoSymbols(text, repoPath);
+  }
+  if (ext === '.rs') {
+    return extractRustSymbols(text, repoPath);
+  }
+  if (JVM_EXTS.has(ext)) {
+    return extractJvmSymbols(text, repoPath);
+  }
+  if (C_EXTS.has(ext)) {
+    return extractCSymbols(text, repoPath);
+  }
+  if (ext === '.cs') {
+    return extractCSharpSymbols(text, repoPath);
+  }
+  return extractTsSymbols(text, repoPath);
+}
 
 export async function scanRepository(
   rootPath: string,
@@ -68,7 +100,7 @@ export async function scanRepository(
       };
 
       if (isPreciseLanguage(repoPath, config)) {
-        const extracted = extractTsSymbols(text, repoPath);
+        const extracted = extractSymbols(text, repoPath);
         symbols.push(...extracted.symbols);
         dependencies.push(...extracted.dependencies);
         relationships.push(...extracted.relationships);

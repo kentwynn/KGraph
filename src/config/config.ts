@@ -41,7 +41,35 @@ export const DEFAULT_CONFIG: KGraphConfig = {
     '.DS_Store',
   ],
   languages: {
-    precise: ['.js', '.jsx', '.ts', '.tsx'],
+    precise: [
+      // JavaScript / TypeScript
+      '.js',
+      '.jsx',
+      '.ts',
+      '.tsx',
+      // Python
+      '.py',
+      '.pyw',
+      '.pyi',
+      // Go
+      '.go',
+      // Rust
+      '.rs',
+      // Java / Kotlin
+      '.java',
+      '.kt',
+      '.kts',
+      // C / C++
+      '.c',
+      '.h',
+      '.cpp',
+      '.cc',
+      '.cxx',
+      '.hpp',
+      '.hxx',
+      // C#
+      '.cs',
+    ],
   },
   maxContextItems: 8,
   domainHints: {},

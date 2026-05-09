@@ -149,12 +149,12 @@ kgraph integrate add codex copilot cursor claude-code
 kgraph integrate list
 ```
 
-| Tool           | Always-on instruction             | Skills / commands                                                   |
-| -------------- | --------------------------------- | ------------------------------------------------------------------- |
-| GitHub Copilot | `.github/copilot-instructions.md` | `/kgraph-scan` · `/kgraph-update` · `/kgraph-visualize`             |
-| Codex          | `AGENTS.md`                       | `.agents/skills/kgraph/SKILL.md` (VS Code Agent Skills standard)    |
-| Cursor         | `.cursor/rules/kgraph.mdc`        | Built into the rule                                                 |
-| Claude Code    | `CLAUDE.md`                       | `/kgraph` · `/kgraph-scan` · `/kgraph-update` · `/kgraph-visualize` |
+| Tool           | Always-on instruction             | Skills / commands                                                                               |
+| -------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| GitHub Copilot | `.github/copilot-instructions.md` | `/kgraph-scan` · `/kgraph-update` · `/kgraph-visualize` · `/kgraph-history` · `/kgraph-capture` |
+| Codex          | `AGENTS.md`                       | `.agents/skills/kgraph/SKILL.md` (VS Code Agent Skills standard)                                |
+| Cursor         | `.cursor/rules/kgraph.mdc`        | Built into the rule                                                                             |
+| Claude Code    | `CLAUDE.md`                       | `/kgraph` · `/kgraph-scan` · `/kgraph-update` · `/kgraph-visualize` · `/kgraph-history`         |
 
 Each integration installs a `/kgraph` skill or command that handles the full workflow automatically: load context → work → capture findings → update cognition. `/kgraph-scan`, `/kgraph-update`, and `/kgraph-visualize` are available for manual maintenance.
 
@@ -198,7 +198,9 @@ kgraph history --json                           # machine-readable output
 | **Relationships** | call sites, re-exports, shared types                                   |
 | **Cognition**     | past decisions, architectural constraints, debugging insights, gotchas |
 
-Supported languages: TypeScript, JavaScript, Python, Go, Rust, Java, Kotlin, C/C++, C#, Ruby, PHP, Swift, and 30+ more — detected by file extension, no configuration needed.
+**Deep scan** (symbols, functions, classes, methods, imports): TypeScript, JavaScript, Python, Go, Rust, Java, Kotlin, C, C++, C#
+
+**Generic scan** (file path, language, size — contributes to context): Ruby, PHP, Swift, Shell, HTML, CSS, SQL, YAML, TOML, and 20+ more — detected by file extension, no configuration needed.
 
 ---
 

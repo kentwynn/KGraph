@@ -15,7 +15,10 @@ export function tokenize(query: string): string[] {
 export function rankByFields<T>(
   query: string,
   items: T[],
-  fields: Array<{ name: string; value: (item: T) => string | string[] | undefined }>
+  fields: Array<{
+    name: string;
+    value: (item: T) => string | string[] | undefined;
+  }>,
 ): Ranked<T>[] {
   const tokens = tokenize(query);
   return items
@@ -25,11 +28,17 @@ export function rankByFields<T>(
       for (const field of fields) {
         const value = field.value(item);
         const values = Array.isArray(value) ? value : value ? [value] : [];
-        const haystack = values.join(" ").toLowerCase();
+        const haystack = values.join(' ').toLowerCase();
         for (const token of tokens) {
           if (haystack.includes(token)) {
-            score += field.name === "path" || field.name === "name" ? 3 : 1;
-            reasons.push(`${field.name} matched "${token}"`);
+            const baseScore =
+              field.name === 'path' || field.name === 'name' ? 3 : 1;
+            const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const wordBoundary = new RegExp(`\\b${escaped}\\b`).test(haystack);
+            score += baseScore + (wordBoundary ? 2 : 0);
+            reasons.push(
+              `${field.name} matched "${token}"${wordBoundary ? ' (exact)' : ''}`,
+            );
           }
         }
       }
