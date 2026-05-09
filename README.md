@@ -86,10 +86,10 @@ KGraph writes local instruction files and command/prompt packs so AI tools can u
 
 | Integration | Always-on guidance | KGraph command assets |
 | --- | --- | --- |
-| Codex | `AGENTS.md` | `.agents/skills/kgraph*/SKILL.md` |
-| GitHub Copilot | `.github/copilot-instructions.md` | `.github/prompts/kgraph*.prompt.md` |
-| Cursor | `.cursor/rules/kgraph.mdc` | `.cursor/rules/kgraph-commands.mdc` |
-| Claude Code | `CLAUDE.md` | `.claude/commands/kgraph*.md` |
+| Codex | `AGENTS.md` | `.agents/skills/kgraph/SKILL.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `.github/prompts/kgraph.prompt.md` |
+| Cursor | `.cursor/rules/kgraph.mdc` | Built into the KGraph Cursor rule |
+| Claude Code | `CLAUDE.md` | `.claude/commands/kgraph.md` |
 
 Example:
 
@@ -98,13 +98,13 @@ kgraph integrate add codex copilot cursor claude-code
 kgraph integrate list
 ```
 
-This gives supported tools reusable KGraph workflows similar to Spec Kit-style commands:
+This gives each supported tool one reusable KGraph entry point similar to a Spec Kit-style command:
 
 - KGraph context: query `kgraph context "<topic>"` before broad repo exploration
 - KGraph update: save durable chat/debugging/workflow discoveries to `.kgraph/inbox/`, then run `kgraph update`
 - KGraph scan: run `kgraph scan` after refactors, file moves, renamed functions, or dependency changes
 
-The exact invocation depends on the host tool. Copilot uses prompt files, Codex uses skills, Cursor uses rules, and Claude Code uses command files.
+The exact invocation depends on the host tool. Copilot uses one prompt file, Codex uses one skill, Cursor uses one rule, and Claude Code uses one command file. Scan and update are workflows inside that single KGraph entry point, not separate duplicated commands.
 
 KGraph-managed instruction blocks preserve existing user-authored content.
 

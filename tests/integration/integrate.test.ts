@@ -1,7 +1,7 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { cleanupTempRepo, createTempRepo, runCli } from "../fixtures/helpers.js";
+import { cleanupTempRepo, createTempRepo, runCli, writeText } from "../fixtures/helpers.js";
 
 describe("kgraph integrate", () => {
   it("adds, lists, and removes integrations without deleting user content", async () => {
@@ -9,6 +9,8 @@ describe("kgraph integrate", () => {
     try {
       await runCli(repo, ["init"]);
       await writeFile(path.join(repo, "AGENTS.md"), "Existing Codex guidance\n", "utf8");
+      await writeText(repo, ".github/prompts/kgraph-update.prompt.md", "old duplicate prompt\n");
+      await writeText(repo, ".agents/skills/kgraph-scan/SKILL.md", "old duplicate skill\n");
 
       const add = await runCli(repo, ["integrate", "add", "codex", "copilot"]);
       expect(add.code).toBe(0);
@@ -23,8 +25,11 @@ describe("kgraph integrate", () => {
       expect(agents).toContain("BEGIN KGRAPH codex");
       await access(path.join(repo, ".github", "copilot-instructions.md"));
       await access(path.join(repo, ".github", "prompts", "kgraph.prompt.md"));
-      await access(path.join(repo, ".github", "prompts", "kgraph-update.prompt.md"));
       await access(path.join(repo, ".agents", "skills", "kgraph", "SKILL.md"));
+      await expect(access(path.join(repo, ".github", "prompts", "kgraph-update.prompt.md"))).rejects.toThrow();
+      await expect(access(path.join(repo, ".github", "prompts", "kgraph-scan.prompt.md"))).rejects.toThrow();
+      await expect(access(path.join(repo, ".agents", "skills", "kgraph-update", "SKILL.md"))).rejects.toThrow();
+      await expect(access(path.join(repo, ".agents", "skills", "kgraph-scan", "SKILL.md"))).rejects.toThrow();
 
       const remove = await runCli(repo, ["integrate", "remove", "codex"]);
       expect(remove.code).toBe(0);

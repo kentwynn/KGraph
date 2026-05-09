@@ -28,28 +28,7 @@ Use KGraph for the current task.
 4. If you add an inbox note, run \`kgraph update\`.
 5. If code structure changed, run \`kgraph scan\`.
 `
-    },
-    {
-      path: ".github/prompts/kgraph-update.prompt.md",
-      content: `---
-mode: agent
-description: Preserve recent useful chat knowledge in KGraph
----
-
-Create a concise Markdown cognition note in \`.kgraph/inbox/\` from the useful stable knowledge in this conversation, then run \`kgraph update\`.
-
-Capture only durable information: architecture discoveries, debugging conclusions, workflow conventions, important files, important functions, and gotchas. Do not store temporary chatter.
-`
-    },
-    {
-      path: ".github/prompts/kgraph-scan.prompt.md",
-      content: `---
-mode: agent
-description: Refresh KGraph structural maps after repository changes
----
-
-Run \`kgraph scan\` and report the number of files and symbols scanned. If scan output suggests generated/cache files were included, mention that the exclude configuration may need adjustment.
-`
     }
-  ]
+  ],
+  obsoleteCommandFiles: [".github/prompts/kgraph-update.prompt.md", ".github/prompts/kgraph-scan.prompt.md"]
 };

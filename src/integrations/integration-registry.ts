@@ -10,6 +10,7 @@ export interface IntegrationAdapter {
   targetPath: string;
   instructions: string;
   commandFiles?: IntegrationCommandFile[];
+  obsoleteCommandFiles?: string[];
 }
 
 export interface IntegrationCommandFile {

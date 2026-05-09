@@ -31,28 +31,7 @@ Workflow:
 5. Run \`kgraph update\` if you created an inbox note.
 6. Run \`kgraph scan\` after structural changes.
 `
-    },
-    {
-      path: ".agents/skills/kgraph-update/SKILL.md",
-      content: `---
-name: "kgraph-update"
-description: "Preserve useful chat discoveries into KGraph cognition."
----
-
-Use this skill when the user asks to update KGraph memory or preserve what was learned.
-
-Write a concise Markdown note under \`.kgraph/inbox/\` with durable architecture, debugging, workflow, file, symbol, or gotcha knowledge. Then run \`kgraph update\`.
-`
-    },
-    {
-      path: ".agents/skills/kgraph-scan/SKILL.md",
-      content: `---
-name: "kgraph-scan"
-description: "Refresh KGraph structural maps after code changes."
----
-
-Run \`kgraph scan\` after files move, functions are renamed, folders are refactored, or dependencies change. Report the scan summary and any obvious exclude/config problems.
-`
     }
-  ]
+  ],
+  obsoleteCommandFiles: [".agents/skills/kgraph-update", ".agents/skills/kgraph-scan"]
 };

@@ -21,21 +21,9 @@ export const claudeCodeAdapter: IntegrationAdapter = {
 2. Run \`kgraph context "<topic>"\`.
 3. Use the returned files, symbols, relationships, and cognition before broad exploration.
 4. Save durable discoveries to \`.kgraph/inbox/\` and run \`kgraph update\` when appropriate.
-`
-    },
-    {
-      path: ".claude/commands/kgraph-update.md",
-      content: `Preserve useful chat knowledge in KGraph.
-
-Create a concise Markdown note in \`.kgraph/inbox/\` from durable discoveries in this conversation, then run \`kgraph update\`.
-`
-    },
-    {
-      path: ".claude/commands/kgraph-scan.md",
-      content: `Refresh KGraph structural maps.
-
-Run \`kgraph scan\` after code structure changes and report the scan summary.
+5. Run \`kgraph scan\` after structural changes and report the scan summary.
 `
     }
-  ]
+  ],
+  obsoleteCommandFiles: [".claude/commands/kgraph-update.md", ".claude/commands/kgraph-scan.md"]
 };
