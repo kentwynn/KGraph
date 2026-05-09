@@ -7,9 +7,8 @@ export const claudeCodeAdapter: IntegrationAdapter = {
   instructions: `## KGraph Workflow
 
 - Start repository work by checking \`kgraph context "<topic>"\` when the user asks about a domain, bug, workflow, or feature.
-- Convert stable discoveries from chat into Markdown notes under \`.kgraph/inbox/\`.
-- Run \`kgraph update\` to preserve those notes as durable cognition.
-- Run \`kgraph scan\` after structural code changes.
+- Convert stable discoveries from chat into Markdown notes under \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
+- If you created, moved, deleted, or renamed any files or symbols during this session, run \`kgraph scan\`. Skip it if you only read files or wrote cognition notes.
 - Run \`kgraph visualize\` when visualization support is available and the user wants to inspect the current knowledge map.
 `,
   commandFiles: [
@@ -20,8 +19,8 @@ export const claudeCodeAdapter: IntegrationAdapter = {
 1. Infer the topic from the user's request.
 2. Run \`kgraph context "<topic>"\`.
 3. Use the returned files, symbols, relationships, and cognition before broad exploration.
-4. Save durable discoveries to \`.kgraph/inbox/\` and run \`kgraph update\` when appropriate.
-5. Run \`kgraph scan\` after structural changes and report the scan summary.
+4. Save durable discoveries to \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
+5. If you created, moved, deleted, or renamed files or symbols during this session, run \`kgraph scan\` and report the summary. Skip it otherwise.
 `,
     },
     {

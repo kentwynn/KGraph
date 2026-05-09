@@ -43,7 +43,6 @@ describe('kgraph integrate', () => {
       expect(agents).toContain('Existing Codex guidance');
       expect(agents).toContain('BEGIN KGRAPH codex');
       await access(path.join(repo, '.github', 'copilot-instructions.md'));
-      await access(path.join(repo, '.github', 'prompts', 'kgraph.prompt.md'));
       await access(
         path.join(repo, '.github', 'prompts', 'kgraph-scan.prompt.md'),
       );
@@ -51,6 +50,10 @@ describe('kgraph integrate', () => {
         path.join(repo, '.github', 'prompts', 'kgraph-update.prompt.md'),
       );
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
+      // kgraph.prompt.md is obsolete — should be deleted on integrate
+      await expect(
+        access(path.join(repo, '.github', 'prompts', 'kgraph.prompt.md')),
+      ).rejects.toThrow();
       await expect(
         access(
           path.join(repo, '.agents', 'skills', 'kgraph-update', 'SKILL.md'),

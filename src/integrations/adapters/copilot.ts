@@ -7,28 +7,11 @@ export const copilotAdapter: IntegrationAdapter = {
   instructions: `## KGraph Workflow
 
 - Use \`kgraph context "<topic>"\` before scanning many files manually.
-- Preserve stable findings by creating Markdown notes in \`.kgraph/inbox/\`.
-- Use \`kgraph update\` to process chat summaries and debugging conclusions into durable cognition.
-- Use \`kgraph scan\` when code structure changes.
+- After stable findings, write a Markdown note to \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
+- If you created, moved, deleted, or renamed any files or symbols during this session, run \`kgraph scan\`. Skip it if you only read files or wrote cognition notes.
 - Use \`kgraph visualize\` when visualization support is available and the developer asks to inspect the repository knowledge map.
 `,
   commandFiles: [
-    {
-      path: '.github/prompts/kgraph.prompt.md',
-      content: `---
-mode: agent
-description: Use KGraph persistent repo intelligence for this request
----
-
-Use KGraph for the current task.
-
-1. If the user provided a topic, run \`kgraph context "<topic>"\` first. If not, infer a concise topic from the request.
-2. Use the returned files, symbols, relationships, and cognition before broad repository exploration.
-3. If you discover durable architecture, debugging, workflow, or gotcha knowledge, create a Markdown note in \`.kgraph/inbox/\`.
-4. If you add an inbox note, run \`kgraph update\`.
-5. If code structure changed, run \`kgraph scan\`.
-`,
-    },
     {
       path: '.github/prompts/kgraph-scan.prompt.md',
       content: `---
@@ -50,5 +33,5 @@ Run \`kgraph update\` to process any pending Markdown notes in \`.kgraph/inbox/\
 `,
     },
   ],
-  obsoleteCommandFiles: [],
+  obsoleteCommandFiles: ['.github/prompts/kgraph.prompt.md'],
 };
