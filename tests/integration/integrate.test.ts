@@ -50,8 +50,10 @@ describe('kgraph integrate', () => {
         path.join(repo, '.github', 'prompts', 'kgraph-update.prompt.md'),
       );
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
-      // kgraph.prompt.md is now the main /kgraph prompt — should be present
-      await access(path.join(repo, '.github', 'prompts', 'kgraph.prompt.md'));
+      // kgraph.prompt.md is obsolete — deleted on integrate to avoid duplicate /kgraph with codex SKILL
+      await expect(
+        access(path.join(repo, '.github', 'prompts', 'kgraph.prompt.md')),
+      ).rejects.toThrow();
       await expect(
         access(
           path.join(repo, '.agents', 'skills', 'kgraph-update', 'SKILL.md'),
