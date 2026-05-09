@@ -12,8 +12,8 @@ Before exploring the repository, run \`kgraph context "<topic>"\` to load existi
     {
       path: '.github/prompts/kgraph-scan.prompt.md',
       content: `---
-mode: agent
 description: Refresh KGraph file, symbol, import, and relationship maps
+agent: agent
 ---
 
 Run \`kgraph scan\` to refresh the repository maps, then summarize what changed.
@@ -22,8 +22,8 @@ Run \`kgraph scan\` to refresh the repository maps, then summarize what changed.
     {
       path: '.github/prompts/kgraph-update.prompt.md',
       content: `---
-mode: agent
 description: Process KGraph inbox notes into durable cognition
+agent: agent
 ---
 
 Run \`kgraph update\` to process any pending Markdown notes in \`.kgraph/inbox/\` into durable cognition.
@@ -32,8 +32,8 @@ Run \`kgraph update\` to process any pending Markdown notes in \`.kgraph/inbox/\
     {
       path: '.github/prompts/kgraph-visualize.prompt.md',
       content: `---
-mode: agent
 description: Open interactive KGraph dependency graph in browser
+agent: agent
 ---
 
 Run \`kgraph visualize\` to start the interactive dependency graph at http://localhost:4242, then summarize what nodes and connections are visible.
@@ -42,8 +42,8 @@ Run \`kgraph visualize\` to start the interactive dependency graph at http://loc
     {
       path: '.github/prompts/kgraph-history.prompt.md',
       content: `---
-mode: agent
 description: Show timeline of KGraph cognition sessions with git attribution
+agent: agent
 ---
 
 Run \`kgraph history\` to display the timeline of all processed cognition sessions. Summarize who contributed what and when. Use \`--last <n>\` to limit entries.
