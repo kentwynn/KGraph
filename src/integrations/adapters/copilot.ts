@@ -6,11 +6,26 @@ export const copilotAdapter: IntegrationAdapter = {
   targetPath: '.github/copilot-instructions.md',
   instructions: `## KGraph Workflow
 
-1. Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence.
-2. Use the returned files, symbols, relationships, and cognition before broad exploration.
-3. After durable discoveries (architecture decisions, debugging insights, structural findings), write a concise Markdown note to \`.kgraph/inbox/\` and immediately run \`kgraph update\`.
-4. If you created, moved, deleted, or renamed files or symbols, run \`kgraph scan\`.
-5. Use /kgraph-scan, /kgraph-update, /kgraph-visualize, and /kgraph-history for manual maintenance steps.
+1. **Before exploring the repository**, run \`kgraph context "<topic>"\` to load existing repo intelligence. Use the returned files, symbols, and cognition before any broad exploration.
+2. **After every meaningful implementation or discovery session**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` capturing what was built, which files were touched, which symbols matter, and any decisions made. Then immediately run \`kgraph update\`.
+3. If you created, moved, deleted, or renamed files or symbols, run \`kgraph scan\`.
+
+The inbox note must use this structure:
+\`\`\`markdown
+# <Short Title>
+
+## Summary
+One or two sentences describing what was done.
+
+## Key Files
+- \`path/to/file.ts\` — what it does
+
+## Key Symbols
+- \`FunctionName\` — what it does
+
+## Decisions
+Any architectural or implementation decisions made.
+\`\`\`
 `,
   commandFiles: [
     {
