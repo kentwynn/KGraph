@@ -59,6 +59,38 @@ Run \`kgraph visualize\` to start the interactive dependency graph at http://loc
 `,
     },
     {
+      path: '.github/prompts/kgraph-capture.prompt.md',
+      content: `---
+description: Save what was just built or changed into KGraph cognition
+agent: agent
+argument-hint: "Brief description of what was done"
+---
+
+Capture this session into KGraph cognition.
+
+1. Write a Markdown note to \`.kgraph/inbox/<slug>.md\` using the structure below. Use the user's message as the summary if provided.
+2. Immediately run \`kgraph update\`.
+3. If files or symbols were created, moved, deleted, or renamed, also run \`kgraph scan\`.
+
+Note structure:
+\`\`\`markdown
+# <Short Title>
+
+## Summary
+One or two sentences describing what was done.
+
+## Key Files
+- \`path/to/file.ts\` — what it does
+
+## Key Symbols
+- \`FunctionName\` — what it does
+
+## Decisions
+Any architectural or implementation decisions made.
+\`\`\`
+`,
+    },
+    {
       path: '.github/prompts/kgraph-history.prompt.md',
       content: `---
 description: Show timeline of KGraph cognition sessions with git attribution
