@@ -84,12 +84,12 @@ kgraph context "auth token refresh" --json
 
 KGraph writes local instruction files and command/prompt packs so AI tools can use the repository knowledge layer during normal coding chats.
 
-| Integration | Always-on guidance | KGraph command assets |
-| --- | --- | --- |
-| Codex | `AGENTS.md` | `.agents/skills/kgraph/SKILL.md` |
+| Integration    | Always-on guidance                | KGraph command assets              |
+| -------------- | --------------------------------- | ---------------------------------- |
+| Codex          | `AGENTS.md`                       | `.agents/skills/kgraph/SKILL.md`   |
 | GitHub Copilot | `.github/copilot-instructions.md` | `.github/prompts/kgraph.prompt.md` |
-| Cursor | `.cursor/rules/kgraph.mdc` | Built into the KGraph Cursor rule |
-| Claude Code | `CLAUDE.md` | `.claude/commands/kgraph.md` |
+| Cursor         | `.cursor/rules/kgraph.mdc`        | Built into the KGraph Cursor rule  |
+| Claude Code    | `CLAUDE.md`                       | `.claude/commands/kgraph.md`       |
 
 Example:
 
@@ -150,7 +150,21 @@ KGraph stores project intelligence in local files inside `.kgraph/`. The MVP doe
 npm install
 npm run build
 npm test
+```
+
+Test a command without installing:
+
+```bash
 npm run kgraph -- init --integrations codex,cursor
+npm run kgraph -- context "auth token refresh"
+```
+
+Install the local build globally to test the `kgraph` binary end-to-end:
+
+```bash
+npm install -g .
+kgraph --version
+kgraph init --integrations codex,copilot
 ```
 
 ## Release
