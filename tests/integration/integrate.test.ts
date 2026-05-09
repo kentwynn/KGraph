@@ -22,6 +22,9 @@ describe("kgraph integrate", () => {
       expect(agents).toContain("Existing Codex guidance");
       expect(agents).toContain("BEGIN KGRAPH codex");
       await access(path.join(repo, ".github", "copilot-instructions.md"));
+      await access(path.join(repo, ".github", "prompts", "kgraph.prompt.md"));
+      await access(path.join(repo, ".github", "prompts", "kgraph-update.prompt.md"));
+      await access(path.join(repo, ".agents", "skills", "kgraph", "SKILL.md"));
 
       const remove = await runCli(repo, ["integrate", "remove", "codex"]);
       expect(remove.code).toBe(0);
@@ -30,6 +33,7 @@ describe("kgraph integrate", () => {
       const after = await readFile(path.join(repo, "AGENTS.md"), "utf8");
       expect(after).toBe("Existing Codex guidance\n");
       expect(after).not.toContain("BEGIN KGRAPH codex");
+      await expect(access(path.join(repo, ".agents", "skills", "kgraph", "SKILL.md"))).rejects.toThrow();
     } finally {
       await cleanupTempRepo(repo);
     }

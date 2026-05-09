@@ -4,7 +4,7 @@ import path from "node:path";
 import fg from "fast-glob";
 import type { KGraphConfig } from "../types/config.js";
 import type { Relationship, RepositoryFile, ScanResult } from "../types/maps.js";
-import { detectLanguage, isPreciseLanguage, shouldExclude } from "./file-classifier.js";
+import { buildFastGlobIgnore, detectLanguage, isPreciseLanguage, shouldExclude } from "./file-classifier.js";
 import { extractTsSymbols } from "./ts-symbol-extractor.js";
 
 export async function scanRepository(rootPath: string, config: KGraphConfig, previous?: ScanResult): Promise<ScanResult> {
@@ -13,7 +13,7 @@ export async function scanRepository(rootPath: string, config: KGraphConfig, pre
     dot: true,
     onlyFiles: true,
     unique: true,
-    ignore: config.exclude.map((item) => `**/${item}/**`)
+    ignore: buildFastGlobIgnore(config.exclude)
   });
 
   const files: RepositoryFile[] = [];

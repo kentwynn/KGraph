@@ -9,4 +9,12 @@ describe("config", () => {
   it("normalizes custom max context items", () => {
     expect(normalizeConfig({ maxContextItems: 3 }).maxContextItems).toBe(3);
   });
+
+  it("keeps built-in project hygiene excludes when custom excludes are configured", () => {
+    const config = normalizeConfig({ exclude: ["custom-generated"] });
+
+    expect(config.exclude).toEqual(
+      expect.arrayContaining([".kgraph", ".agents", ".specify", ".github/prompts", "*.tgz", "custom-generated"])
+    );
+  });
 });

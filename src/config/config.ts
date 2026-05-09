@@ -6,7 +6,36 @@ import { KGraphError } from "../cli/errors.js";
 
 export const DEFAULT_CONFIG: KGraphConfig = {
   include: ["**/*"],
-  exclude: [".git", "node_modules", "dist", "build", ".next", "coverage", ".kgraph"],
+  exclude: [
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    ".next",
+    "coverage",
+    ".kgraph",
+    ".npm-cache",
+    ".cache",
+    ".turbo",
+    ".vite",
+    ".nuxt",
+    ".output",
+    ".vercel",
+    ".serverless",
+    ".agents",
+    ".specify",
+    "specs",
+    ".cursor",
+    ".claude",
+    ".github/copilot-instructions.md",
+    ".github/prompts",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "REQUIREMENTS.md",
+    "*.log",
+    "*.tgz",
+    ".DS_Store"
+  ],
   languages: {
     precise: [".js", ".jsx", ".ts", ".tsx"]
   },
@@ -46,7 +75,7 @@ export async function loadConfig(workspace: KGraphWorkspace): Promise<KGraphConf
 export function normalizeConfig(config: Partial<KGraphConfig>): KGraphConfig {
   return {
     include: Array.isArray(config.include) ? config.include : DEFAULT_CONFIG.include,
-    exclude: Array.isArray(config.exclude) ? config.exclude : DEFAULT_CONFIG.exclude,
+    exclude: mergeUnique(DEFAULT_CONFIG.exclude, Array.isArray(config.exclude) ? config.exclude : []),
     languages: {
       precise: Array.isArray(config.languages?.precise)
         ? config.languages.precise
@@ -59,6 +88,10 @@ export function normalizeConfig(config: Partial<KGraphConfig>): KGraphConfig {
     domainHints: config.domainHints && typeof config.domainHints === "object" ? config.domainHints : {},
     integrations: normalizeIntegrations(config.integrations)
   };
+}
+
+function mergeUnique<T>(base: T[], extra: T[]): T[] {
+  return [...new Set([...base, ...extra])];
 }
 
 function normalizeIntegrations(value: unknown): IntegrationConfig[] {

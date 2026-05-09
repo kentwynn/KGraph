@@ -9,6 +9,12 @@ export interface IntegrationAdapter {
   label: string;
   targetPath: string;
   instructions: string;
+  commandFiles?: IntegrationCommandFile[];
+}
+
+export interface IntegrationCommandFile {
+  path: string;
+  content: string;
 }
 
 const ADAPTERS: IntegrationAdapter[] = [

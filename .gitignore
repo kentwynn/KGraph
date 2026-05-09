@@ -4,6 +4,11 @@
 specs/
 AGENTS.md
 REQUIREMENTS.md
+CLAUDE.md
+.claude/
+.cursor/
+.github/copilot-instructions.md
+.github/prompts/
 
 # KGraph runtime data generated inside repos
 .kgraph/

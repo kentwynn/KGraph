@@ -16,5 +16,23 @@ alwaysApply: true
 - Run \`kgraph update\` after adding useful notes.
 - Run \`kgraph scan\` after refactors, moved folders, renamed functions, or other structure changes.
 - Run \`kgraph visualize\` when visualization support is available and the developer asks to inspect the KGraph map.
+`,
+  commandFiles: [
+    {
+      path: ".cursor/rules/kgraph-commands.mdc",
+      content: `---
+description: KGraph command workflows for repo context, update, and scan
+alwaysApply: false
+---
+
+# KGraph Commands
+
+Use these workflows when the user asks for KGraph:
+
+- KGraph context: run \`kgraph context "<topic>"\` before broad exploration.
+- KGraph update: write durable findings to \`.kgraph/inbox/\`, then run \`kgraph update\`.
+- KGraph scan: run \`kgraph scan\` after refactors, file moves, renamed functions, or dependency changes.
 `
+    }
+  ]
 };

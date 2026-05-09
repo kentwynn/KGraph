@@ -13,7 +13,9 @@ describe("kgraph init integrations", () => {
       expect(result.stdout).toContain("Configured integrations: codex, cursor");
 
       await access(path.join(repo, "AGENTS.md"));
+      await access(path.join(repo, ".agents", "skills", "kgraph", "SKILL.md"));
       await access(path.join(repo, ".cursor", "rules", "kgraph.mdc"));
+      await access(path.join(repo, ".cursor", "rules", "kgraph-commands.mdc"));
 
       const config = YAML.parse(await readFile(path.join(repo, ".kgraph", "config.yaml"), "utf8"));
       expect(config.integrations.map((item: { name: string }) => item.name)).toEqual(["codex", "cursor"]);

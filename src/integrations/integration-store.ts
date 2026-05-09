@@ -40,6 +40,7 @@ export async function addIntegrations(workspace: KGraphWorkspace, names: Integra
     };
     byName.set(adapter.name, next);
     await writeIntegrationInstructions(workspace.rootPath, adapter.targetPath, adapter.name, adapter.instructions);
+    await writeIntegrationCommandFiles(workspace.rootPath, adapter.commandFiles ?? []);
     changed.push(next);
   }
 
@@ -56,6 +57,7 @@ export async function removeIntegrations(workspace: KGraphWorkspace, names: Inte
   for (const name of removeNames) {
     const adapter = getIntegrationAdapter(name);
     await removeIntegrationInstructions(workspace.rootPath, adapter.targetPath, adapter.name);
+    await removeIntegrationCommandFiles(workspace.rootPath, adapter.commandFiles ?? []);
     removed.push(adapter.name);
   }
 
@@ -84,4 +86,18 @@ async function removeIntegrationInstructions(rootPath: string, targetPath: strin
     return;
   }
   await writeFile(fullPath, next, "utf8");
+}
+
+async function writeIntegrationCommandFiles(rootPath: string, files: { path: string; content: string }[]): Promise<void> {
+  for (const file of files) {
+    const fullPath = path.join(rootPath, file.path);
+    await mkdir(path.dirname(fullPath), { recursive: true });
+    await writeFile(fullPath, file.content.trimEnd() + "\n", "utf8");
+  }
+}
+
+async function removeIntegrationCommandFiles(rootPath: string, files: { path: string }[]): Promise<void> {
+  for (const file of files) {
+    await rm(path.join(rootPath, file.path), { force: true });
+  }
 }

@@ -82,28 +82,29 @@ kgraph context "auth token refresh" --json
 
 ## AI Tool Integrations
 
-KGraph writes local instruction files so AI tools know how to use the repository knowledge layer during normal coding chats.
+KGraph writes local instruction files and command/prompt packs so AI tools can use the repository knowledge layer during normal coding chats.
 
-| Integration | Instruction file |
-| --- | --- |
-| Codex | `AGENTS.md` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Cursor | `.cursor/rules/kgraph.mdc` |
-| Claude Code | `CLAUDE.md` |
+| Integration | Always-on guidance | KGraph command assets |
+| --- | --- | --- |
+| Codex | `AGENTS.md` | `.agents/skills/kgraph*/SKILL.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `.github/prompts/kgraph*.prompt.md` |
+| Cursor | `.cursor/rules/kgraph.mdc` | `.cursor/rules/kgraph-commands.mdc` |
+| Claude Code | `CLAUDE.md` | `.claude/commands/kgraph*.md` |
 
 Example:
 
 ```bash
-kgraph integrate add codex cursor
+kgraph integrate add codex copilot cursor claude-code
 kgraph integrate list
 ```
 
-Generated instructions teach AI tools to:
+This gives supported tools reusable KGraph workflows similar to Spec Kit-style commands:
 
-- query `kgraph context "<topic>"` before broad repo exploration
-- save useful architecture, workflow, and debugging discoveries to `.kgraph/inbox/`
-- run `kgraph update` to turn notes into durable cognition
-- run `kgraph scan` after refactors, file moves, or renamed functions
+- KGraph context: query `kgraph context "<topic>"` before broad repo exploration
+- KGraph update: save durable chat/debugging/workflow discoveries to `.kgraph/inbox/`, then run `kgraph update`
+- KGraph scan: run `kgraph scan` after refactors, file moves, renamed functions, or dependency changes
+
+The exact invocation depends on the host tool. Copilot uses prompt files, Codex uses skills, Cursor uses rules, and Claude Code uses command files.
 
 KGraph-managed instruction blocks preserve existing user-authored content.
 
@@ -115,7 +116,7 @@ KGraph-managed instruction blocks preserve existing user-authored content.
 - Markdown cognition inbox for AI chat summaries, decisions, gotchas, and debugging notes
 - Compact context output for AI assistants and scripts
 - JSON output for tool-friendly context retrieval
-- Integration management for Codex, Copilot, Cursor, and Claude Code
+- Integration management and command packs for Codex, Copilot, Cursor, and Claude Code
 - Stale-reference handling when code changes over time
 - Local-first storage with human-readable JSON, YAML, and Markdown
 
