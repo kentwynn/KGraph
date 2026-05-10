@@ -8,6 +8,7 @@ describe("root help", () => {
     expect(help).toContain("KGraph Persistent repo intelligence");
     expect(help).toContain("init --integrations codex,gemini");
     expect(help).toContain("context \"auth token refresh\"");
+    expect(help).toContain("session read src/auth.ts --agent codex");
     expect(help).toContain("integrate add gemini windsurf cline");
   });
 });

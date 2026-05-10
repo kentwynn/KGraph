@@ -17,6 +17,7 @@ export interface GraphData {
     fileCount: number;
     symbolCount: number;
     cognitionCount: number;
+    tokenEstimate: number;
     generatedAt: string;
   };
 }
@@ -56,8 +57,13 @@ export function buildGraph(
   const elements: CytoscapeElement[] = [];
   const edgeIds = new Set<string>();
   const nodeIds = new Set<string>();
+  const tokenEstimate = fileMap.files.reduce(
+    (total, file) => total + (file.tokenEstimate ?? 0),
+    0,
+  );
 
   for (const file of fileMap.files) {
+    const tokenBucket = getTokenBucket(file.tokenEstimate);
     nodeIds.add(file.id);
     elements.push({
       data: {
@@ -68,9 +74,11 @@ export function buildGraph(
         color: LANGUAGE_COLORS[file.language] ?? '#94a3b8',
         type: 'file',
         size: file.sizeBytes,
+        tokenEstimate: file.tokenEstimate ?? 0,
+        tokenBucket,
         scanStatus: file.scanStatus,
       },
-      classes: `file ${file.language}`,
+      classes: `file ${file.language} token-${tokenBucket}`,
     });
   }
 
@@ -177,7 +185,15 @@ export function buildGraph(
       fileCount: fileMap.files.length,
       symbolCount: symbolMap.symbols.length,
       cognitionCount: cognitionNotes.length,
+      tokenEstimate,
       generatedAt: new Date().toISOString(),
     },
   };
+}
+
+function getTokenBucket(tokenEstimate: number | undefined): 'small' | 'medium' | 'large' {
+  const tokens = tokenEstimate ?? 0;
+  if (tokens >= 1000) return 'large';
+  if (tokens >= 200) return 'medium';
+  return 'small';
 }

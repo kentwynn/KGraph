@@ -61,6 +61,9 @@ describe('kgraph integrate', () => {
         path.join(repo, '.github', 'prompts', 'kgraph-update.prompt.md'),
       );
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
+      await runCli(repo, ['integrate', 'add', 'claude-code']);
+      await access(path.join(repo, '.claude', 'hooks', 'kgraph-session-start.cjs'));
+      await access(path.join(repo, '.claude', 'hooks', 'kgraph-session-pre-read.cjs'));
       await expect(
         access(path.join(repo, '.github', 'prompts', 'kgraph.prompt.md')),
       ).rejects.toThrow();

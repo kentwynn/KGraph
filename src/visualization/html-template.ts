@@ -57,7 +57,7 @@ select:hover,button:hover{background:#475569}
 <body>
 <div id="toolbar">
   <span id="t-title">\u29e1 KGraph \u00b7 ${repoName}</span>
-  <span id="t-stats">${meta.fileCount} files &middot; ${meta.symbolCount} symbols &middot; ${meta.cognitionCount} notes</span>
+  <span id="t-stats">${meta.fileCount} files &middot; ${meta.symbolCount} symbols &middot; ${meta.cognitionCount} notes &middot; ~${meta.tokenEstimate} tokens</span>
   <div id="t-controls">
     <label class="clabel"><input type="checkbox" id="tog-cog" checked> Cognition</label>
     <select id="sel-layout" title="Graph layout algorithm">
@@ -87,6 +87,8 @@ select:hover,button:hover{background:#475569}
   <span class="li"><span class="li-dot" style="background:#10b981"></span>Markdown</span>
   <span class="li"><span class="li-dot" style="background:#8b5cf6"></span>YAML</span>
   <span class="li"><span class="li-dot" style="background:#94a3b8"></span>Other</span>
+  <span class="li"><span class="li-dot" style="background:#475569"></span>200+ tok</span>
+  <span class="li"><span class="li-dot" style="background:#ef4444"></span>1000+ tok</span>
   <span class="li-sep"></span>
   <span class="li-head">Cognition</span>
   <span class="li"><span class="li-dia" style="background:#10b981"></span>Current</span>
@@ -169,6 +171,20 @@ select:hover,button:hover{background:#475569}
         }
       },
       {
+        selector: 'node.token-medium',
+        style: {
+          'border-color': '#f59e0b',
+          'border-width': 2
+        }
+      },
+      {
+        selector: 'node.token-large',
+        style: {
+          'border-color': '#ef4444',
+          'border-width': 3
+        }
+      },
+      {
         selector: 'edge.import',
         style: {
           width: 1,
@@ -223,7 +239,8 @@ select:hover,button:hover{background:#475569}
     return '<div class="sb-badge" style="background:' + esc(d.color) + '22;color:' + esc(d.color) + ';border:1px solid ' + esc(d.color) + '44">' + esc(d.language) + '</div>' +
       '<div class="sb-title">' + esc(d.path) + '</div>' +
       '<div class="sb-sect"><div class="sb-lbl">Scan Status</div><div class="sb-val">' + esc(d.scanStatus) + '</div></div>' +
-      '<div class="sb-sect"><div class="sb-lbl">File Size</div><div class="sb-val">' + bytes(d.size) + '</div></div>';
+      '<div class="sb-sect"><div class="sb-lbl">File Size</div><div class="sb-val">' + bytes(d.size) + '</div></div>' +
+      '<div class="sb-sect"><div class="sb-lbl">Estimated Tokens</div><div class="sb-val">~' + esc(d.tokenEstimate || 0) + ' tokens</div></div>';
   }
 
   function renderCognitionPanel(d) {

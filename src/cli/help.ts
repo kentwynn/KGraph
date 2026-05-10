@@ -36,6 +36,8 @@ export function renderRootHelp(useColor = supportsColor()): string {
     '',
     theme.bold('Workflows'),
     command('scan', 'Optional: refresh only file, symbol, import, and relationship maps'),
+    command('session', 'Show agent read/write activity and token estimates'),
+    command('session read src/auth.ts --agent codex', 'Record an agent file read'),
     command(
       'context "auth token refresh"',
       'Optional: return context without scanning or updating',
@@ -108,6 +110,7 @@ export function renderWorkflowBanner(
     ),
     command('kgraph doctor', 'Check workspace health'),
     command('kgraph doctor --quality', 'Check cognition quality'),
+    command('kgraph session', 'Check session token waste'),
     command('kgraph --help', 'Show all commands'),
   ].join('\n');
 }

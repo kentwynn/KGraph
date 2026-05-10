@@ -143,6 +143,10 @@ export function printQualityReport(report: CognitionQualityReport): void {
   console.log(`Unresolved call edges: ${report.unresolvedCallCount}`);
   console.log(`Duplicate cognition titles: ${report.duplicateTitleCount}`);
   console.log(`Generated files scanned: ${report.generatedFileScanCount}`);
+  console.log(`Expensive files: ${report.expensiveFileCount}`);
+  console.log(`Session repeated reads: ${report.sessionRepeatedReadCount}`);
+  console.log(`Session estimated read tokens: ${report.sessionEstimatedReadTokens}`);
+  console.log(`Session repeated-read tokens: ${report.sessionEstimatedRepeatedReadTokens}`);
   if (report.changes.length === 0) {
     return;
   }

@@ -47,7 +47,7 @@ describe('graph-builder', () => {
   it('creates a file node for each file with correct color', () => {
     const fileMap: FileMap = {
       generatedAt: '',
-      files: [makeFile('f1', 'src/auth.ts', 'typescript')],
+      files: [{ ...makeFile('f1', 'src/auth.ts', 'typescript'), tokenEstimate: 240 }],
     };
     const result = buildGraph(
       fileMap,
@@ -62,7 +62,10 @@ describe('graph-builder', () => {
     expect(node.data.type).toBe('file');
     expect(node.data.color).toBe('#3b82f6');
     expect(node.data.label).toBe('auth.ts');
+    expect(node.data.tokenEstimate).toBe(240);
+    expect(node.data.tokenBucket).toBe('medium');
     expect(node.classes).toContain('file');
+    expect(node.classes).toContain('token-medium');
   });
 
   it('uses fallback color for unknown language', () => {
@@ -265,6 +268,7 @@ describe('graph-builder', () => {
     expect(result.meta.fileCount).toBe(2);
     expect(result.meta.symbolCount).toBe(1);
     expect(result.meta.cognitionCount).toBe(1);
+    expect(result.meta.tokenEstimate).toBe(0);
   });
 
   it('creates symbol nodes and relationship edges from the relationship map', () => {

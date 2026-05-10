@@ -26,6 +26,7 @@ export interface RepositoryFile {
   sizeBytes: number;
   modifiedAt?: string;
   contentHash: string;
+  tokenEstimate?: number;
   scanStatus: ScanStatus;
   warnings: string[];
 }

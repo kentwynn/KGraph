@@ -11,6 +11,7 @@ describe("kgraph scan", () => {
       const files = await readJson<FileMap>(repo, ".kgraph/map/files.json");
       const symbols = await readJson<SymbolMap>(repo, ".kgraph/map/symbols.json");
       expect(files.files.map((file) => file.path)).toContain("src/auth.ts");
+      expect(files.files.find((file) => file.path === "src/auth.ts")?.tokenEstimate).toBeGreaterThan(0);
       expect(symbols.symbols.map((symbol) => symbol.name)).toContain("loginUser");
     } finally {
       await cleanupTempRepo(repo);

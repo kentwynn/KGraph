@@ -11,6 +11,7 @@ import type {
   ReferenceStatus,
 } from '../types/cognition.js';
 import type { DependencyMap, FileMap, RelationshipMap, SymbolMap } from '../types/maps.js';
+import { buildSessionReport } from '../session/session-store.js';
 
 export interface CognitionRepairChange {
   noteId: string;
@@ -29,6 +30,10 @@ export interface CognitionQualityReport {
   unresolvedCallCount: number;
   duplicateTitleCount: number;
   generatedFileScanCount: number;
+  expensiveFileCount: number;
+  sessionRepeatedReadCount: number;
+  sessionEstimatedReadTokens: number;
+  sessionEstimatedRepeatedReadTokens: number;
   changes: CognitionRepairChange[];
 }
 
@@ -37,6 +42,7 @@ export async function analyzeCognitionQuality(
   maps: { fileMap: FileMap; symbolMap: SymbolMap; dependencyMap?: DependencyMap; relationshipMap?: RelationshipMap },
 ): Promise<CognitionQualityReport> {
   const notes = await readCognitionNotes(workspace);
+  const session = await buildSessionReport(workspace);
   const changes = notes
     .map((note) => analyzeNote(note, maps))
     .filter(
@@ -62,6 +68,10 @@ export async function analyzeCognitionQuality(
     unresolvedCallCount: countUnresolvedCalls(maps.symbolMap, maps.relationshipMap),
     duplicateTitleCount: countDuplicateTitles(notes),
     generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
+    expensiveFileCount: countExpensiveFiles(maps.fileMap),
+    sessionRepeatedReadCount: session.repeatedReadCount,
+    sessionEstimatedReadTokens: session.estimatedReadTokens,
+    sessionEstimatedRepeatedReadTokens: session.estimatedRepeatedReadTokens,
     changes,
   };
 }
@@ -72,6 +82,7 @@ export async function repairCognition(
   dryRun = false,
 ): Promise<CognitionQualityReport> {
   const notes = await readCognitionNotes(workspace);
+  const session = await buildSessionReport(workspace);
   const nextNotes: CognitionNote[] = [];
   const changes: CognitionRepairChange[] = [];
 
@@ -111,6 +122,10 @@ export async function repairCognition(
     unresolvedCallCount: countUnresolvedCalls(maps.symbolMap, maps.relationshipMap),
     duplicateTitleCount: countDuplicateTitles(nextNotes),
     generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
+    expensiveFileCount: countExpensiveFiles(maps.fileMap),
+    sessionRepeatedReadCount: session.repeatedReadCount,
+    sessionEstimatedReadTokens: session.estimatedReadTokens,
+    sessionEstimatedRepeatedReadTokens: session.estimatedRepeatedReadTokens,
     changes,
   };
 }
@@ -167,6 +182,10 @@ function countGeneratedScannedFiles(fileMap: FileMap): number {
       'GEMINI.md',
     ].some((prefix) => file.path === prefix || file.path.startsWith(prefix)),
   ).length;
+}
+
+function countExpensiveFiles(fileMap: FileMap): number {
+  return fileMap.files.filter((file) => (file.tokenEstimate ?? 0) >= 1000).length;
 }
 
 function analyzeNote(

@@ -8,6 +8,7 @@ export const clineAdapter: IntegrationAdapter = {
 
 - **Before exploring the repository**, run \`kgraph "<topic>"\` to refresh maps, process pending inbox notes, and load focused repo intelligence. Use the returned files, symbols, relationships, and cognition before any broad exploration.
 - Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.
+- Track meaningful session activity with \`kgraph session start --agent cline\`, \`kgraph session read <path> --agent cline\`, \`kgraph session write <path> --agent cline\`, and \`kgraph session end --agent cline\`.
 - Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when prior work or decisions matter.
 - At the end of any session that changed repository files, check the KGraph capture workflow before finishing.
 - If the file change has future value, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\`; otherwise explicitly skip capture as trivial.

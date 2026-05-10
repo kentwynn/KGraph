@@ -120,6 +120,18 @@ kgraph
 
 Use `kgraph doctor --quality` and `kgraph repair --dry-run` only when stale or noisy cognition references start making context harder to trust.
 
+Agents can also report session activity so KGraph can estimate token waste:
+
+```bash
+kgraph session start --agent codex
+kgraph session read src/auth.ts --agent codex
+kgraph session write src/auth.ts --agent codex
+kgraph session end --agent codex
+kgraph session
+```
+
+This is optional. Claude Code can use generated hook scripts for automatic capture; other agents use the same commands through their managed instructions, rules, or prompts.
+
 ## Main Commands
 
 ```bash
@@ -166,6 +178,18 @@ kgraph impact "createSession" --json
 ```
 
 Show practical impact for a file, symbol, or topic: matched files/symbols, import users, callers, callees, ownership edges, related cognition, and risk hints.
+
+```bash
+kgraph session
+kgraph session --json
+kgraph session reset
+kgraph session start --agent codex
+kgraph session read src/auth.ts --agent codex
+kgraph session write src/auth.ts --agent codex
+kgraph session end --agent codex
+```
+
+Track agent-reported read/write activity, repeated reads, and estimated token cost. Supported agents are `codex`, `claude-code`, `copilot`, `cursor`, `gemini`, `windsurf`, and `cline`.
 
 ## Optional Step Commands
 
@@ -248,6 +272,7 @@ All runtime data lives under `.kgraph/`:
 ├── cognition/
 ├── domains/
 ├── interactions/processed/
+├── sessions/
 └── context/
 ```
 

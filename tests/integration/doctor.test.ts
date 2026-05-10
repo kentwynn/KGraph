@@ -25,6 +25,8 @@ describe('kgraph doctor', () => {
       expect(quality.stdout).toContain('Unresolved call edges:');
       expect(quality.stdout).toContain('Duplicate cognition titles:');
       expect(quality.stdout).toContain('Generated files scanned:');
+      expect(quality.stdout).toContain('Expensive files:');
+      expect(quality.stdout).toContain('Session repeated reads:');
     } finally {
       await cleanupTempRepo(repo);
     }

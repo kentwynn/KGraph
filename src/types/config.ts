@@ -39,4 +39,5 @@ export interface KGraphWorkspace {
   inboxPath: string;
   processedInteractionsPath: string;
   contextPath: string;
+  sessionsPath: string;
 }

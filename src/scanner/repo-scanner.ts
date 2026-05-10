@@ -23,6 +23,7 @@ import { extractJvmSymbols } from './jvm-symbol-extractor.js';
 import { extractPythonSymbols } from './python-symbol-extractor.js';
 import { extractRustSymbols } from './rust-symbol-extractor.js';
 import { extractTsSymbols } from './ts-symbol-extractor.js';
+import { estimateTokens } from '../session/token-estimator.js';
 
 const C_EXTS = new Set(['.c', '.h', '.cpp', '.cc', '.cxx', '.hpp', '.hxx']);
 const JVM_EXTS = new Set(['.java', '.kt', '.kts']);
@@ -96,6 +97,7 @@ export async function scanRepository(
         sizeBytes: info.size,
         modifiedAt: info.mtime.toISOString(),
         contentHash,
+        tokenEstimate: estimateTokens(text, repoPath),
         scanStatus: isPreciseLanguage(repoPath, config) ? 'mapped' : 'generic',
         warnings: [],
       };

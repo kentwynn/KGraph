@@ -9,7 +9,8 @@ const WORKSPACE_DIRS = [
   "domains",
   "inbox",
   "interactions/processed",
-  "context"
+  "context",
+  "sessions"
 ] as const;
 
 export function resolveWorkspace(rootPath = process.cwd()): KGraphWorkspace {
@@ -23,7 +24,8 @@ export function resolveWorkspace(rootPath = process.cwd()): KGraphWorkspace {
     domainsPath: path.join(kgraphPath, "domains"),
     inboxPath: path.join(kgraphPath, "inbox"),
     processedInteractionsPath: path.join(kgraphPath, "interactions", "processed"),
-    contextPath: path.join(kgraphPath, "context")
+    contextPath: path.join(kgraphPath, "context"),
+    sessionsPath: path.join(kgraphPath, "sessions")
   };
 }
 

@@ -11,6 +11,7 @@ import { registerInitCommand } from './commands/init.js';
 import { registerIntegrateCommand } from './commands/integrate.js';
 import { registerRepairCommand } from './commands/repair.js';
 import { registerScanCommand } from './commands/scan.js';
+import { registerSessionCommand } from './commands/session.js';
 import { registerUpdateCommand } from './commands/update.js';
 import { registerVisualizeCommand } from './commands/visualize.js';
 import { runDefaultWorkflow } from './commands/workflow.js';
@@ -42,6 +43,7 @@ export function createProgram(): Command {
 
   registerInitCommand(program);
   registerScanCommand(program);
+  registerSessionCommand(program);
   registerUpdateCommand(program);
   registerContextCommand(program);
   registerImpactCommand(program);

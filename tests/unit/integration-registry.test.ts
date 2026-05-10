@@ -38,6 +38,7 @@ describe('integration registry', () => {
       expect.arrayContaining([
         '.github/prompts/kgraph-doctor.prompt.md',
         '.github/prompts/kgraph-impact.prompt.md',
+        '.github/prompts/kgraph-session.prompt.md',
         '.github/prompts/kgraph-repair.prompt.md',
         '.github/prompts/kgraph-scan.prompt.md',
       ]),
@@ -54,6 +55,7 @@ describe('integration registry', () => {
         '.claude/commands/kgraph.md',
         '.claude/commands/kgraph-doctor.md',
         '.claude/commands/kgraph-impact.md',
+        '.claude/commands/kgraph-session.md',
         '.claude/commands/kgraph-repair.md',
       ]),
     );
@@ -67,6 +69,7 @@ describe('integration registry', () => {
       ].join('\n');
       expect(content).toContain('kgraph "<topic>"');
       expect(content).toContain('kgraph doctor');
+      expect(content).toContain('kgraph session');
       expect(content).toContain('kgraph repair --dry-run');
       expect(content).toContain(
         'At the end of any session that changed repository files',
@@ -79,6 +82,19 @@ describe('integration registry', () => {
     ).not.toContain('.github/prompts/kgraph.prompt.md');
     expect(getIntegrationAdapter('copilot').obsoleteCommandFiles).toContain(
       '.github/prompts/kgraph.prompt.md',
+    );
+  });
+
+  it('adds Claude Code hook files for automatic session capture', () => {
+    expect(
+      getIntegrationAdapter('claude-code').commandFiles?.map((file) => file.path),
+    ).toEqual(
+      expect.arrayContaining([
+        '.claude/hooks/kgraph-session-start.cjs',
+        '.claude/hooks/kgraph-session-pre-read.cjs',
+        '.claude/hooks/kgraph-session-post-write.cjs',
+        '.claude/hooks/kgraph-session-stop.cjs',
+      ]),
     );
   });
 
