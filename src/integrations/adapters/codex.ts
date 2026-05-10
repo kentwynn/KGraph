@@ -6,7 +6,7 @@ export const codexAdapter: IntegrationAdapter = {
   targetPath: 'AGENTS.md',
   instructions: `## KGraph Workflow
 
-Before exploring the repository, run \`kgraph context "<topic>"\` to load existing repo intelligence. The /kgraph skill handles the full automated workflow. Run \`kgraph scan\` and \`kgraph update\` manually when needed.
+Before exploring the repository, run \`kgraph "<topic>"\` to refresh repo intelligence and load focused context. The /kgraph skill handles the full automated workflow. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
 `,
   commandFiles: [
     {
@@ -21,12 +21,13 @@ description: Use KGraph persistent repo intelligence before broad repository exp
 Workflow:
 
 1. Infer the current topic from the user request.
-2. Run \`kgraph context "<topic>"\` before broad repo exploration.
+2. Run \`kgraph "<topic>"\` before broad repo exploration. This refreshes maps, processes pending inbox notes, and returns focused context in one command.
 3. Use KGraph's returned files, symbols, relationships, and cognition as navigation hints.
-4. **After completing the work**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` **only if** you discovered something a future session would need to re-derive — a gotcha, constraint, non-obvious decision, or bug. Skip capture for read-only reviews or sessions where nothing new was found. When you do capture, immediately run \`kgraph update\`.
-5. If you created, moved, deleted, or renamed files or symbols during this session, run \`kgraph scan\`. Skip it otherwise.
-6. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-7. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
+4. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong.
+5. **After completing the work**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` **only if** you discovered something a future session would need to re-derive — a gotcha, constraint, non-obvious decision, or bug. Skip capture for read-only reviews or sessions where nothing new was found. When you do capture, immediately run \`kgraph update\` or simply run \`kgraph\`.
+6. If you created, moved, deleted, or renamed files or symbols during this session, run \`kgraph\` or \`kgraph scan\`. Skip it otherwise.
+7. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+8. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
 
 The inbox note must use this structure:
 \`\`\`markdown

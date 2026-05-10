@@ -6,9 +6,10 @@ export const copilotAdapter: IntegrationAdapter = {
   targetPath: '.github/copilot-instructions.md',
   instructions: `## KGraph Workflow
 
-1. **Before exploring the repository**, run \`kgraph context "<topic>"\` to load existing repo intelligence. Use the returned files, symbols, and cognition before any broad exploration.
-2. **After completing work**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` **only if** you discovered something a future session would need to re-derive — a gotcha, architectural constraint, non-obvious decision, or bug. For routine or read-only sessions where nothing new was found, skip capture entirely. When you do capture, immediately run \`kgraph update\`.
-3. If you created, moved, deleted, or renamed files or symbols, run \`kgraph scan\`.
+1. **Before exploring the repository**, run \`kgraph "<topic>"\` to refresh maps, process pending inbox notes, and load focused repo intelligence. Use the returned files, symbols, relationships, and cognition before any broad exploration.
+2. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong.
+3. **After completing work**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` **only if** you discovered something a future session would need to re-derive — a gotcha, architectural constraint, non-obvious decision, or bug. For routine or read-only sessions where nothing new was found, skip capture entirely. When you do capture, immediately run \`kgraph update\` or simply run \`kgraph\`.
+4. If you created, moved, deleted, or renamed files or symbols, run \`kgraph\` or \`kgraph scan\`.
 
 The inbox note must use this structure:
 \`\`\`markdown
@@ -28,6 +29,16 @@ Any architectural or implementation decisions made.
 \`\`\`
 `,
   commandFiles: [
+    {
+      path: '.github/prompts/kgraph-doctor.prompt.md',
+      content: `---
+description: Check KGraph workspace health and next actions
+agent: agent
+---
+
+Run \`kgraph doctor\` to check whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Summarize any failed checks and the next command to run.
+`,
+    },
     {
       path: '.github/prompts/kgraph-scan.prompt.md',
       content: `---

@@ -18,7 +18,12 @@ describe('integration registry', () => {
   it('defines command files for integrations that support reusable commands', () => {
     expect(
       getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
-    ).toContain('.github/prompts/kgraph-scan.prompt.md');
+    ).toEqual(
+      expect.arrayContaining([
+        '.github/prompts/kgraph-doctor.prompt.md',
+        '.github/prompts/kgraph-scan.prompt.md',
+      ]),
+    );
     expect(
       getIntegrationAdapter('codex').commandFiles?.map((file) => file.path),
     ).toContain('.agents/skills/kgraph/SKILL.md');
@@ -26,7 +31,23 @@ describe('integration registry', () => {
       getIntegrationAdapter('claude-code').commandFiles?.map(
         (file) => file.path,
       ),
-    ).toContain('.claude/commands/kgraph.md');
+    ).toEqual(
+      expect.arrayContaining([
+        '.claude/commands/kgraph.md',
+        '.claude/commands/kgraph-doctor.md',
+      ]),
+    );
+  });
+
+  it('teaches integrations to prefer the one-command workflow and doctor', () => {
+    for (const adapter of listIntegrationAdapters()) {
+      const content = [
+        adapter.instructions,
+        ...(adapter.commandFiles ?? []).map((file) => file.content),
+      ].join('\n');
+      expect(content).toContain('kgraph "<topic>"');
+      expect(content).toContain('kgraph doctor');
+    }
   });
 
   it('normalizes repeated comma and flag input', () => {
