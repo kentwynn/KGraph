@@ -22,4 +22,18 @@ describe("kgraph context", () => {
       await cleanupTempRepo(repo);
     }
   });
+
+  it("runs the default refresh workflow with a topic", async () => {
+    const repo = await copyFixture("js-ts-repo");
+    try {
+      await runCli(repo, ["init"]);
+      const result = await runCli(repo, ["auth refresh"]);
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("KGraph refreshed");
+      expect(result.stdout).toContain("# KGraph Context");
+      expect(result.stdout).toContain("src/auth.ts");
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
 });

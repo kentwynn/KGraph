@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest';
+import { cleanupTempRepo, copyFixture, runCli } from '../fixtures/helpers.js';
+
+describe('kgraph doctor', () => {
+  it('reports missing initialization and healthy scanned workspace', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      const beforeInit = await runCli(repo, ['doctor']);
+      expect(beforeInit.code).toBe(1);
+      expect(beforeInit.stdout).toContain('FAIL  workspace');
+
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      const afterScan = await runCli(repo, ['doctor']);
+      expect(afterScan.code).toBe(0);
+      expect(afterScan.stdout).toContain('OK  workspace');
+      expect(afterScan.stdout).toContain('OK  maps');
+      expect(afterScan.stdout).toContain('scan result');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+});

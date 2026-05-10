@@ -23,12 +23,12 @@ export function registerContextCommand(program: Command): void {
         const config = await loadConfig(workspace);
         const maps = await readMaps(workspace);
         const response = await queryContext(workspace, config, maps, query);
-        console.log(options.json ? JSON.stringify(response, null, 2) : renderMarkdown(response));
+        console.log(options.json ? JSON.stringify(response, null, 2) : renderContextMarkdown(response));
       })
     );
 }
 
-function renderMarkdown(response: ContextResponse): string {
+export function renderContextMarkdown(response: ContextResponse): string {
   const lines = [`# KGraph Context`, ``, `Query: ${response.query}`, ``];
   lines.push("## Matched Domains", "");
   lines.push(...formatList(response.matchedDomains.map((item) => `- ${item.item.name} (${item.reasons.join(", ")})`)));

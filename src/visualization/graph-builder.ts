@@ -38,17 +38,27 @@ const STATUS_COLORS: Record<string, string> = {
   unresolved: '#6b7280',
 };
 
+const SYMBOL_COLORS: Record<string, string> = {
+  function: '#22c55e',
+  class: '#a855f7',
+  method: '#14b8a6',
+  export: '#f97316',
+  import: '#64748b',
+};
+
 export function buildGraph(
   fileMap: FileMap,
   symbolMap: SymbolMap,
   dependencyMap: DependencyMap,
-  _relationshipMap: RelationshipMap,
+  relationshipMap: RelationshipMap,
   cognitionNotes: CognitionNote[],
 ): GraphData {
   const elements: CytoscapeElement[] = [];
   const edgeIds = new Set<string>();
+  const nodeIds = new Set<string>();
 
   for (const file of fileMap.files) {
+    nodeIds.add(file.id);
     elements.push({
       data: {
         id: file.id,
@@ -61,6 +71,22 @@ export function buildGraph(
         scanStatus: file.scanStatus,
       },
       classes: `file ${file.language}`,
+    });
+  }
+
+  for (const symbol of symbolMap.symbols) {
+    nodeIds.add(symbol.id);
+    elements.push({
+      data: {
+        id: symbol.id,
+        label: symbol.name,
+        path: symbol.filePath,
+        kind: symbol.kind,
+        parentName: symbol.parentName ?? '',
+        type: 'symbol',
+        color: SYMBOL_COLORS[symbol.kind] ?? '#94a3b8',
+      },
+      classes: `symbol ${symbol.kind}`,
     });
   }
 
@@ -121,6 +147,28 @@ export function buildGraph(
         });
       }
     }
+  }
+
+  for (const relationship of relationshipMap.relationships) {
+    if (!nodeIds.has(relationship.sourceId) || !nodeIds.has(relationship.targetId)) {
+      continue;
+    }
+    const edgeId = `rel-${relationship.relationshipType}-${relationship.sourceId}-${relationship.targetId}`;
+    if (edgeIds.has(edgeId)) {
+      continue;
+    }
+    edgeIds.add(edgeId);
+    elements.push({
+      data: {
+        id: edgeId,
+        source: relationship.sourceId,
+        target: relationship.targetId,
+        type: relationship.relationshipType,
+        confidence: relationship.confidence,
+        label: relationship.relationshipType,
+      },
+      classes: `relationship ${relationship.relationshipType}`,
+    });
   }
 
   return {

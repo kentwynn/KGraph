@@ -4,6 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { KGraphConfig } from '../types/config.js';
 import type {
+  Dependency,
   Relationship,
   RepositoryFile,
   ScanResult,
@@ -103,7 +104,11 @@ export async function scanRepository(
         const extracted = extractSymbols(text, repoPath);
         symbols.push(...extracted.symbols);
         dependencies.push(...extracted.dependencies);
-        relationships.push(...extracted.relationships);
+        relationships.push(
+          ...extracted.relationships.filter(
+            (relationship) => relationship.relationshipType !== 'import',
+          ),
+        );
         file.warnings.push(...extracted.warnings);
       }
 
@@ -124,8 +129,92 @@ export async function scanRepository(
     }
   }
 
+  resolveLocalDependencies(dependencies, files);
+  relationships.push(...buildImportRelationships(dependencies));
   relationships.push(...detectMovedFiles(previous?.files ?? [], files));
   return { files, symbols, dependencies, relationships, warnings };
+}
+
+const SOURCE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.mts',
+  '.cts',
+  '.py',
+  '.go',
+  '.rs',
+  '.java',
+  '.kt',
+  '.kts',
+  '.c',
+  '.h',
+  '.cpp',
+  '.cc',
+  '.cxx',
+  '.hpp',
+  '.hxx',
+  '.cs',
+] as const;
+
+function resolveLocalDependencies(
+  dependencies: Dependency[],
+  files: RepositoryFile[],
+): void {
+  const filePaths = new Set(files.map((file) => file.path));
+
+  for (const dependency of dependencies) {
+    if (dependency.kind !== 'local') {
+      continue;
+    }
+    dependency.resolvedFile = resolveLocalDependencyPath(
+      dependency.fromFile,
+      dependency.specifier,
+      filePaths,
+    );
+  }
+}
+
+function resolveLocalDependencyPath(
+  fromFile: string,
+  specifier: string,
+  filePaths: Set<string>,
+): string | undefined {
+  if (!specifier.startsWith('.')) {
+    return undefined;
+  }
+
+  const base = path.posix.normalize(
+    path.posix.join(path.posix.dirname(fromFile), specifier),
+  );
+  const candidates = path.posix.extname(base)
+    ? [base]
+    : [
+        ...SOURCE_EXTENSIONS.map((extension) => `${base}${extension}`),
+        ...SOURCE_EXTENSIONS.map((extension) =>
+          path.posix.join(base, `index${extension}`),
+        ),
+      ];
+
+  return candidates.find((candidate) => filePaths.has(candidate));
+}
+
+function buildImportRelationships(dependencies: Dependency[]): Relationship[] {
+  return dependencies.map((dependency) => ({
+    sourceType: 'file',
+    sourceId: dependency.fromFile,
+    targetType: dependency.kind === 'local' ? 'file' : 'package',
+    targetId: dependency.resolvedFile ?? dependency.specifier,
+    relationshipType: 'import',
+    confidence: dependency.resolvedFile
+      ? 'high'
+      : dependency.kind === 'local'
+        ? 'low'
+        : 'medium',
+  }));
 }
 
 function detectMovedFiles(

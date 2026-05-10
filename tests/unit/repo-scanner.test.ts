@@ -60,4 +60,36 @@ describe("repo scanner", () => {
       await cleanupTempRepo(repo);
     }
   });
+
+  it("resolves extensionless local imports against discovered files", async () => {
+    const repo = await createTempRepo();
+    try {
+      await writeText(repo, "src/app.ts", "import { view } from './view';\nview();\n");
+      await writeText(repo, "src/view.tsx", "export function view() { return null; }\n");
+
+      const result = await scanRepository(repo, DEFAULT_CONFIG);
+
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            fromFile: "src/app.ts",
+            specifier: "./view",
+            resolvedFile: "src/view.tsx",
+          }),
+        ]),
+      );
+      expect(result.relationships).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            sourceId: "src/app.ts",
+            targetId: "src/view.tsx",
+            relationshipType: "import",
+            confidence: "high",
+          }),
+        ]),
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
 });

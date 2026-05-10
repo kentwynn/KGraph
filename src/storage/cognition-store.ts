@@ -37,7 +37,11 @@ export async function writeCognitionNote(workspace: KGraphWorkspace, note: Cogni
 export async function writeDomainRecord(workspace: KGraphWorkspace, domain: DomainRecord): Promise<string> {
   await mkdir(workspace.domainsPath, { recursive: true });
   const filePath = path.join(workspace.domainsPath, `${slugify(domain.name)}.md`);
-  await writeFile(filePath, renderDomainRecord(domain), "utf8");
+  const existing = (await pathExists(filePath))
+    ? parseEmbeddedJson<DomainRecord>(await readFile(filePath, "utf8"))
+    : undefined;
+  const merged = existing ? mergeDomainRecords(existing, domain) : domain;
+  await writeFile(filePath, renderDomainRecord(merged), "utf8");
   return filePath;
 }
 
@@ -54,9 +58,9 @@ export async function readCognitionNotes(workspace: KGraphWorkspace): Promise<Co
     }
     const filePath = path.join(workspace.cognitionPath, entry.name);
     const raw = await readFile(filePath, "utf8");
-    const encoded = raw.match(/```json\n([\s\S]*?)\n```/);
+    const encoded = parseEmbeddedJson<CognitionNote>(raw);
     if (encoded) {
-      notes.push(JSON.parse(encoded[1]) as CognitionNote);
+      notes.push(encoded);
     }
   }
   return notes;
@@ -74,12 +78,37 @@ export async function readDomainRecords(workspace: KGraphWorkspace): Promise<Dom
       continue;
     }
     const raw = await readFile(path.join(workspace.domainsPath, entry.name), "utf8");
-    const encoded = raw.match(/```json\n([\s\S]*?)\n```/);
+    const encoded = parseEmbeddedJson<DomainRecord>(raw);
     if (encoded) {
-      domains.push(JSON.parse(encoded[1]) as DomainRecord);
+      domains.push(encoded);
     }
   }
   return domains;
+}
+
+function parseEmbeddedJson<T>(raw: string): T | undefined {
+  const encoded = raw.match(/```json\n([\s\S]*?)\n```/);
+  return encoded ? (JSON.parse(encoded[1]) as T) : undefined;
+}
+
+function mergeDomainRecords(existing: DomainRecord, next: DomainRecord): DomainRecord {
+  return {
+    ...existing,
+    ...next,
+    description: next.description ?? existing.description,
+    pathHints: unique([...existing.pathHints, ...next.pathHints]),
+    tags: unique([...existing.tags, ...next.tags]),
+    files: unique([...existing.files, ...next.files]),
+    symbols: unique([...existing.symbols, ...next.symbols]),
+    cognitionNotes: unique([
+      ...existing.cognitionNotes,
+      ...next.cognitionNotes,
+    ]),
+  };
+}
+
+function unique<T>(items: T[]): T[] {
+  return [...new Set(items)];
 }
 
 export function slugify(value: string): string {

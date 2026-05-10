@@ -49,6 +49,45 @@ export async function queryContext(
     { name: 'path', value: (domain) => domain.pathHints },
   ]).slice(0, max);
 
+  const relatedIds = new Set<string>([
+    ...relevantFiles.map((file) => file.item.path),
+    ...relevantSymbols.map((symbol) => symbol.item.id),
+    ...relevantSymbols.map((symbol) => symbol.item.filePath),
+    ...relevantCognition.flatMap((note) => [
+      ...note.item.relatedFiles,
+      ...note.item.relatedSymbols,
+    ]),
+    ...matchedDomains.flatMap((domain) => [
+      ...domain.item.files,
+      ...domain.item.symbols,
+    ]),
+  ]);
+  const rankedRelationships = rankByFields(
+    query,
+    maps.relationshipMap.relationships,
+    [
+      { name: 'source', value: (relationship) => relationship.sourceId },
+      { name: 'target', value: (relationship) => relationship.targetId },
+      { name: 'type', value: (relationship) => relationship.relationshipType },
+    ],
+  );
+  const relationships = [
+    ...maps.relationshipMap.relationships.filter(
+      (relationship) =>
+        relatedIds.has(relationship.sourceId) ||
+        relatedIds.has(relationship.targetId),
+    ),
+    ...rankedRelationships.map((relationship) => relationship.item),
+  ].filter(
+    (relationship, index, all) =>
+      all.findIndex(
+        (candidate) =>
+          candidate.sourceId === relationship.sourceId &&
+          candidate.targetId === relationship.targetId &&
+          candidate.relationshipType === relationship.relationshipType,
+      ) === index,
+  );
+
   const filePaths = new Set(maps.fileMap.files.map((f) => f.path));
   const symbolNames = new Set(maps.symbolMap.symbols.map((s) => s.name));
   const staleReferences = cognition
@@ -73,7 +112,7 @@ export async function queryContext(
     relevantFiles,
     relevantSymbols,
     relevantCognition,
-    relationships: maps.relationshipMap.relationships.slice(0, max),
+    relationships: relationships.slice(0, max),
     staleReferences,
     warnings: [],
   };

@@ -266,4 +266,49 @@ describe('graph-builder', () => {
     expect(result.meta.symbolCount).toBe(1);
     expect(result.meta.cognitionCount).toBe(1);
   });
+
+  it('creates symbol nodes and relationship edges from the relationship map', () => {
+    const fileMap: FileMap = {
+      generatedAt: '',
+      files: [makeFile('a.ts', 'a.ts', 'typescript')],
+    };
+    const symbolMap: SymbolMap = {
+      generatedAt: '',
+      symbols: [
+        {
+          id: 'a.ts#function#run#1#1',
+          name: 'run',
+          kind: 'function',
+          filePath: 'a.ts',
+          exported: true,
+        },
+      ],
+    };
+    const relMap: RelationshipMap = {
+      generatedAt: '',
+      relationships: [
+        {
+          sourceType: 'file',
+          sourceId: 'a.ts',
+          targetType: 'symbol',
+          targetId: 'a.ts#function#run#1#1',
+          relationshipType: 'contains',
+          confidence: 'high',
+        },
+      ],
+    };
+
+    const result = buildGraph(
+      fileMap,
+      symbolMap,
+      emptyMaps.depMap,
+      relMap,
+      [],
+    );
+
+    expect(result.elements.find((e) => e.data.type === 'symbol')).toBeDefined();
+    expect(
+      result.elements.find((e) => e.data.type === 'contains'),
+    ).toBeDefined();
+  });
 });
