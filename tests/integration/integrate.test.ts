@@ -25,6 +25,11 @@ describe('kgraph integrate', () => {
       );
       await writeText(
         repo,
+        '.github/prompts/kgraph.prompt.md',
+        'old duplicate full workflow prompt\n',
+      );
+      await writeText(
+        repo,
         '.agents/skills/kgraph-scan/SKILL.md',
         'old duplicate skill\n',
       );
@@ -53,7 +58,6 @@ describe('kgraph integrate', () => {
         path.join(repo, '.github', 'prompts', 'kgraph-update.prompt.md'),
       );
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
-      // kgraph.prompt.md is obsolete — deleted on integrate to avoid duplicate /kgraph with codex SKILL
       await expect(
         access(path.join(repo, '.github', 'prompts', 'kgraph.prompt.md')),
       ).rejects.toThrow();

@@ -24,26 +24,28 @@ Workflow:
 2. Run \`kgraph "<topic>"\` before broad repo exploration. This refreshes maps, processes pending inbox notes, and returns focused context in one command.
 3. Use KGraph's returned files, symbols, relationships, and cognition as navigation hints.
 4. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong.
-5. **After completing the work**, write a Markdown note to \`.kgraph/inbox/<slug>.md\` **only if** you discovered something a future session would need to re-derive — a gotcha, constraint, non-obvious decision, or bug. Skip capture for read-only reviews or sessions where nothing new was found. When you do capture, immediately run \`kgraph update\` or simply run \`kgraph\`.
-6. If you created, moved, deleted, or renamed files or symbols during this session, run \`kgraph\` or \`kgraph scan\`. Skip it otherwise.
-7. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-8. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
+5. At the end of any session that changed repository files, check the KGraph capture workflow before finishing.
+6. If the file change has future value, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\`; otherwise explicitly skip capture as trivial.
+7. Skip capture only for read-only work, trivial formatting, typo-only docs, dependency-only churn, mechanical cleanup with no future value, or sessions where no repo files changed.
+8. Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write any needed inbox note first, then run \`kgraph\` once at the end.
+9. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+10. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
 
 The inbox note must use this structure:
 \`\`\`markdown
 # <Short Title>
 
 ## Summary
-One or two sentences describing what was done.
+One or two sentences describing the durable change or finding.
 
 ## Key Files
-- \`path/to/file.ts\` — what it does
+- \`path/to/file.ts\` — what changed or why it matters
 
 ## Key Symbols
-- \`FunctionName\` — what it does
+- \`FunctionName\` — what changed or why it matters
 
 ## Decisions
-Any architectural or implementation decisions made.
+Any implementation or product decision future sessions should know.
 \`\`\`
 `,
     },

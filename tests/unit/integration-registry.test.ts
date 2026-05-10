@@ -47,7 +47,18 @@ describe('integration registry', () => {
       ].join('\n');
       expect(content).toContain('kgraph "<topic>"');
       expect(content).toContain('kgraph doctor');
+      expect(content).toContain(
+        'At the end of any session that changed repository files',
+      );
+      expect(content).toContain('check the KGraph capture workflow');
+      expect(content).toContain('If repo files changed');
     }
+    expect(
+      getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
+    ).not.toContain('.github/prompts/kgraph.prompt.md');
+    expect(getIntegrationAdapter('copilot').obsoleteCommandFiles).toContain(
+      '.github/prompts/kgraph.prompt.md',
+    );
   });
 
   it('normalizes repeated comma and flag input', () => {
