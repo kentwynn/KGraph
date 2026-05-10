@@ -7,11 +7,12 @@ export const copilotAdapter: IntegrationAdapter = {
   instructions: `## KGraph Workflow
 
 1. **Before exploring the repository**, run \`kgraph "<topic>"\` to refresh maps, process pending inbox notes, and load focused repo intelligence. Use the returned files, symbols, relationships, and cognition before any broad exploration.
-2. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong.
+2. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.
 3. At the end of any session that changed repository files, check the KGraph capture workflow before finishing.
 4. If the file change has future value, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\`; otherwise explicitly skip capture as trivial.
 5. Skip capture only for read-only work, trivial formatting, typo-only docs, dependency-only churn, mechanical cleanup with no future value, or sessions where no repo files changed.
 6. Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write any needed inbox note first, then run \`kgraph\` once at the end.
+7. Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.
 
 The inbox note must use this structure:
 \`\`\`markdown
@@ -38,7 +39,18 @@ description: Check KGraph workspace health and next actions
 agent: agent
 ---
 
-Run \`kgraph doctor\` to check whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Summarize any failed checks and the next command to run.
+Run \`kgraph doctor\` to check whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Use \`kgraph doctor --quality\` when the user asks about stale or noisy cognition references. Summarize any failed checks and the next command to run.
+`,
+    },
+    {
+      path: '.github/prompts/kgraph-repair.prompt.md',
+      content: `---
+description: Preview or clean stale/noisy KGraph cognition references
+agent: agent
+argument-hint: "--dry-run or apply"
+---
+
+Run \`kgraph repair --dry-run\` first and summarize the proposed cognition cleanup. Run \`kgraph repair\` only when the user asks to apply the cleanup.
 `,
     },
     {

@@ -29,9 +29,40 @@ describe("kgraph context", () => {
       await runCli(repo, ["init"]);
       const result = await runCli(repo, ["auth refresh"]);
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("KGraph refreshed");
+      expect(result.stdout).toContain("Refresh Complete");
       expect(result.stdout).toContain("# KGraph Context");
       expect(result.stdout).toContain("src/auth.ts");
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it("runs the default refresh workflow without a topic and prints next actions", async () => {
+    const repo = await copyFixture("js-ts-repo");
+    try {
+      await runCli(repo, ["init"]);
+      const result = await runCli(repo, []);
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("KGraph");
+      expect(result.stdout).toContain("Refresh Complete");
+      expect(result.stdout).toContain("files");
+      expect(result.stdout).toContain("Next");
+      expect(result.stdout).toContain('kgraph "auth token refresh"');
+      expect(result.stdout).toContain("kgraph --help");
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it("prints root help for plain kgraph before initialization", async () => {
+    const repo = await copyFixture("js-ts-repo");
+    try {
+      const result = await runCli(repo, []);
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("KGraph");
+      expect(result.stdout).toContain("Usage");
+      expect(result.stdout).toContain("init");
+      expect(result.stderr).toBe("");
     } finally {
       await cleanupTempRepo(repo);
     }

@@ -100,6 +100,17 @@ kgraph doctor
 
 After useful AI work, assistants can save durable notes into `.kgraph/inbox/`. The next `kgraph` run processes those notes automatically. You can also process them directly with `kgraph update`.
 
+Normal agent flow is intentionally small:
+
+```bash
+kgraph "topic"
+# work normally
+# if repo files changed, write an inbox note when the change has future value
+kgraph
+```
+
+Use `kgraph doctor --quality` and `kgraph repair --dry-run` only when stale or noisy cognition references start making context harder to trust.
+
 ## Main Commands
 
 ```bash
@@ -128,9 +139,17 @@ Refreshes maps and cognition without returning topic-specific context.
 
 ```bash
 kgraph doctor
+kgraph doctor --quality
 ```
 
-Checks whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files.
+Checks whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Use `--quality` when context shows stale/noisy cognition references.
+
+```bash
+kgraph repair --dry-run
+kgraph repair
+```
+
+`repair --dry-run` previews cleanup for noisy cognition references, such as framework names recorded as files or local variables recorded as symbols. `repair` applies that cleanup. Run repair intentionally when stale references make context noisy; it is not part of every normal workflow.
 
 ## Optional Step Commands
 
@@ -255,6 +274,8 @@ Run the local TypeScript CLI without installing globally:
 npm run kgraph -- init
 npm run kgraph -- "auth token refresh"
 npm run kgraph -- doctor
+npm run kgraph -- doctor --quality
+npm run kgraph -- repair --dry-run
 ```
 
 Test the built package as a global local install:
@@ -265,6 +286,7 @@ npm install -g .
 kgraph --version
 kgraph doctor
 kgraph "auth token refresh"
+kgraph repair --dry-run
 ```
 
 Package checks:

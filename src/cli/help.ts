@@ -42,6 +42,9 @@ export function renderRootHelp(useColor = supportsColor()): string {
     ),
     command('update', 'Optional: process only .kgraph/inbox Markdown cognition notes'),
     command('doctor', 'Check workspace health and next actions'),
+    command('doctor --quality', 'Report stale/noisy cognition references'),
+    command('repair --dry-run', 'Preview cognition reference cleanup'),
+    command('repair', 'Clean noisy stale cognition references'),
     command(
       'visualize',
       'Interactive dependency graph at http://localhost:4242',
@@ -70,6 +73,41 @@ export function renderRootHelp(useColor = supportsColor()): string {
     '',
     theme.dim('Docs: https://github.com/kentwynn/KGraph#readme'),
     '',
+  ].join('\n');
+}
+
+interface WorkflowBannerStats {
+  files: number;
+  symbols: number;
+  cognitionNotes: number;
+}
+
+export function renderWorkflowBanner(
+  stats: WorkflowBannerStats,
+  useColor = supportsColor(),
+): string {
+  const theme = new Chalk({ level: useColor ? 3 : 0 });
+  const command = (name: string, description: string) =>
+    `  ${theme.green(name.padEnd(30))} ${description}`;
+  return [
+    '',
+    theme.hex('#7dd3fc').bold(renderLogo()),
+    '',
+    `  ${theme.bold('KGraph')} ${theme.dim('repo intelligence refreshed')}`,
+    '',
+    theme.bold('Refresh Complete'),
+    command('files', String(stats.files)),
+    command('symbols', String(stats.symbols)),
+    command('cognition notes processed', String(stats.cognitionNotes)),
+    '',
+    theme.bold('Next'),
+    command(
+      'kgraph "auth token refresh"',
+      'Return compact context for a topic',
+    ),
+    command('kgraph doctor', 'Check workspace health'),
+    command('kgraph doctor --quality', 'Check cognition quality'),
+    command('kgraph --help', 'Show all commands'),
   ].join('\n');
 }
 

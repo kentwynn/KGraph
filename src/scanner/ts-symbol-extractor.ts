@@ -97,6 +97,14 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
       });
     }
 
+    if (ts.isInterfaceDeclaration(node)) {
+      addSymbol(node.name.text, "interface", node, isExported(node), parentName);
+    }
+
+    if (ts.isTypeAliasDeclaration(node)) {
+      addSymbol(node.name.text, "type", node, isExported(node), parentName);
+    }
+
     ts.forEachChild(node, (child) => visit(child, parentName));
   };
 

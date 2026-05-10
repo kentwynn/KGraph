@@ -1,6 +1,13 @@
 export type ScanStatus = "mapped" | "generic" | "failed";
 export type DependencyKind = "local" | "package" | "unknown";
-export type SymbolKind = "function" | "class" | "method" | "export" | "import";
+export type SymbolKind =
+  | "function"
+  | "class"
+  | "method"
+  | "type"
+  | "interface"
+  | "export"
+  | "import";
 export type RelationshipType =
   | "import"
   | "contains"

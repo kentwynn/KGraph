@@ -55,6 +55,9 @@ describe('kgraph integrate', () => {
         path.join(repo, '.github', 'prompts', 'kgraph-doctor.prompt.md'),
       );
       await access(
+        path.join(repo, '.github', 'prompts', 'kgraph-repair.prompt.md'),
+      );
+      await access(
         path.join(repo, '.github', 'prompts', 'kgraph-update.prompt.md'),
       );
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));

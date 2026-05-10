@@ -8,6 +8,7 @@ import { registerDoctorCommand } from './commands/doctor.js';
 import { registerHistoryCommand } from './commands/history.js';
 import { registerInitCommand } from './commands/init.js';
 import { registerIntegrateCommand } from './commands/integrate.js';
+import { registerRepairCommand } from './commands/repair.js';
 import { registerScanCommand } from './commands/scan.js';
 import { registerUpdateCommand } from './commands/update.js';
 import { registerVisualizeCommand } from './commands/visualize.js';
@@ -46,6 +47,7 @@ export function createProgram(): Command {
   registerVisualizeCommand(program);
   registerHistoryCommand(program);
   registerDoctorCommand(program);
+  registerRepairCommand(program);
   return program;
 }
 

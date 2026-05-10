@@ -16,13 +16,14 @@ Before exploring the repository, run \`kgraph "<topic>"\` to refresh repo intell
 1. Infer the topic from the user's request.
 2. Run \`kgraph "<topic>"\`. This refreshes maps, processes pending inbox notes, and returns focused context in one command.
 3. Use the returned files, symbols, relationships, and cognition before broad exploration.
-4. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong.
+4. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.
 5. At the end of any session that changed repository files, check the KGraph capture workflow before finishing.
 6. If the file change has future value, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\`; otherwise explicitly skip capture as trivial.
 7. Skip capture only for read-only work, trivial formatting, typo-only docs, dependency-only churn, mechanical cleanup with no future value, or sessions where no repo files changed.
 8. Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write any needed inbox note first, then run \`kgraph\` once at the end.
-9. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-10. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
+9. Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.
+10. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+11. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
 
 The inbox note must use this structure:
 \`\`\`markdown
@@ -44,7 +45,12 @@ Any implementation or product decision future sessions should know.
     },
     {
       path: '.claude/commands/kgraph-doctor.md',
-      content: `Run \`kgraph doctor\` to check whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Summarize any failed checks and the next command to run.
+      content: `Run \`kgraph doctor\` to check whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Use \`kgraph doctor --quality\` when the user asks about stale or noisy cognition references. Summarize any failed checks and the next command to run.
+`,
+    },
+    {
+      path: '.claude/commands/kgraph-repair.md',
+      content: `Run \`kgraph repair --dry-run\` first and summarize the proposed cognition cleanup. Run \`kgraph repair\` only when the user asks to apply the cleanup.
 `,
     },
     {

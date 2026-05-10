@@ -16,6 +16,11 @@ describe('kgraph doctor', () => {
       expect(afterScan.stdout).toContain('OK  workspace');
       expect(afterScan.stdout).toContain('OK  maps');
       expect(afterScan.stdout).toContain('scan result');
+
+      const quality = await runCli(repo, ['doctor', '--quality']);
+      expect(quality.code).toBe(0);
+      expect(quality.stdout).toContain('KGraph Cognition Quality');
+      expect(quality.stdout).toContain('Notes:');
     } finally {
       await cleanupTempRepo(repo);
     }

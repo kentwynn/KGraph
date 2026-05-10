@@ -6,7 +6,9 @@ describe("ts symbol extractor", () => {
     const result = extractTsSymbols(
       `
 import { b } from "./b";
-export function a() { return b(); }
+export interface User { id: string; }
+export type Session = { user: User };
+export function a(): Session { return b(); }
 export class C { run() { return true; } }
 `,
       "src/a.ts"
@@ -18,6 +20,8 @@ export class C { run() { return true; } }
     expect(result.symbols).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "a", kind: "function", exported: true }),
+        expect.objectContaining({ name: "User", kind: "interface", exported: true }),
+        expect.objectContaining({ name: "Session", kind: "type", exported: true }),
         expect.objectContaining({ name: "C", kind: "class", exported: true }),
         expect.objectContaining({ name: "run", kind: "method", parentName: "C" })
       ])

@@ -21,6 +21,7 @@ describe('integration registry', () => {
     ).toEqual(
       expect.arrayContaining([
         '.github/prompts/kgraph-doctor.prompt.md',
+        '.github/prompts/kgraph-repair.prompt.md',
         '.github/prompts/kgraph-scan.prompt.md',
       ]),
     );
@@ -35,6 +36,7 @@ describe('integration registry', () => {
       expect.arrayContaining([
         '.claude/commands/kgraph.md',
         '.claude/commands/kgraph-doctor.md',
+        '.claude/commands/kgraph-repair.md',
       ]),
     );
   });
@@ -47,6 +49,7 @@ describe('integration registry', () => {
       ].join('\n');
       expect(content).toContain('kgraph "<topic>"');
       expect(content).toContain('kgraph doctor');
+      expect(content).toContain('kgraph repair --dry-run');
       expect(content).toContain(
         'At the end of any session that changed repository files',
       );

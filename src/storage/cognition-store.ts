@@ -45,6 +45,13 @@ export async function writeDomainRecord(workspace: KGraphWorkspace, domain: Doma
   return filePath;
 }
 
+export async function overwriteDomainRecord(workspace: KGraphWorkspace, domain: DomainRecord): Promise<string> {
+  await mkdir(workspace.domainsPath, { recursive: true });
+  const filePath = path.join(workspace.domainsPath, `${slugify(domain.name)}.md`);
+  await writeFile(filePath, renderDomainRecord(domain), "utf8");
+  return filePath;
+}
+
 export async function readCognitionNotes(workspace: KGraphWorkspace): Promise<CognitionNote[]> {
   if (!(await pathExists(workspace.cognitionPath))) {
     return [];
