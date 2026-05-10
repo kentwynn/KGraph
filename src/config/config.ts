@@ -4,6 +4,7 @@ import { KGraphError } from '../cli/errors.js';
 import { pathExists } from '../storage/kgraph-paths.js';
 import type {
   IntegrationConfig,
+  IntegrationMode,
   KGraphConfig,
   KGraphWorkspace,
 } from '../types/config.js';
@@ -182,8 +183,15 @@ function normalizeIntegrations(value: unknown): IntegrationConfig[] {
     integrations.push({
       name: candidate.name,
       enabled: candidate.enabled !== false,
+      mode: normalizeIntegrationMode(candidate.mode),
       targetPath: candidate.targetPath,
     } as IntegrationConfig);
   }
   return integrations;
+}
+
+function normalizeIntegrationMode(value: unknown): IntegrationMode {
+  return value === 'always' || value === 'manual' || value === 'off'
+    ? value
+    : 'smart';
 }

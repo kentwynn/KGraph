@@ -36,17 +36,18 @@ describe('kgraph integrate', () => {
 
       const add = await runCli(repo, ['integrate', 'add', 'codex', 'copilot']);
       expect(add.code).toBe(0);
-      expect(add.stdout).toContain('Configured integrations: codex, copilot');
+      expect(add.stdout).toContain('Configured integrations: codex:always, copilot:always');
 
       const list = await runCli(repo, ['integrate', 'list']);
-      expect(list.stdout).toContain('codex enabled AGENTS.md present');
+      expect(list.stdout).toContain('codex enabled always AGENTS.md present');
       expect(list.stdout).toContain(
-        'copilot enabled .github/copilot-instructions.md present',
+        'copilot enabled always .github/copilot-instructions.md present',
       );
 
       const agents = await readFile(path.join(repo, 'AGENTS.md'), 'utf8');
       expect(agents).toContain('Existing Codex guidance');
       expect(agents).toContain('BEGIN KGRAPH codex');
+      expect(agents).toContain('Every chat in this repository must start');
       await access(path.join(repo, '.github', 'copilot-instructions.md'));
       await access(
         path.join(repo, '.github', 'prompts', 'kgraph-scan.prompt.md'),
@@ -104,27 +105,30 @@ describe('kgraph integrate', () => {
       const add = await runCli(repo, [
         'integrate',
         'add',
+        '--mode',
+        'always',
         'gemini',
         'windsurf',
         'cline',
       ]);
       expect(add.code).toBe(0);
       expect(add.stdout).toContain(
-        'Configured integrations: gemini, windsurf, cline',
+        'Configured integrations: gemini:always, windsurf:always, cline:always',
       );
 
       const list = await runCli(repo, ['integrate', 'list']);
-      expect(list.stdout).toContain('gemini enabled GEMINI.md present');
+      expect(list.stdout).toContain('gemini enabled always GEMINI.md present');
       expect(list.stdout).toContain(
-        'windsurf enabled .windsurf/rules/kgraph.md present',
+        'windsurf enabled always .windsurf/rules/kgraph.md present',
       );
       expect(list.stdout).toContain(
-        'cline enabled .clinerules/kgraph.md present',
+        'cline enabled always .clinerules/kgraph.md present',
       );
 
       const gemini = await readFile(path.join(repo, 'GEMINI.md'), 'utf8');
       expect(gemini).toContain('Existing Gemini guidance');
       expect(gemini).toContain('BEGIN KGRAPH gemini');
+      expect(gemini).toContain('Every chat in this repository must start');
       await access(path.join(repo, '.windsurf', 'rules', 'kgraph.md'));
       await access(path.join(repo, '.clinerules', 'kgraph.md'));
 
@@ -147,6 +151,53 @@ describe('kgraph integrate', () => {
       ).rejects.toThrow();
       await expect(
         access(path.join(repo, '.clinerules', 'kgraph.md')),
+      ).rejects.toThrow();
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('sets integration modes and disables generated instructions with off', async () => {
+    const repo = await createTempRepo();
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['integrate', 'add', 'copilot']);
+
+      const manual = await runCli(repo, [
+        'integrate',
+        'set',
+        'copilot',
+        '--mode',
+        'manual',
+      ]);
+      expect(manual.code).toBe(0);
+      expect(manual.stdout).toContain('Updated integrations: copilot:manual');
+
+      const instructions = await readFile(
+        path.join(repo, '.github', 'copilot-instructions.md'),
+        'utf8',
+      );
+      expect(instructions).toContain('Do not run KGraph automatically');
+
+      const off = await runCli(repo, [
+        'integrate',
+        'set',
+        'copilot',
+        '--mode',
+        'off',
+      ]);
+      expect(off.code).toBe(0);
+      expect(off.stdout).toContain('Updated integrations: copilot:off');
+
+      const list = await runCli(repo, ['integrate', 'list']);
+      expect(list.stdout).toContain(
+        'copilot disabled off .github/copilot-instructions.md missing',
+      );
+      await expect(
+        access(path.join(repo, '.github', 'copilot-instructions.md')),
+      ).rejects.toThrow();
+      await expect(
+        access(path.join(repo, '.github', 'prompts', 'kgraph-scan.prompt.md')),
       ).rejects.toThrow();
     } finally {
       await cleanupTempRepo(repo);

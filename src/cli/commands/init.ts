@@ -3,11 +3,13 @@ import { writeDefaultConfig } from "../../config/config.js";
 import { normalizeIntegrationNames } from "../../integrations/integration-registry.js";
 import { addIntegrations } from "../../integrations/integration-store.js";
 import { ensureWorkspace } from "../../storage/kgraph-paths.js";
-import { runCommand } from "../errors.js";
+import type { IntegrationMode } from "../../types/config.js";
+import { KGraphError, runCommand } from "../errors.js";
 
 interface InitOptions {
   integration?: string[];
   integrations?: string;
+  mode: string;
 }
 
 export function registerInitCommand(program: Command): void {
@@ -16,6 +18,7 @@ export function registerInitCommand(program: Command): void {
     .description("Initialize a .kgraph workspace")
     .option("--integration <name>", "Configure an AI tool integration", collectOption, [])
     .option("--integrations <names>", "Configure comma-separated AI tool integrations")
+    .option("--mode <mode>", "Integration mode: smart, always, manual, or off", "always")
     .action((options: InitOptions) =>
       runCommand(async () => {
         const workspace = await ensureWorkspace(process.cwd());
@@ -27,8 +30,9 @@ export function registerInitCommand(program: Command): void {
           ...(options.integrations ? [options.integrations] : [])
         ]);
         if (names.length > 0) {
-          const changed = await addIntegrations(workspace, names);
-          console.log(`Configured integrations: ${changed.map((item) => item.name).join(", ")}`);
+          const mode = normalizeIntegrationMode(options.mode);
+          const changed = await addIntegrations(workspace, names, mode);
+          console.log(`Configured integrations: ${changed.map((item) => `${item.name}:${item.mode}`).join(", ")}`);
         }
       })
     );
@@ -37,4 +41,11 @@ export function registerInitCommand(program: Command): void {
 function collectOption(value: string, previous: string[]): string[] {
   previous.push(value);
   return previous;
+}
+
+function normalizeIntegrationMode(value: string): IntegrationMode {
+  if (value === "smart" || value === "always" || value === "manual" || value === "off") {
+    return value;
+  }
+  throw new KGraphError("--mode must be smart, always, manual, or off.");
 }

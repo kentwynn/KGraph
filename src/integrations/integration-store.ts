@@ -2,13 +2,14 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig, saveConfig } from "../config/config.js";
 import { pathExists } from "../storage/kgraph-paths.js";
-import type { IntegrationConfig, IntegrationName, KGraphWorkspace } from "../types/config.js";
+import type { IntegrationConfig, IntegrationMode, IntegrationName, KGraphWorkspace } from "../types/config.js";
 import { getIntegrationAdapter } from "./integration-registry.js";
-import { removeManagedBlock, upsertManagedBlock } from "./instruction-blocks.js";
+import { applyContextPolicy, removeManagedBlock, upsertManagedBlock } from "./instruction-blocks.js";
 
 export interface IntegrationStatus {
   name: IntegrationName;
   enabled: boolean;
+  mode: IntegrationMode;
   targetPath: string;
   targetExists: boolean;
 }
@@ -19,6 +20,7 @@ export async function listIntegrations(workspace: KGraphWorkspace): Promise<Inte
     config.integrations.map(async (integration) => ({
       name: integration.name,
       enabled: integration.enabled,
+      mode: integration.mode,
       targetPath: integration.targetPath,
       targetExists: await pathExists(path.join(workspace.rootPath, integration.targetPath))
     }))
@@ -26,7 +28,11 @@ export async function listIntegrations(workspace: KGraphWorkspace): Promise<Inte
   return statuses.sort((left, right) => left.name.localeCompare(right.name));
 }
 
-export async function addIntegrations(workspace: KGraphWorkspace, names: IntegrationName[]): Promise<IntegrationConfig[]> {
+export async function addIntegrations(
+  workspace: KGraphWorkspace,
+  names: IntegrationName[],
+  mode: IntegrationMode = "always"
+): Promise<IntegrationConfig[]> {
   const config = await loadConfig(workspace);
   const byName = new Map(config.integrations.map((integration) => [integration.name, integration]));
   const changed: IntegrationConfig[] = [];
@@ -35,19 +41,44 @@ export async function addIntegrations(workspace: KGraphWorkspace, names: Integra
     const adapter = getIntegrationAdapter(name);
     const next: IntegrationConfig = {
       name: adapter.name,
-      enabled: true,
+      enabled: mode !== "off",
+      mode,
       targetPath: adapter.targetPath
     };
     byName.set(adapter.name, next);
-    await writeIntegrationInstructions(workspace.rootPath, adapter.targetPath, adapter.name, adapter.instructions);
+    if (mode === "off") {
+      await removeIntegrationInstructions(workspace.rootPath, adapter.targetPath, adapter.name);
+      await removeIntegrationCommandFiles(workspace.rootPath, adapter.commandFiles ?? []);
+    } else {
+      await writeIntegrationInstructions(
+        workspace.rootPath,
+        adapter.targetPath,
+        adapter.name,
+        applyContextPolicy(adapter.instructions, mode)
+      );
+      await writeIntegrationCommandFiles(
+        workspace.rootPath,
+        (adapter.commandFiles ?? []).map((file) => ({
+          ...file,
+          content: applyContextPolicy(file.content, mode)
+        }))
+      );
+    }
     await removeIntegrationCommandFiles(workspace.rootPath, adapter.obsoleteCommandFiles ?? []);
-    await writeIntegrationCommandFiles(workspace.rootPath, adapter.commandFiles ?? []);
     changed.push(next);
   }
 
   config.integrations = [...byName.values()].sort((left, right) => left.name.localeCompare(right.name));
   await saveConfig(workspace, config);
   return changed;
+}
+
+export async function setIntegrationMode(
+  workspace: KGraphWorkspace,
+  names: IntegrationName[],
+  mode: IntegrationMode
+): Promise<IntegrationConfig[]> {
+  return addIntegrations(workspace, names, mode);
 }
 
 export async function removeIntegrations(workspace: KGraphWorkspace, names: IntegrationName[]): Promise<IntegrationName[]> {

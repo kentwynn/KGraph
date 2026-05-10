@@ -49,6 +49,11 @@ export async function runDefaultWorkflow(query?: string): Promise<void> {
       files: scan.files.length,
       symbols: scan.symbols.length,
       cognitionNotes: update.processed.length,
+      integrations: config.integrations.map((integration) => ({
+        name: integration.name,
+        mode: integration.mode,
+        enabled: integration.enabled,
+      })),
     }));
     console.log('');
     for (const warning of [...scan.warnings, ...update.warnings]) {

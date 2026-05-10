@@ -4,6 +4,7 @@ import {
   listIntegrationAdapters,
   normalizeIntegrationNames,
 } from '../../src/integrations/integration-registry.js';
+import { applyContextPolicy } from '../../src/integrations/instruction-blocks.js';
 
 describe('integration registry', () => {
   it('lists supported AI tool integrations', () => {
@@ -64,8 +65,8 @@ describe('integration registry', () => {
   it('teaches integrations to prefer the one-command workflow and doctor', () => {
     for (const adapter of listIntegrationAdapters()) {
       const content = [
-        adapter.instructions,
-        ...(adapter.commandFiles ?? []).map((file) => file.content),
+        applyContextPolicy(adapter.instructions, 'smart'),
+        ...(adapter.commandFiles ?? []).map((file) => applyContextPolicy(file.content, 'smart')),
       ].join('\n');
       expect(content).toContain('kgraph "<topic>"');
       expect(content).toContain('kgraph doctor');
@@ -74,7 +75,8 @@ describe('integration registry', () => {
       expect(content).toContain(
         'At the end of any session that changed repository files',
       );
-      expect(content).toContain('check the KGraph capture workflow');
+      expect(content).toContain('write one concise Markdown note');
+      expect(content).toContain('Do not skip capture for UI text');
       expect(content).toContain('If repo files changed');
     }
     expect(

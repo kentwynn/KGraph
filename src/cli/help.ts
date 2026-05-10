@@ -58,11 +58,23 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('integrate list', 'Show configured AI tool integrations'),
     command(
       'integrate add gemini windsurf cline',
-      'Write KGraph instructions for AI tools',
+      'Write KGraph instructions using always mode by default',
+    ),
+    command(
+      'integrate add copilot --mode always',
+      'Every Copilot chat starts with kgraph "<topic>"',
+    ),
+    command(
+      'integrate set copilot --mode manual',
+      'Only run KGraph when explicitly requested',
     ),
     command(
       'integrate remove cursor',
       'Remove KGraph-managed instruction blocks',
+    ),
+    command(
+      '--mode smart|always|manual|off',
+      'Control automatic KGraph involvement per integration',
     ),
     '',
     theme.bold('Options'),
@@ -83,6 +95,13 @@ interface WorkflowBannerStats {
   files: number;
   symbols: number;
   cognitionNotes: number;
+  integrations?: WorkflowBannerIntegration[];
+}
+
+interface WorkflowBannerIntegration {
+  name: string;
+  mode: string;
+  enabled: boolean;
 }
 
 export function renderWorkflowBanner(
@@ -92,6 +111,17 @@ export function renderWorkflowBanner(
   const theme = new Chalk({ level: useColor ? 3 : 0 });
   const command = (name: string, description: string) =>
     `  ${theme.green(name.padEnd(42))} ${description}`;
+  const integrationLine =
+    stats.integrations && stats.integrations.length > 0
+      ? stats.integrations
+          .map((integration) =>
+            integration.enabled
+              ? `${integration.name}:${integration.mode}`
+              : `${integration.name}:off`,
+          )
+          .join(', ')
+      : 'none configured';
+
   return [
     '',
     theme.hex('#7dd3fc').bold(renderLogo()),
@@ -102,6 +132,7 @@ export function renderWorkflowBanner(
     command('files', String(stats.files)),
     command('symbols', String(stats.symbols)),
     command('cognition notes processed', String(stats.cognitionNotes)),
+    command('integration modes', integrationLine),
     '',
     theme.bold('Next'),
     command(

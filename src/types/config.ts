@@ -23,9 +23,12 @@ export type IntegrationName =
   | "gemini"
   | "windsurf";
 
+export type IntegrationMode = "smart" | "always" | "manual" | "off";
+
 export interface IntegrationConfig {
   name: IntegrationName;
   enabled: boolean;
+  mode: IntegrationMode;
   targetPath: string;
 }
 

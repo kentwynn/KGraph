@@ -238,9 +238,20 @@ KGraph integrations are local files. They do not start background agents, call A
 
 ```bash
 kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
+kgraph integrate add copilot --mode always
+kgraph integrate set copilot --mode manual
 kgraph integrate list
 kgraph integrate remove cursor
 ```
+
+New integrations default to `always` mode because coding agents often under-classify small UI, route, button, and link changes as not needing repo context.
+
+| Mode | Behavior |
+| --- | --- |
+| `always` | Every chat in the repository starts with `kgraph "<topic>"`, even simple or conversational requests. |
+| `smart` | Runs KGraph automatically for repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests. Skips simple conversational requests that do not depend on repo knowledge. |
+| `manual` | Exposes KGraph commands and instructions, but the agent runs KGraph only when the user explicitly asks. |
+| `off` | Disables that integration and removes generated KGraph instruction blocks/command files. |
 
 | Tool | Files KGraph manages |
 | --- | --- |

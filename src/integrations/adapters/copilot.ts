@@ -6,14 +6,14 @@ export const copilotAdapter: IntegrationAdapter = {
   targetPath: '.github/copilot-instructions.md',
   instructions: `## KGraph Workflow
 
-1. **Before exploring the repository**, run \`kgraph "<topic>"\` to refresh maps, process pending inbox notes, and load focused repo intelligence. Use the returned files, symbols, relationships, and cognition before any broad exploration.
+1. {{KGRAPH_CONTEXT_POLICY}}
 2. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.
 3. Track meaningful session activity with \`kgraph session start --agent copilot\`, \`kgraph session read <path> --agent copilot\`, \`kgraph session write <path> --agent copilot\`, and \`kgraph session end --agent copilot\`.
 4. Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when prior work or decisions matter.
-5. At the end of any session that changed repository files, check the KGraph capture workflow before finishing.
-6. If the file change has future value, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\`; otherwise explicitly skip capture as trivial.
-7. Skip capture only for read-only work, trivial formatting, typo-only docs, dependency-only churn, mechanical cleanup with no future value, or sessions where no repo files changed.
-8. Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write any needed inbox note first, then run \`kgraph\` once at the end.
+5. At the end of any session that changed repository files, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\` before finishing.
+6. Do not skip capture for UI text, button, link, route, styling, or small file edits. Skip capture only when no repository files changed.
+7. Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write the inbox note first, then run \`kgraph\` once at the end.
+8. After the final \`kgraph\` run, mention whether the inbox note was processed.
 9. Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.
 
 The inbox note must use this structure:
@@ -95,9 +95,9 @@ argument-hint: "Brief description of what was done"
 
 Capture this session into KGraph cognition.
 
-1. For any completed code or repo-file change, check whether it has future value before finishing.
-2. Skip capture only for read-only work, trivial formatting, typo-only docs, dependency-only churn, mechanical cleanup with no future value, or sessions where no repo files changed.
-3. Write one Markdown note to \`.kgraph/inbox/<slug>.md\` using the structure below. Use the user's message as context, but keep the note factual and concise.
+1. For any completed code or repo-file change, write one Markdown note to \`.kgraph/inbox/<slug>.md\` using the structure below.
+2. Do not skip capture for UI text, button, link, route, styling, or small file edits. Skip capture only when no repository files changed.
+3. Use the user's message as context, but keep the note factual and concise.
 4. Run \`kgraph\` once to process the note and refresh maps. Use \`kgraph update\` only when you intentionally want inbox processing without a scan.
 
 Note structure:
