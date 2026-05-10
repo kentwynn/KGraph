@@ -31,10 +31,13 @@ export const DEFAULT_CONFIG: KGraphConfig = {
     'specs',
     '.cursor',
     '.claude',
+    '.windsurf',
+    '.clinerules',
     '.github/copilot-instructions.md',
     '.github/prompts',
     'AGENTS.md',
     'CLAUDE.md',
+    'GEMINI.md',
     'REQUIREMENTS.md',
     '*.log',
     '*.tgz',
@@ -163,7 +166,15 @@ function normalizeIntegrations(value: unknown): IntegrationConfig[] {
       continue;
     }
     if (
-      !['claude-code', 'codex', 'copilot', 'cursor'].includes(candidate.name)
+      ![
+        'claude-code',
+        'cline',
+        'codex',
+        'copilot',
+        'cursor',
+        'gemini',
+        'windsurf',
+      ].includes(candidate.name)
     ) {
       continue;
     }

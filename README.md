@@ -2,7 +2,7 @@
 
 Persistent repository intelligence for AI coding tools.
 
-KGraph gives Codex, GitHub Copilot, Cursor, and Claude Code a local knowledge layer for your repo: file maps, symbols, imports, relationships, and durable notes from previous AI sessions. The goal is simple: your assistant should not spend every session re-learning the same codebase.
+KGraph gives Codex, GitHub Copilot, Cursor, Claude Code, Gemini CLI, Windsurf, and Cline a local knowledge layer for your repo: file maps, symbols, imports, relationships, and durable notes from previous AI sessions. The goal is simple: your assistant should not spend every session re-learning the same codebase.
 
 ## The Workflow
 
@@ -10,7 +10,7 @@ Use KGraph in two steps:
 
 ```bash
 # Required once per repository
-kgraph init --integrations codex,copilot,cursor,claude-code
+kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline
 
 # Normal daily command
 kgraph "auth token refresh"
@@ -89,7 +89,7 @@ From the root of a repository:
 kgraph init
 
 # 2. Optional: connect AI tools so they know the KGraph workflow
-kgraph integrate add codex copilot cursor claude-code
+kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
 
 # 3. Run the normal workflow for a topic
 kgraph "auth token refresh"
@@ -120,7 +120,7 @@ kgraph init
 Required once per repo. Creates `.kgraph/` and the local config.
 
 ```bash
-kgraph init --integrations codex,copilot,cursor,claude-code
+kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline
 ```
 
 Initializes KGraph and writes local instruction files for supported AI tools.
@@ -196,7 +196,7 @@ Show processed cognition sessions.
 KGraph integrations are local files. They do not start background agents, call AI providers, or send data anywhere.
 
 ```bash
-kgraph integrate add codex copilot cursor claude-code
+kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
 kgraph integrate list
 kgraph integrate remove cursor
 ```
@@ -207,6 +207,11 @@ kgraph integrate remove cursor
 | GitHub Copilot | `.github/copilot-instructions.md`, `.github/prompts/*` |
 | Cursor | `.cursor/rules/kgraph.mdc` |
 | Claude Code | `CLAUDE.md`, `.claude/commands/*` |
+| Gemini CLI | `GEMINI.md` |
+| Windsurf | `.windsurf/rules/kgraph.md` |
+| Cline | `.clinerules/kgraph.md` |
+
+Antigravity is supported through the existing agent instruction surfaces it can read, especially `AGENTS.md` and `GEMINI.md`; it does not need a separate KGraph adapter yet.
 
 KGraph preserves existing user-authored content and updates only its marked instruction blocks or generated command files.
 

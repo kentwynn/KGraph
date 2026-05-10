@@ -30,8 +30,11 @@ describe("repo scanner", () => {
       await writeText(repo, ".github/prompts/kgraph.prompt.md", "generated prompt\n");
       await writeText(repo, ".cursor/rules/kgraph.mdc", "generated cursor rule\n");
       await writeText(repo, ".claude/commands/kgraph.md", "generated claude command\n");
+      await writeText(repo, ".windsurf/rules/kgraph.md", "generated windsurf rule\n");
+      await writeText(repo, ".clinerules/kgraph.md", "generated cline rule\n");
       await writeText(repo, "AGENTS.md", "generated agent instructions\n");
       await writeText(repo, "CLAUDE.md", "generated claude instructions\n");
+      await writeText(repo, "GEMINI.md", "generated gemini instructions\n");
       await writeText(repo, "REQUIREMENTS.md", "scratch requirements\n");
       await writeText(repo, "kentwynn-kgraph-0.1.0.tgz", "package tarball\n");
 
@@ -50,8 +53,11 @@ describe("repo scanner", () => {
           ".github/prompts/kgraph.prompt.md",
           ".cursor/rules/kgraph.mdc",
           ".claude/commands/kgraph.md",
+          ".windsurf/rules/kgraph.md",
+          ".clinerules/kgraph.md",
           "AGENTS.md",
           "CLAUDE.md",
+          "GEMINI.md",
           "REQUIREMENTS.md",
           "kentwynn-kgraph-0.1.0.tgz"
         ])

@@ -4,7 +4,7 @@ import figlet from 'figlet';
 export function renderRootHelp(useColor = supportsColor()): string {
   const theme = new Chalk({ level: useColor ? 3 : 0 });
   const command = (name: string, description: string) =>
-    `  ${theme.green(name.padEnd(30))} ${description}`;
+    `  ${theme.green(name.padEnd(42))} ${description}`;
   const logo = renderLogo();
 
   return [
@@ -14,7 +14,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     `  ${theme.bold('KGraph')} ${theme.dim('Persistent repo intelligence for AI coding tools')}`,
     '',
     `  ${theme.hex('#c084fc')('Build a local knowledge layer that helps Codex, Copilot, Cursor,')}`,
-    `  ${theme.hex('#c084fc')('and Claude Code reuse repo structure, decisions, and debugging history.')}`,
+    `  ${theme.hex('#c084fc')('Claude Code, Gemini, Windsurf, and Cline reuse repo intelligence.')}`,
     '',
     theme.bold('Usage'),
     '  kgraph [topic]',
@@ -23,7 +23,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     theme.bold('Start'),
     command('init', 'Required once: create .kgraph/ workspace'),
     command(
-      'init --integrations codex,cursor',
+      'init --integrations codex,gemini',
       'Initialize and connect AI tools',
     ),
     '',
@@ -54,7 +54,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     theme.bold('Integrations'),
     command('integrate list', 'Show configured AI tool integrations'),
     command(
-      'integrate add codex copilot',
+      'integrate add gemini windsurf cline',
       'Write KGraph instructions for AI tools',
     ),
     command(
@@ -67,7 +67,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('-h, --help', 'Show this help'),
     '',
     `${theme.yellow('Examples')}`,
-    '  kgraph init --integrations codex,copilot,cursor',
+    '  kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline',
     '  kgraph "blog admin token usage"',
     '  kgraph doctor',
     '',
@@ -88,7 +88,7 @@ export function renderWorkflowBanner(
 ): string {
   const theme = new Chalk({ level: useColor ? 3 : 0 });
   const command = (name: string, description: string) =>
-    `  ${theme.green(name.padEnd(30))} ${description}`;
+    `  ${theme.green(name.padEnd(42))} ${description}`;
   return [
     '',
     theme.hex('#7dd3fc').bold(renderLogo()),

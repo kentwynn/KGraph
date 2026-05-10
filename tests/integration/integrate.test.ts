@@ -87,4 +87,66 @@ describe('kgraph integrate', () => {
       await cleanupTempRepo(repo);
     }
   });
+
+  it('adds, lists, and removes Gemini, Windsurf, and Cline integrations', async () => {
+    const repo = await createTempRepo();
+    try {
+      await runCli(repo, ['init']);
+      await writeFile(
+        path.join(repo, 'GEMINI.md'),
+        'Existing Gemini guidance\n',
+        'utf8',
+      );
+
+      const add = await runCli(repo, [
+        'integrate',
+        'add',
+        'gemini',
+        'windsurf',
+        'cline',
+      ]);
+      expect(add.code).toBe(0);
+      expect(add.stdout).toContain(
+        'Configured integrations: gemini, windsurf, cline',
+      );
+
+      const list = await runCli(repo, ['integrate', 'list']);
+      expect(list.stdout).toContain('gemini enabled GEMINI.md present');
+      expect(list.stdout).toContain(
+        'windsurf enabled .windsurf/rules/kgraph.md present',
+      );
+      expect(list.stdout).toContain(
+        'cline enabled .clinerules/kgraph.md present',
+      );
+
+      const gemini = await readFile(path.join(repo, 'GEMINI.md'), 'utf8');
+      expect(gemini).toContain('Existing Gemini guidance');
+      expect(gemini).toContain('BEGIN KGRAPH gemini');
+      await access(path.join(repo, '.windsurf', 'rules', 'kgraph.md'));
+      await access(path.join(repo, '.clinerules', 'kgraph.md'));
+
+      const remove = await runCli(repo, [
+        'integrate',
+        'remove',
+        'gemini',
+        'windsurf',
+        'cline',
+      ]);
+      expect(remove.code).toBe(0);
+      expect(remove.stdout).toContain(
+        'Removed integrations: cline, gemini, windsurf',
+      );
+
+      const afterGemini = await readFile(path.join(repo, 'GEMINI.md'), 'utf8');
+      expect(afterGemini).toBe('Existing Gemini guidance\n');
+      await expect(
+        access(path.join(repo, '.windsurf', 'rules', 'kgraph.md')),
+      ).rejects.toThrow();
+      await expect(
+        access(path.join(repo, '.clinerules', 'kgraph.md')),
+      ).rejects.toThrow();
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
 });

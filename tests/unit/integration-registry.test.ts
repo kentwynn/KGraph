@@ -9,10 +9,26 @@ describe('integration registry', () => {
   it('lists supported AI tool integrations', () => {
     expect(listIntegrationAdapters().map((adapter) => adapter.name)).toEqual([
       'claude-code',
+      'cline',
       'codex',
       'copilot',
       'cursor',
+      'gemini',
+      'windsurf',
     ]);
+  });
+
+  it('defines native instruction targets for Gemini, Windsurf, and Cline', () => {
+    expect(getIntegrationAdapter('gemini').targetPath).toBe('GEMINI.md');
+    expect(getIntegrationAdapter('windsurf').targetPath).toBe(
+      '.windsurf/rules/kgraph.md',
+    );
+    expect(getIntegrationAdapter('cline').targetPath).toBe(
+      '.clinerules/kgraph.md',
+    );
+    expect(getIntegrationAdapter('gemini').commandFiles).toBeUndefined();
+    expect(getIntegrationAdapter('windsurf').commandFiles).toBeUndefined();
+    expect(getIntegrationAdapter('cline').commandFiles).toBeUndefined();
   });
 
   it('defines command files for integrations that support reusable commands', () => {
@@ -66,13 +82,18 @@ describe('integration registry', () => {
 
   it('normalizes repeated comma and flag input', () => {
     expect(
-      normalizeIntegrationNames(['codex,cursor', 'copilot', 'codex']),
-    ).toEqual(['codex', 'cursor', 'copilot']);
+      normalizeIntegrationNames([
+        'codex,cursor',
+        'gemini,windsurf',
+        'cline',
+        'codex',
+      ]),
+    ).toEqual(['codex', 'cursor', 'gemini', 'windsurf', 'cline']);
   });
 
   it('rejects unsupported integrations', () => {
     expect(() => getIntegrationAdapter('unknown')).toThrow(
-      'Unsupported integration',
+      'Supported integrations: claude-code, cline, codex, copilot, cursor, gemini, windsurf',
     );
   });
 });

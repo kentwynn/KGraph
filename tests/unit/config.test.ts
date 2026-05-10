@@ -14,7 +14,17 @@ describe("config", () => {
     const config = normalizeConfig({ exclude: ["custom-generated"] });
 
     expect(config.exclude).toEqual(
-      expect.arrayContaining([".kgraph", ".agents", ".specify", ".github/prompts", "*.tgz", "custom-generated"])
+      expect.arrayContaining([
+        ".kgraph",
+        ".agents",
+        ".specify",
+        ".github/prompts",
+        ".windsurf",
+        ".clinerules",
+        "GEMINI.md",
+        "*.tgz",
+        "custom-generated",
+      ])
     );
   });
 });

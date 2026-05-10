@@ -14,7 +14,14 @@ export interface DomainHint {
   tags?: string[];
 }
 
-export type IntegrationName = "claude-code" | "codex" | "copilot" | "cursor";
+export type IntegrationName =
+  | "claude-code"
+  | "cline"
+  | "codex"
+  | "copilot"
+  | "cursor"
+  | "gemini"
+  | "windsurf";
 
 export interface IntegrationConfig {
   name: IntegrationName;

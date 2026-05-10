@@ -6,8 +6,8 @@ describe("root help", () => {
     const help = renderRootHelp(false);
     expect(help).toContain("██╗");
     expect(help).toContain("KGraph Persistent repo intelligence");
-    expect(help).toContain("init --integrations codex,cursor");
+    expect(help).toContain("init --integrations codex,gemini");
     expect(help).toContain("context \"auth token refresh\"");
-    expect(help).toContain("integrate add codex copilot");
+    expect(help).toContain("integrate add gemini windsurf cline");
   });
 });
