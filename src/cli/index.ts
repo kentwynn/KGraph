@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { registerAuditCommand } from './commands/audit.js';
 import { registerContextCommand } from './commands/context.js';
 import { registerDoctorCommand } from './commands/doctor.js';
 import { registerHistoryCommand } from './commands/history.js';
@@ -47,6 +48,7 @@ export function createProgram(): Command {
   registerUpdateCommand(program);
   registerContextCommand(program);
   registerImpactCommand(program);
+  registerAuditCommand(program);
   registerIntegrateCommand(program);
   registerVisualizeCommand(program);
   registerHistoryCommand(program);

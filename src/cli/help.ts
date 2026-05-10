@@ -43,6 +43,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'Optional: return context without scanning or updating',
     ),
     command('impact "Button"', 'Show imports, callers, calls, cognition, and risk'),
+    command('audit', 'Surface security-sensitive files and symbols by category'),
     command('update', 'Optional: process only .kgraph/inbox Markdown cognition notes'),
     command('doctor', 'Check workspace health and next actions'),
     command('doctor --quality', 'Report stale/noisy cognition references'),
