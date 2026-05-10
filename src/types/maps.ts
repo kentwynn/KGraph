@@ -11,6 +11,8 @@ export type SymbolKind =
 export type RelationshipType =
   | "import"
   | "contains"
+  | "symbol-contains"
+  | "calls"
   | "mentions"
   | "belongs-to-domain"
   | "stale-reference"

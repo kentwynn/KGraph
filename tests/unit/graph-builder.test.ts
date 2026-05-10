@@ -311,4 +311,75 @@ describe('graph-builder', () => {
       result.elements.find((e) => e.data.type === 'contains'),
     ).toBeDefined();
   });
+
+  it('creates calls and symbol ownership edges from the relationship map', () => {
+    const fileMap: FileMap = {
+      generatedAt: '',
+      files: [makeFile('a.ts', 'a.ts', 'typescript')],
+    };
+    const classId = 'a.ts#class#AuthService#1#6';
+    const methodId = 'a.ts#method#AuthService#refresh#2#4';
+    const helperId = 'a.ts#function#refreshSession#8#10';
+    const symbolMap: SymbolMap = {
+      generatedAt: '',
+      symbols: [
+        {
+          id: classId,
+          name: 'AuthService',
+          kind: 'class',
+          filePath: 'a.ts',
+          exported: true,
+        },
+        {
+          id: methodId,
+          name: 'refresh',
+          kind: 'method',
+          filePath: 'a.ts',
+          exported: false,
+          parentName: 'AuthService',
+        },
+        {
+          id: helperId,
+          name: 'refreshSession',
+          kind: 'function',
+          filePath: 'a.ts',
+          exported: true,
+        },
+      ],
+    };
+    const relMap: RelationshipMap = {
+      generatedAt: '',
+      relationships: [
+        {
+          sourceType: 'symbol',
+          sourceId: classId,
+          targetType: 'symbol',
+          targetId: methodId,
+          relationshipType: 'symbol-contains',
+          confidence: 'high',
+        },
+        {
+          sourceType: 'symbol',
+          sourceId: methodId,
+          targetType: 'symbol',
+          targetId: helperId,
+          relationshipType: 'calls',
+          confidence: 'high',
+        },
+      ],
+    };
+
+    const result = buildGraph(
+      fileMap,
+      symbolMap,
+      emptyMaps.depMap,
+      relMap,
+      [],
+    );
+
+    expect(
+      result.elements.find((e) => e.data.type === 'symbol-contains'),
+    ).toBeDefined();
+    expect(result.elements.find((e) => e.data.type === 'calls')).toBeDefined();
+  });
 });

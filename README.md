@@ -51,6 +51,7 @@ KGraph stores the reusable parts locally:
 - What files exist and what language they use.
 - What symbols each source file defines.
 - Which files import each other.
+- Which TypeScript/JavaScript functions and methods directly call each other when KGraph can infer it cheaply.
 - Which notes, decisions, debugging findings, and gotchas were captured from prior sessions.
 - Which cognition references are current, mixed, stale, or unresolved after code moves.
 
@@ -240,7 +241,7 @@ The files are local, inspectable, and human-readable. There is no database, tele
 
 KGraph deeply scans:
 
-- TypeScript and JavaScript
+- TypeScript and JavaScript, including lightweight function/method call relationships
 - Python
 - Go
 - Rust
@@ -248,7 +249,7 @@ KGraph deeply scans:
 - C and C++
 - C#
 
-Other common file types still appear in the file map with generic metadata, so context queries can still point to docs, config, SQL, CSS, HTML, YAML, and similar files.
+Other languages keep practical file, import, and symbol depth without full call graph analysis. Common file types still appear in the file map with generic metadata, so context queries can still point to docs, config, SQL, CSS, HTML, YAML, and similar files.
 
 ## Visualization
 
@@ -256,7 +257,7 @@ Other common file types still appear in the file map with generic metadata, so c
 kgraph visualize
 ```
 
-The graph shows files, symbols, imports, cognition notes, and relationship edges. Cognition notes are colored by reference health:
+The graph shows files, symbols, imports, TypeScript/JavaScript call edges, ownership edges, cognition notes, and relationship edges. Cognition notes are colored by reference health:
 
 - current
 - mixed

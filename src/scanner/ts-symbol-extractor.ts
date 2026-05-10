@@ -15,6 +15,9 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
   const dependencies: Dependency[] = [];
   const relationships: Relationship[] = [];
   const warnings: string[] = [];
+  const symbolIdsByNode = new Map<ts.Node, string>();
+  const symbolsByName = new Map<string, CodeSymbol[]>();
+  const importedBindings = new Map<string, { specifier: string; resolvedFile?: string }>();
 
   const addSymbol = (
     name: string,
@@ -22,11 +25,11 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
     node: ts.Node,
     exported = false,
     parentName?: string
-  ): void => {
+  ): CodeSymbol => {
     const start = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
     const end = sourceFile.getLineAndCharacterOfPosition(node.getEnd());
     const id = [filePath, kind, parentName, name, start.line + 1, end.line + 1].filter(Boolean).join("#");
-    symbols.push({
+    const symbol: CodeSymbol = {
       id,
       name,
       kind,
@@ -35,7 +38,12 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
       endLine: end.line + 1,
       exported,
       parentName
-    });
+    };
+    symbols.push(symbol);
+    symbolIdsByNode.set(node, id);
+    const byName = symbolsByName.get(name) ?? [];
+    byName.push(symbol);
+    symbolsByName.set(name, byName);
     relationships.push({
       sourceType: "file",
       sourceId: filePath,
@@ -44,9 +52,10 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
       relationshipType: "contains",
       confidence: "high"
     });
+    return symbol;
   };
 
-  const visit = (node: ts.Node, parentName?: string): void => {
+  const collectSymbols = (node: ts.Node, parentName?: string): void => {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
       const specifier = node.moduleSpecifier.text;
       const dependency: Dependency = {
@@ -65,6 +74,7 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
         relationshipType: "import",
         confidence: dependency.resolvedFile ? "high" : "medium"
       });
+      collectImportedBindings(node, specifier, dependency.resolvedFile, importedBindings);
     }
 
     if (ts.isExportDeclaration(node)) {
@@ -89,10 +99,18 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
     }
 
     if (ts.isClassDeclaration(node) && node.name) {
-      addSymbol(node.name.text, "class", node, isExported(node), parentName);
+      const classSymbol = addSymbol(node.name.text, "class", node, isExported(node), parentName);
       node.members.forEach((member) => {
         if (ts.isMethodDeclaration(member) && member.name && ts.isIdentifier(member.name)) {
-          addSymbol(member.name.text, "method", member, false, node.name?.text);
+          const methodSymbol = addSymbol(member.name.text, "method", member, false, node.name?.text);
+          relationships.push({
+            sourceType: "symbol",
+            sourceId: classSymbol.id,
+            targetType: "symbol",
+            targetId: methodSymbol.id,
+            relationshipType: "symbol-contains",
+            confidence: "high"
+          });
         }
       });
     }
@@ -105,16 +123,101 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
       addSymbol(node.name.text, "type", node, isExported(node), parentName);
     }
 
-    ts.forEachChild(node, (child) => visit(child, parentName));
+    ts.forEachChild(node, (child) => collectSymbols(child, parentName));
+  };
+
+  const collectCalls = (node: ts.Node, currentSymbolId?: string): void => {
+    const nextSymbolId = symbolIdsByNode.get(node) ?? currentSymbolId;
+
+    if (ts.isCallExpression(node) && nextSymbolId) {
+      const target = resolveCallTarget(node, symbolsByName, importedBindings);
+      if (target) {
+        relationships.push({
+          sourceType: "symbol",
+          sourceId: nextSymbolId,
+          targetType: target.targetType,
+          targetId: target.targetId,
+          relationshipType: "calls",
+          confidence: target.confidence
+        });
+      }
+    }
+
+    ts.forEachChild(node, (child) => collectCalls(child, nextSymbolId));
   };
 
   try {
-    visit(sourceFile);
+    collectSymbols(sourceFile);
+    collectCalls(sourceFile);
   } catch (error) {
     warnings.push(error instanceof Error ? error.message : String(error));
   }
 
   return { symbols, dependencies, relationships, warnings };
+}
+
+function collectImportedBindings(
+  node: ts.ImportDeclaration,
+  specifier: string,
+  resolvedFile: string | undefined,
+  importedBindings: Map<string, { specifier: string; resolvedFile?: string }>,
+): void {
+  const clause = node.importClause;
+  if (!clause) {
+    return;
+  }
+  if (clause.name) {
+    importedBindings.set(clause.name.text, { specifier, resolvedFile });
+  }
+  const bindings = clause.namedBindings;
+  if (bindings && ts.isNamedImports(bindings)) {
+    for (const element of bindings.elements) {
+      importedBindings.set(element.name.text, { specifier, resolvedFile });
+    }
+  }
+}
+
+function resolveCallTarget(
+  node: ts.CallExpression,
+  symbolsByName: Map<string, CodeSymbol[]>,
+  importedBindings: Map<string, { specifier: string; resolvedFile?: string }>,
+): { targetType: string; targetId: string; confidence: "high" | "medium" | "low" } | undefined {
+  const expression = node.expression;
+  if (ts.isIdentifier(expression)) {
+    const localSymbols = symbolsByName
+      .get(expression.text)
+      ?.filter((symbol) => symbol.kind === "function" || symbol.kind === "method");
+    if (localSymbols?.[0]) {
+      return {
+        targetType: "symbol",
+        targetId: localSymbols[0].id,
+        confidence: "high"
+      };
+    }
+    const imported = importedBindings.get(expression.text);
+    if (imported) {
+      return {
+        targetType: "symbol",
+        targetId: imported.resolvedFile ? `${imported.resolvedFile}#${expression.text}` : expression.text,
+        confidence: imported.resolvedFile ? "medium" : "low"
+      };
+    }
+    return {
+      targetType: "symbol",
+      targetId: expression.text,
+      confidence: "low"
+    };
+  }
+
+  if (ts.isPropertyAccessExpression(expression)) {
+    return {
+      targetType: "symbol",
+      targetId: expression.getText(),
+      confidence: "low"
+    };
+  }
+
+  return undefined;
 }
 
 function isExported(node: ts.Node): boolean {

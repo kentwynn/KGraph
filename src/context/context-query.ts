@@ -62,6 +62,15 @@ export async function queryContext(
       ...domain.item.symbols,
     ]),
   ]);
+  for (const relationship of maps.relationshipMap.relationships) {
+    if (
+      relatedIds.has(relationship.sourceId) ||
+      relatedIds.has(relationship.targetId)
+    ) {
+      relatedIds.add(relationship.sourceId);
+      relatedIds.add(relationship.targetId);
+    }
+  }
   const rankedRelationships = rankByFields(
     query,
     maps.relationshipMap.relationships,

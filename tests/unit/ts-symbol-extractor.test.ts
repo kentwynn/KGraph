@@ -27,4 +27,81 @@ export class C { run() { return true; } }
       ])
     );
   });
+
+  it("extracts class ownership and direct function calls", () => {
+    const result = extractTsSymbols(
+      `
+function parseToken() { return true; }
+export function refreshSession() { return parseToken(); }
+export class AuthService {
+  refresh() {
+    return refreshSession();
+  }
+}
+`,
+      "src/auth.ts"
+    );
+
+    const cls = result.symbols.find((symbol) => symbol.name === "AuthService");
+    const method = result.symbols.find((symbol) => symbol.name === "refresh");
+    const refreshSession = result.symbols.find((symbol) => symbol.name === "refreshSession");
+    const parseToken = result.symbols.find((symbol) => symbol.name === "parseToken");
+
+    expect(result.relationships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: cls?.id,
+          targetId: method?.id,
+          relationshipType: "symbol-contains",
+          confidence: "high",
+        }),
+        expect.objectContaining({
+          sourceId: refreshSession?.id,
+          targetId: parseToken?.id,
+          relationshipType: "calls",
+          confidence: "high",
+        }),
+        expect.objectContaining({
+          sourceId: method?.id,
+          targetId: refreshSession?.id,
+          relationshipType: "calls",
+          confidence: "high",
+        }),
+      ])
+    );
+  });
+
+  it("tracks imported and unresolved property calls without failing", () => {
+    const result = extractTsSymbols(
+      `
+import { loadUser } from "./users";
+
+export function run(auth: { refresh(): void }) {
+  loadUser();
+  auth.refresh();
+}
+`,
+      "src/session.ts"
+    );
+
+    const run = result.symbols.find((symbol) => symbol.name === "run");
+
+    expect(result.relationships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: run?.id,
+          targetId: "src/users.ts#loadUser",
+          relationshipType: "calls",
+          confidence: "medium",
+        }),
+        expect.objectContaining({
+          sourceId: run?.id,
+          targetId: "auth.refresh",
+          relationshipType: "calls",
+          confidence: "low",
+        }),
+      ])
+    );
+    expect(result.warnings).toHaveLength(0);
+  });
 });
