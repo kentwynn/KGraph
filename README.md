@@ -257,6 +257,16 @@ npm run kgraph -- "auth token refresh"
 npm run kgraph -- doctor
 ```
 
+Test the built package as a global local install:
+
+```bash
+npm run build
+npm install -g .
+kgraph --version
+kgraph doctor
+kgraph "auth token refresh"
+```
+
 Package checks:
 
 ```bash
