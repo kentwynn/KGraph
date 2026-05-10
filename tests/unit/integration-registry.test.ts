@@ -37,6 +37,7 @@ describe('integration registry', () => {
     ).toEqual(
       expect.arrayContaining([
         '.github/prompts/kgraph-doctor.prompt.md',
+        '.github/prompts/kgraph-impact.prompt.md',
         '.github/prompts/kgraph-repair.prompt.md',
         '.github/prompts/kgraph-scan.prompt.md',
       ]),
@@ -52,6 +53,7 @@ describe('integration registry', () => {
       expect.arrayContaining([
         '.claude/commands/kgraph.md',
         '.claude/commands/kgraph-doctor.md',
+        '.claude/commands/kgraph-impact.md',
         '.claude/commands/kgraph-repair.md',
       ]),
     );

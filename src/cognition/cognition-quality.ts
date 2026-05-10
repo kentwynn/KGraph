@@ -10,7 +10,7 @@ import type {
   DomainRecord,
   ReferenceStatus,
 } from '../types/cognition.js';
-import type { FileMap, SymbolMap } from '../types/maps.js';
+import type { DependencyMap, FileMap, RelationshipMap, SymbolMap } from '../types/maps.js';
 
 export interface CognitionRepairChange {
   noteId: string;
@@ -25,12 +25,16 @@ export interface CognitionQualityReport {
   mixedOrStaleCount: number;
   noisyFileRefCount: number;
   noisySymbolRefCount: number;
+  unresolvedLocalImportCount: number;
+  unresolvedCallCount: number;
+  duplicateTitleCount: number;
+  generatedFileScanCount: number;
   changes: CognitionRepairChange[];
 }
 
 export async function analyzeCognitionQuality(
   workspace: KGraphWorkspace,
-  maps: { fileMap: FileMap; symbolMap: SymbolMap },
+  maps: { fileMap: FileMap; symbolMap: SymbolMap; dependencyMap?: DependencyMap; relationshipMap?: RelationshipMap },
 ): Promise<CognitionQualityReport> {
   const notes = await readCognitionNotes(workspace);
   const changes = notes
@@ -54,13 +58,17 @@ export async function analyzeCognitionQuality(
       (total, change) => total + change.removedSymbolRefs.length,
       0,
     ),
+    unresolvedLocalImportCount: countUnresolvedLocalImports(maps.dependencyMap),
+    unresolvedCallCount: countUnresolvedCalls(maps.symbolMap, maps.relationshipMap),
+    duplicateTitleCount: countDuplicateTitles(notes),
+    generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
     changes,
   };
 }
 
 export async function repairCognition(
   workspace: KGraphWorkspace,
-  maps: { fileMap: FileMap; symbolMap: SymbolMap },
+  maps: { fileMap: FileMap; symbolMap: SymbolMap; dependencyMap?: DependencyMap; relationshipMap?: RelationshipMap },
   dryRun = false,
 ): Promise<CognitionQualityReport> {
   const notes = await readCognitionNotes(workspace);
@@ -99,8 +107,66 @@ export async function repairCognition(
       (total, change) => total + change.removedSymbolRefs.length,
       0,
     ),
+    unresolvedLocalImportCount: countUnresolvedLocalImports(maps.dependencyMap),
+    unresolvedCallCount: countUnresolvedCalls(maps.symbolMap, maps.relationshipMap),
+    duplicateTitleCount: countDuplicateTitles(nextNotes),
+    generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
     changes,
   };
+}
+
+function countUnresolvedLocalImports(dependencyMap?: DependencyMap): number {
+  return (
+    dependencyMap?.dependencies.filter(
+      (dependency) => dependency.kind === 'local' && !dependency.resolvedFile,
+    ).length ?? 0
+  );
+}
+
+function countUnresolvedCalls(
+  symbolMap: SymbolMap,
+  relationshipMap?: RelationshipMap,
+): number {
+  const symbolIds = new Set(symbolMap.symbols.map((symbol) => symbol.id));
+  const symbolNames = new Set(symbolMap.symbols.map((symbol) => symbol.name));
+  return (
+    relationshipMap?.relationships.filter(
+      (relationship) =>
+        relationship.relationshipType === 'calls' &&
+        relationship.targetType === 'symbol' &&
+        !symbolIds.has(relationship.targetId) &&
+        !symbolNames.has(relationship.targetId) &&
+        ![...symbolNames].some((name) => relationship.targetId.endsWith(`#${name}`)),
+    ).length ?? 0
+  );
+}
+
+function countDuplicateTitles(notes: CognitionNote[]): number {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const note of notes) {
+    const key = note.title.trim().toLowerCase();
+    if (!key) continue;
+    if (seen.has(key)) duplicates.add(key);
+    seen.add(key);
+  }
+  return duplicates.size;
+}
+
+function countGeneratedScannedFiles(fileMap: FileMap): number {
+  return fileMap.files.filter((file) =>
+    [
+      '.agents/',
+      '.claude/',
+      '.cursor/',
+      '.windsurf/',
+      '.clinerules/',
+      '.github/prompts/',
+      'AGENTS.md',
+      'CLAUDE.md',
+      'GEMINI.md',
+    ].some((prefix) => file.path === prefix || file.path.startsWith(prefix)),
+  ).length;
 }
 
 function analyzeNote(

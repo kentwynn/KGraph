@@ -21,6 +21,10 @@ describe('kgraph doctor', () => {
       expect(quality.code).toBe(0);
       expect(quality.stdout).toContain('KGraph Cognition Quality');
       expect(quality.stdout).toContain('Notes:');
+      expect(quality.stdout).toContain('Unresolved local imports:');
+      expect(quality.stdout).toContain('Unresolved call edges:');
+      expect(quality.stdout).toContain('Duplicate cognition titles:');
+      expect(quality.stdout).toContain('Generated files scanned:');
     } finally {
       await cleanupTempRepo(repo);
     }

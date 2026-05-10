@@ -17,13 +17,14 @@ Before exploring the repository, run \`kgraph "<topic>"\` to refresh repo intell
 2. Run \`kgraph "<topic>"\`. This refreshes maps, processes pending inbox notes, and returns focused context in one command.
 3. Use the returned files, symbols, relationships, and cognition before broad exploration.
 4. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.
-5. At the end of any session that changed repository files, check the KGraph capture workflow before finishing.
-6. If the file change has future value, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\`; otherwise explicitly skip capture as trivial.
-7. Skip capture only for read-only work, trivial formatting, typo-only docs, dependency-only churn, mechanical cleanup with no future value, or sessions where no repo files changed.
-8. Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write any needed inbox note first, then run \`kgraph\` once at the end.
-9. Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.
-10. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-11. Run \`kgraph history\` to review the timeline of past cognition sessions with git author attribution.
+5. Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when prior work or decisions matter.
+6. At the end of any session that changed repository files, check the KGraph capture workflow before finishing.
+7. If the file change has future value, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\`; otherwise explicitly skip capture as trivial.
+8. Skip capture only for read-only work, trivial formatting, typo-only docs, dependency-only churn, mechanical cleanup with no future value, or sessions where no repo files changed.
+9. Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write any needed inbox note first, then run \`kgraph\` once at the end.
+10. Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.
+11. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+12. Run \`kgraph history\` or \`kgraph history "<topic>"\` to review past cognition sessions with git author attribution.
 
 The inbox note must use this structure:
 \`\`\`markdown
@@ -69,8 +70,13 @@ Any implementation or product decision future sessions should know.
 `,
     },
     {
+      path: '.claude/commands/kgraph-impact.md',
+      content: `Run \`kgraph impact "$ARGUMENTS"\` to show matched files/symbols, import users, callers, callees, related cognition, and risk hints.
+`,
+    },
+    {
       path: '.claude/commands/kgraph-history.md',
-      content: `Run \`kgraph history\` to show a timeline of all processed cognition sessions. Includes git author attribution when available. Use \`--last <n>\` to limit entries, \`--json\` for machine-readable output.
+      content: `Run \`kgraph history\` or \`kgraph history "$ARGUMENTS"\` to show processed cognition sessions. Includes git author attribution when available. Use \`--last <n>\` to limit entries, \`--json\` for machine-readable output.
 `,
     },
   ],

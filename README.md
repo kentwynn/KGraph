@@ -63,6 +63,14 @@ kgraph "blog admin token usage"
 
 Instead of reading the whole repo, it gets a compact starting point: relevant files, symbols, relationships, domains, prior notes, and stale references to watch.
 
+When you need change impact instead of broad context:
+
+```bash
+kgraph impact Button
+```
+
+That shows matched files/symbols, files importing the target, known callers/callees, related cognition, and simple risk signals.
+
 ## Install
 
 Use the published CLI:
@@ -143,14 +151,21 @@ kgraph doctor
 kgraph doctor --quality
 ```
 
-Checks whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Use `--quality` when context shows stale/noisy cognition references.
+Checks whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Use `--quality` when context shows stale/noisy cognition references, unresolved local imports, unresolved call edges, duplicate cognition titles, or generated files in the scan.
 
 ```bash
 kgraph repair --dry-run
 kgraph repair
 ```
 
-`repair --dry-run` previews cleanup for noisy cognition references, such as framework names recorded as files or local variables recorded as symbols. `repair` applies that cleanup. Run repair intentionally when stale references make context noisy; it is not part of every normal workflow.
+`repair --dry-run` previews cleanup for noisy cognition references, such as framework names recorded as files or local variables recorded as symbols. `repair` applies only the safe noisy-reference cleanup; broader quality findings stay report-only. Run repair intentionally when stale references make context noisy; it is not part of every normal workflow.
+
+```bash
+kgraph impact "Button"
+kgraph impact "createSession" --json
+```
+
+Show practical impact for a file, symbol, or topic: matched files/symbols, import users, callers, callees, ownership edges, related cognition, and risk hints.
 
 ## Optional Step Commands
 
@@ -187,10 +202,11 @@ Open the local interactive dependency graph at `http://localhost:4242`.
 ```bash
 kgraph history
 kgraph history --last 10
+kgraph history "blog button"
 kgraph history --json
 ```
 
-Show processed cognition sessions.
+Show processed cognition sessions. Add a query to find historical work by title, summary, file, symbol, or note body.
 
 ## AI Tool Integrations
 
@@ -319,6 +335,7 @@ The release workflow builds, tests, packs, publishes the npm package on version 
 - Explicit: no daemon and no hidden background process.
 - Inspectable: generated knowledge is JSON, YAML, and Markdown.
 - Deterministic first: useful ranking without requiring embeddings or a model.
+- Practical impact: context, history, quality, and impact commands should answer coding questions directly from local maps.
 - Assistant-friendly: one normal command, with lower-level commands available when needed.
 
 ## Roadmap

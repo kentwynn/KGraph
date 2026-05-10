@@ -139,6 +139,10 @@ export function printQualityReport(report: CognitionQualityReport): void {
   console.log(`Mixed/stale/unresolved notes: ${report.mixedOrStaleCount}`);
   console.log(`Noisy file refs: ${report.noisyFileRefCount}`);
   console.log(`Noisy symbol refs: ${report.noisySymbolRefCount}`);
+  console.log(`Unresolved local imports: ${report.unresolvedLocalImportCount}`);
+  console.log(`Unresolved call edges: ${report.unresolvedCallCount}`);
+  console.log(`Duplicate cognition titles: ${report.duplicateTitleCount}`);
+  console.log(`Generated files scanned: ${report.generatedFileScanCount}`);
   if (report.changes.length === 0) {
     return;
   }

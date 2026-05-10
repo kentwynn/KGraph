@@ -5,6 +5,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { assertWorkspace, pathExists } from '../../storage/kgraph-paths.js';
+import { rankByFields } from '../../context/ranking.js';
 import { KGraphError, runCommand } from '../errors.js';
 
 const execFileAsync = promisify(execFile);
@@ -13,29 +14,40 @@ export interface HistoryEntry {
   timestamp: Date;
   filename: string;
   title: string;
+  summary?: string;
+  text?: string;
   author?: string;
 }
 
 export function registerHistoryCommand(program: Command): void {
   program
-    .command('history')
+    .command('history [query...]')
     .description('Show a timeline of processed cognition sessions')
     .option('--last <n>', 'Show only the last N entries')
     .option('--json', 'Print JSON output')
-    .action((options: { last?: string; json?: boolean }) =>
+    .action((queryParts: string[] = [], options: { last?: string; json?: boolean }) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
         const entries = await readHistoryEntries(
           workspace.processedInteractionsPath,
           workspace.rootPath,
         );
+        const query = queryParts.join(' ').trim();
 
         const limit =
           options.last !== undefined ? parseInt(options.last, 10) : 0;
         if (options.last !== undefined && (isNaN(limit) || limit < 1)) {
           throw new KGraphError('--last must be a positive integer.');
         }
-        const shown = limit > 0 ? entries.slice(-limit) : entries;
+        const matched = query
+          ? rankByFields(query, entries, [
+              { name: 'title', value: (entry) => entry.title },
+              { name: 'summary', value: (entry) => entry.summary },
+              { name: 'content', value: (entry) => entry.text },
+              { name: 'filename', value: (entry) => entry.filename },
+            ]).map((entry) => entry.item)
+          : entries;
+        const shown = limit > 0 ? matched.slice(-limit) : matched;
 
         if (options.json) {
           console.log(
@@ -44,6 +56,7 @@ export function registerHistoryCommand(program: Command): void {
                 timestamp: e.timestamp.toISOString(),
                 filename: e.filename,
                 title: e.title,
+                ...(e.summary !== undefined ? { summary: e.summary } : {}),
                 ...(e.author !== undefined ? { author: e.author } : {}),
               })),
               null,
@@ -51,7 +64,7 @@ export function registerHistoryCommand(program: Command): void {
             ),
           );
         } else {
-          console.log(renderHistory(shown));
+          console.log(renderHistory(shown, undefined, query));
         }
       }),
     );
@@ -79,10 +92,11 @@ export async function readHistoryEntries(
     const filePath = path.join(processedPath, filename);
     const content = await readFile(filePath, 'utf8');
     const title = content.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? filename;
+    const summary = content.match(/^## Summary\s+([\s\S]*?)(?:\n## |\n# |$)/m)?.[1]?.trim();
     const relPath = path.relative(rootPath, filePath);
     const author = await getGitAuthor(rootPath, relPath);
 
-    entries.push({ timestamp, filename, title, author });
+    entries.push({ timestamp, filename, title, summary, text: content, author });
   }
   return entries;
 }
@@ -105,6 +119,7 @@ export function parseTimestampFromFilename(filename: string): Date | undefined {
 export function renderHistory(
   entries: HistoryEntry[],
   useColor = supportsColor(),
+  query = '',
 ): string {
   const chalk = new Chalk({ level: useColor ? 3 : 0 });
 
@@ -118,7 +133,7 @@ export function renderHistory(
     );
   }
 
-  const header = `  ${chalk.bold('KGraph History')}  ${chalk.dim(`· ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`)}`;
+  const header = `  ${chalk.bold('KGraph History')}  ${chalk.dim(`· ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}${query ? ` matching "${query}"` : ''}`)}`;
   const lines: string[] = ['', header, ''];
 
   const titleWidth = Math.max(...entries.map((e) => e.title.length));
@@ -133,6 +148,9 @@ export function renderHistory(
         ? chalk.cyan(`by ${entry.author}`)
         : chalk.dim('(uncommitted)');
     lines.push(`  ${when}   ${title}  ${who}`);
+    if (entry.summary) {
+      lines.push(`  ${chalk.dim(entry.summary.split('\n')[0])}`);
+    }
   }
 
   lines.push('');

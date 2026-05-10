@@ -23,6 +23,22 @@ describe("kgraph context", () => {
     }
   });
 
+  it("returns impact for matched symbols", async () => {
+    const repo = await copyFixture("js-ts-repo");
+    try {
+      await runCli(repo, ["init"]);
+      await runCli(repo, ["scan"]);
+      const result = await runCli(repo, ["impact", "refreshSession"]);
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("# KGraph Impact");
+      expect(result.stdout).toContain("refreshSession");
+      expect(result.stdout).toContain("Called By");
+      expect(result.stdout).toContain("loginUser");
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
   it("runs the default refresh workflow with a topic", async () => {
     const repo = await copyFixture("js-ts-repo");
     try {

@@ -34,6 +34,7 @@ export async function queryContext(
     { name: 'name', value: (symbol) => symbol.name },
     { name: 'path', value: (symbol) => symbol.filePath },
     { name: 'kind', value: (symbol) => symbol.kind },
+    { name: 'parent', value: (symbol) => symbol.parentName },
   ]).slice(0, max);
   const relevantCognition = rankByFields(query, cognition, [
     { name: 'title', value: (note) => note.title },

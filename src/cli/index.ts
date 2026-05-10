@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { registerContextCommand } from './commands/context.js';
 import { registerDoctorCommand } from './commands/doctor.js';
 import { registerHistoryCommand } from './commands/history.js';
+import { registerImpactCommand } from './commands/impact.js';
 import { registerInitCommand } from './commands/init.js';
 import { registerIntegrateCommand } from './commands/integrate.js';
 import { registerRepairCommand } from './commands/repair.js';
@@ -43,6 +44,7 @@ export function createProgram(): Command {
   registerScanCommand(program);
   registerUpdateCommand(program);
   registerContextCommand(program);
+  registerImpactCommand(program);
   registerIntegrateCommand(program);
   registerVisualizeCommand(program);
   registerHistoryCommand(program);

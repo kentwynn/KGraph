@@ -40,4 +40,13 @@ describe('ranking', () => {
     );
     expect(ranked[0].reasons.some((r) => r.includes('(exact)'))).toBe(true);
   });
+
+  it('matches camel-case identifier words', () => {
+    const ranked = rankByFields(
+      'session refresh',
+      [{ name: 'refreshSession' }, { name: 'renderDashboard' }],
+      [{ name: 'name', value: (item) => item.name }],
+    );
+    expect(ranked[0].item.name).toBe('refreshSession');
+  });
 });

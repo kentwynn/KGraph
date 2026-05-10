@@ -107,4 +107,18 @@ describe('renderHistory', () => {
     expect(output).toContain('2026');
     expect(output).toContain('09:36');
   });
+
+  it('renders searched history header and summary', () => {
+    const entries: HistoryEntry[] = [
+      {
+        timestamp: new Date('2026-05-09T09:36:06.247Z'),
+        filename: 'a.md',
+        title: 'Blog Button Change',
+        summary: 'Removed the read more button from blog.',
+      },
+    ];
+    const output = renderHistory(entries, false, 'blog button');
+    expect(output).toContain('matching "blog button"');
+    expect(output).toContain('Removed the read more button');
+  });
 });
