@@ -23,4 +23,11 @@ describe("instruction blocks", () => {
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "always")).toContain("Every chat in this repository");
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "manual")).toContain("Do not run KGraph automatically");
   });
+
+  it("renders shared capture policy", () => {
+    const content = applyContextPolicy("Capture: {{KGRAPH_CAPTURE_POLICY}}", "always");
+    expect(content).toContain("KGraph runtime capture, not project documentation");
+    expect(content).toContain("Do not skip capture for UI text");
+    expect(content).toContain("The inbox note must use this structure");
+  });
 });

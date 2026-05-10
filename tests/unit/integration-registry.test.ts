@@ -76,6 +76,7 @@ describe('integration registry', () => {
         'At the end of any session that changed repository files',
       );
       expect(content).toContain('write one concise Markdown note');
+      expect(content).toContain('KGraph runtime capture, not project documentation');
       expect(content).toContain('Do not skip capture for UI text');
       expect(content).toContain('If repo files changed');
     }

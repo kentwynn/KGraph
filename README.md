@@ -107,14 +107,14 @@ kgraph "auth token refresh"
 kgraph doctor
 ```
 
-After useful AI work, assistants can save durable notes into `.kgraph/inbox/`. The next `kgraph` run processes those notes automatically. You can also process them directly with `kgraph update`.
+After useful AI work, assistants save durable runtime-capture notes into `.kgraph/inbox/`. These notes are not project documentation; they are KGraph input files that the next `kgraph` run processes automatically. You can also process them directly with `kgraph update`.
 
 Normal agent flow is intentionally small:
 
 ```bash
 kgraph "topic"
 # work normally
-# if repo files changed, write an inbox note when the change has future value
+# if repo files changed, write an inbox note before the final refresh
 kgraph
 ```
 
