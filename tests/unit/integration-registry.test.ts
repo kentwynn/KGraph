@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { applyContextPolicy } from '../../src/integrations/instruction-blocks.js';
 import {
   getIntegrationAdapter,
   listIntegrationAdapters,
   normalizeIntegrationNames,
 } from '../../src/integrations/integration-registry.js';
-import { applyContextPolicy } from '../../src/integrations/instruction-blocks.js';
 
 describe('integration registry', () => {
   it('lists supported AI tool integrations', () => {
@@ -66,7 +66,9 @@ describe('integration registry', () => {
     for (const adapter of listIntegrationAdapters()) {
       const content = [
         applyContextPolicy(adapter.instructions, 'smart'),
-        ...(adapter.commandFiles ?? []).map((file) => applyContextPolicy(file.content, 'smart')),
+        ...(adapter.commandFiles ?? []).map((file) =>
+          applyContextPolicy(file.content, 'smart'),
+        ),
       ].join('\n');
       expect(content).toContain('kgraph "<topic>"');
       expect(content).toContain('kgraph doctor');
@@ -76,7 +78,9 @@ describe('integration registry', () => {
         'At the end of any session that changed repository files',
       );
       expect(content).toContain('write one concise Markdown note');
-      expect(content).toContain('KGraph runtime capture, not project documentation');
+      expect(content).toContain(
+        'KGraph runtime capture, not project documentation',
+      );
       expect(content).toContain('Do not skip capture for UI text');
       expect(content).toContain('If repo files changed');
     }
@@ -90,7 +94,9 @@ describe('integration registry', () => {
 
   it('adds Claude Code hook files for automatic session capture', () => {
     expect(
-      getIntegrationAdapter('claude-code').commandFiles?.map((file) => file.path),
+      getIntegrationAdapter('claude-code').commandFiles?.map(
+        (file) => file.path,
+      ),
     ).toEqual(
       expect.arrayContaining([
         '.claude/hooks/kgraph-session-start.cjs',
@@ -110,6 +116,13 @@ describe('integration registry', () => {
         'codex',
       ]),
     ).toEqual(['codex', 'cursor', 'gemini', 'windsurf', 'cline']);
+  });
+
+  it('normalizes space-separated input from PowerShell', () => {
+    expect(normalizeIntegrationNames(['codex gemini'])).toEqual([
+      'codex',
+      'gemini',
+    ]);
   });
 
   it('rejects unsupported integrations', () => {

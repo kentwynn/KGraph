@@ -1,11 +1,11 @@
-import type { IntegrationName } from "../types/config.js";
-import { claudeCodeAdapter } from "./adapters/claude-code.js";
-import { clineAdapter } from "./adapters/cline.js";
-import { codexAdapter } from "./adapters/codex.js";
-import { copilotAdapter } from "./adapters/copilot.js";
-import { cursorAdapter } from "./adapters/cursor.js";
-import { geminiAdapter } from "./adapters/gemini.js";
-import { windsurfAdapter } from "./adapters/windsurf.js";
+import type { IntegrationName } from '../types/config.js';
+import { claudeCodeAdapter } from './adapters/claude-code.js';
+import { clineAdapter } from './adapters/cline.js';
+import { codexAdapter } from './adapters/codex.js';
+import { copilotAdapter } from './adapters/copilot.js';
+import { cursorAdapter } from './adapters/cursor.js';
+import { geminiAdapter } from './adapters/gemini.js';
+import { windsurfAdapter } from './adapters/windsurf.js';
 
 export interface IntegrationAdapter {
   name: IntegrationName;
@@ -28,7 +28,7 @@ const ADAPTERS: IntegrationAdapter[] = [
   copilotAdapter,
   cursorAdapter,
   geminiAdapter,
-  windsurfAdapter
+  windsurfAdapter,
 ].sort((left, right) => left.name.localeCompare(right.name));
 
 export function listIntegrationAdapters(): IntegrationAdapter[] {
@@ -38,12 +38,16 @@ export function listIntegrationAdapters(): IntegrationAdapter[] {
 export function getIntegrationAdapter(name: string): IntegrationAdapter {
   const adapter = ADAPTERS.find((item) => item.name === name);
   if (!adapter) {
-    throw new Error(`Unsupported integration "${name}". Supported integrations: ${ADAPTERS.map((item) => item.name).join(", ")}`);
+    throw new Error(
+      `Unsupported integration "${name}". Supported integrations: ${ADAPTERS.map((item) => item.name).join(', ')}`,
+    );
   }
   return adapter;
 }
 
-export function normalizeIntegrationNames(values: string[] | undefined): IntegrationName[] {
+export function normalizeIntegrationNames(
+  values: string[] | undefined,
+): IntegrationName[] {
   if (!values || values.length === 0) {
     return [];
   }
@@ -51,7 +55,7 @@ export function normalizeIntegrationNames(values: string[] | undefined): Integra
   const names: IntegrationName[] = [];
   const seen = new Set<string>();
   for (const value of values) {
-    for (const raw of value.split(",")) {
+    for (const raw of value.split(/[\s,]+/)) {
       const name = raw.trim();
       if (!name || seen.has(name)) {
         continue;

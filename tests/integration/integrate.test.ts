@@ -36,18 +36,20 @@ describe('kgraph integrate', () => {
 
       const add = await runCli(repo, ['integrate', 'add', 'codex', 'copilot']);
       expect(add.code).toBe(0);
-      expect(add.stdout).toContain('Configured integrations: codex:always, copilot:always');
+      expect(add.stdout).toContain(
+        'Configured integrations: codex:smart, copilot:smart',
+      );
 
       const list = await runCli(repo, ['integrate', 'list']);
-      expect(list.stdout).toContain('codex enabled always AGENTS.md present');
+      expect(list.stdout).toContain('codex enabled smart AGENTS.md present');
       expect(list.stdout).toContain(
-        'copilot enabled always .github/copilot-instructions.md present',
+        'copilot enabled smart .github/copilot-instructions.md present',
       );
 
       const agents = await readFile(path.join(repo, 'AGENTS.md'), 'utf8');
       expect(agents).toContain('Existing Codex guidance');
       expect(agents).toContain('BEGIN KGRAPH codex');
-      expect(agents).toContain('Every chat in this repository must start');
+      expect(agents).toContain('For repo-specific coding');
       await access(path.join(repo, '.github', 'copilot-instructions.md'));
       await access(
         path.join(repo, '.github', 'prompts', 'kgraph-scan.prompt.md'),
@@ -63,8 +65,12 @@ describe('kgraph integrate', () => {
       );
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
       await runCli(repo, ['integrate', 'add', 'claude-code']);
-      await access(path.join(repo, '.claude', 'hooks', 'kgraph-session-start.cjs'));
-      await access(path.join(repo, '.claude', 'hooks', 'kgraph-session-pre-read.cjs'));
+      await access(
+        path.join(repo, '.claude', 'hooks', 'kgraph-session-start.cjs'),
+      );
+      await access(
+        path.join(repo, '.claude', 'hooks', 'kgraph-session-pre-read.cjs'),
+      );
       await expect(
         access(path.join(repo, '.github', 'prompts', 'kgraph.prompt.md')),
       ).rejects.toThrow();

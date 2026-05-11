@@ -5,8 +5,9 @@ const PATH_REF =
   /(?:^|\s|`?)([\w./-]+\.(?:ts|tsx|js|jsx|json|md|yaml|yml))(?:\s|$|[),.;`])/g;
 
 export function parseMarkdownNote(markdown: string): ParsedCognitionNote {
+  const normalized = markdown.replace(/\r\n/g, '\n');
   const warnings: string[] = [];
-  const { frontmatter, body } = splitFrontmatter(markdown, warnings);
+  const { frontmatter, body } = splitFrontmatter(normalized, warnings);
   const sections = parseSections(body);
   const frontmatterTitle =
     typeof frontmatter.title === 'string' ? frontmatter.title : undefined;

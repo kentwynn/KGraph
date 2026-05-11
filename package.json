@@ -14,7 +14,7 @@
   "scripts": {
     "clean": "node scripts/clean-dist.mjs",
     "build": "npm run clean && tsc -p tsconfig.json",
-    "postbuild": "chmod +x dist/cli/index.js",
+    "postbuild": "node -e \"try{require('child_process').execSync('chmod +x dist/cli/index.js')}catch{}\"",
     "test": "vitest run",
     "kgraph": "tsx src/cli/index.ts",
     "check:artifacts": "node scripts/check-clean-artifacts.mjs",

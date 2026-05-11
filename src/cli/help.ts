@@ -35,15 +35,27 @@ export function renderRootHelp(useColor = supportsColor()): string {
     ),
     '',
     theme.bold('Workflows'),
-    command('scan', 'Optional: refresh only file, symbol, import, and relationship maps'),
+    command(
+      'scan',
+      'Optional: refresh only file, symbol, import, and relationship maps',
+    ),
     command('session', 'Show agent read/write activity and token estimates'),
-    command('session read src/auth.ts --agent codex', 'Record an agent file read'),
+    command(
+      'session read src/auth.ts --agent codex',
+      'Record an agent file read',
+    ),
     command(
       'context "auth token refresh"',
       'Optional: return context without scanning or updating',
     ),
-    command('impact "Button"', 'Show imports, callers, calls, cognition, and risk'),
-    command('update', 'Optional: process only .kgraph/inbox Markdown cognition notes'),
+    command(
+      'impact "Button"',
+      'Show imports, callers, calls, cognition, and risk',
+    ),
+    command(
+      'update',
+      'Optional: process only .kgraph/inbox Markdown cognition notes',
+    ),
     command('doctor', 'Check workspace health and next actions'),
     command('doctor --quality', 'Report stale/noisy cognition references'),
     command('repair --dry-run', 'Preview cognition reference cleanup'),
@@ -58,7 +70,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('integrate list', 'Show configured AI tool integrations'),
     command(
       'integrate add gemini windsurf cline',
-      'Write KGraph instructions using always mode by default',
+      'Write KGraph instructions using smart mode by default',
     ),
     command(
       'integrate add copilot --mode always',

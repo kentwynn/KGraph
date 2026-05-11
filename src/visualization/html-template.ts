@@ -59,6 +59,7 @@ select:hover,button:hover{background:#475569}
   <span id="t-title">\u29e1 KGraph \u00b7 ${repoName}</span>
   <span id="t-stats">${meta.fileCount} files &middot; ${meta.symbolCount} symbols &middot; ${meta.cognitionCount} notes &middot; ~${meta.tokenEstimate} tokens</span>
   <div id="t-controls">
+    <label class="clabel"><input type="checkbox" id="tog-sym"> Symbols</label>
     <label class="clabel"><input type="checkbox" id="tog-cog" checked> Cognition</label>
     <select id="sel-layout" title="Graph layout algorithm">
       <option value="dagre">Hierarchical</option>
@@ -113,6 +114,16 @@ select:hover,button:hover{background:#475569}
   if (typeof cytoscapeDagre !== 'undefined') {
     cytoscape.use(cytoscapeDagre);
   }
+
+  var LARGE_THRESHOLD = 500;
+  var isLarge = GRAPH_DATA.elements.length > LARGE_THRESHOLD;
+
+  // Hide symbol nodes and their edges by default for performance
+  GRAPH_DATA.elements.forEach(function (el) {
+    if (el.data.type === 'symbol' || el.data.type === 'contains' || el.data.type === 'symbol-contains' || el.data.type === 'calls') {
+      el.classes = (el.classes || '') + ' hidden';
+    }
+  });
 
   function esc(v) {
     return String(v == null ? '' : v)
@@ -210,26 +221,21 @@ select:hover,button:hover{background:#475569}
       },
       { selector: '.hidden', style: { display: 'none' } }
     ],
-    layout: {
-      name: 'dagre',
-      rankDir: 'LR',
-      nodeSep: 60,
-      rankSep: 120,
-      padding: 40,
-      animate: true,
-      animationDuration: 400
-    }
+    layout: isLarge
+      ? { name: 'cose', animate: false, padding: 40, nodeOverlap: 20, idealEdgeLength: 80 }
+      : { name: 'dagre', rankDir: 'LR', nodeSep: 60, rankSep: 120, padding: 40, animate: true, animationDuration: 400 }
   });
 
+  var anim = !isLarge;
   var LAYOUTS = {
-    dagre: { name: 'dagre', rankDir: 'LR', nodeSep: 60, rankSep: 120, animate: true, animationDuration: 400, padding: 40 },
-    cose: { name: 'cose', animate: true, animationDuration: 600, padding: 40 },
-    grid: { name: 'grid', animate: true, animationDuration: 400, padding: 40 },
+    dagre: { name: 'dagre', rankDir: 'LR', nodeSep: 60, rankSep: 120, animate: anim, animationDuration: 400, padding: 40 },
+    cose: { name: 'cose', animate: anim, animationDuration: 600, padding: 40 },
+    grid: { name: 'grid', animate: anim, animationDuration: 400, padding: 40 },
     concentric: {
       name: 'concentric',
       concentric: function (n) { return n.degree(); },
       levelWidth: function () { return 2; },
-      animate: true,
+      animate: anim,
       animationDuration: 400,
       padding: 40
     }
@@ -273,6 +279,16 @@ select:hover,button:hover{background:#475569}
 
   document.getElementById('sb-close').addEventListener('click', function () {
     document.getElementById('sidebar').classList.remove('open');
+  });
+
+  document.getElementById('tog-sym').addEventListener('change', function (e) {
+    if (e.target.checked) {
+      cy.nodes('.symbol').removeClass('hidden');
+      cy.edges('.relationship.contains, .relationship.symbol-contains, .relationship.calls').removeClass('hidden');
+    } else {
+      cy.nodes('.symbol').addClass('hidden');
+      cy.edges('.relationship.contains, .relationship.symbol-contains, .relationship.calls').addClass('hidden');
+    }
   });
 
   document.getElementById('tog-cog').addEventListener('change', function (e) {
