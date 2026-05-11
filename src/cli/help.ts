@@ -60,6 +60,8 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('doctor --quality', 'Report stale/noisy cognition references'),
     command('repair --dry-run', 'Preview cognition reference cleanup'),
     command('repair', 'Clean noisy stale cognition references'),
+    command('uninstall', 'Preview repo-local KGraph removal'),
+    command('uninstall --yes', 'Remove .kgraph/ and managed integrations'),
     command(
       'visualize',
       'Interactive dependency graph at http://localhost:4242',

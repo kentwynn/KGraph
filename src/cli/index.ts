@@ -12,6 +12,7 @@ import { registerIntegrateCommand } from './commands/integrate.js';
 import { registerRepairCommand } from './commands/repair.js';
 import { registerScanCommand } from './commands/scan.js';
 import { registerSessionCommand } from './commands/session.js';
+import { registerUninstallCommand } from './commands/uninstall.js';
 import { registerUpdateCommand } from './commands/update.js';
 import { registerVisualizeCommand } from './commands/visualize.js';
 import { runDefaultWorkflow } from './commands/workflow.js';
@@ -54,6 +55,7 @@ export function createProgram(): Command {
   registerHistoryCommand(program);
   registerDoctorCommand(program);
   registerRepairCommand(program);
+  registerUninstallCommand(program);
   return program;
 }
 

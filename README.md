@@ -178,6 +178,14 @@ kgraph repair
 `repair --dry-run` previews cleanup for noisy cognition references, such as framework names recorded as files or local variables recorded as symbols. `repair` applies only the safe noisy-reference cleanup; broader quality findings stay report-only. Run repair intentionally when stale references make context noisy; it is not part of every normal workflow.
 
 ```bash
+kgraph uninstall
+kgraph uninstall --yes
+kgraph uninstall --keep-integrations --yes
+```
+
+`uninstall` previews repo-local removal and does not delete anything unless `--yes` is passed. `uninstall --yes` removes `.kgraph/` and KGraph-managed integration blocks/files while preserving source files and user-authored text outside managed blocks. Use `--keep-integrations --yes` to remove only `.kgraph/` while leaving AI tool instruction files in place. After uninstalling, `kgraph init` can be run again for a fresh setup.
+
+```bash
 kgraph impact "Button"
 kgraph impact "createSession" --json
 ```

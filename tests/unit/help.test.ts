@@ -13,6 +13,7 @@ describe('root help', () => {
     expect(help).toContain('integrate add gemini windsurf cline');
     expect(help).toContain('integrate add copilot --mode always');
     expect(help).toContain('integrate set copilot --mode manual');
+    expect(help).toContain('uninstall --yes');
     expect(help).toContain('--mode smart|always|manual|off');
   });
 
