@@ -13,7 +13,8 @@ import { KGraphError, runCommand } from '../errors.js';
 export function registerIntegrateCommand(program: Command): void {
   const integrate = program
     .command('integrate')
-    .description('Manage AI tool integrations');
+    .description('Manage AI tool integrations')
+    .helpOption('-h, --help', 'Show help');
 
   integrate
     .command('list')

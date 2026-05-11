@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderRootHelp, renderWorkflowBanner } from '../../src/cli/help.js';
+import { shouldRenderRootHelpBeforeParse } from '../../src/cli/index.js';
 
 describe('root help', () => {
   it('renders branded command guidance without color', () => {
@@ -32,5 +33,17 @@ describe('root help', () => {
 
     expect(banner).toContain('integration modes');
     expect(banner).toContain('codex:smart, copilot:always, cursor:off');
+  });
+
+  it('lets subcommands own their help output', () => {
+    expect(shouldRenderRootHelpBeforeParse(['node', 'kgraph', '--help'])).toBe(
+      true,
+    );
+    expect(
+      shouldRenderRootHelpBeforeParse(['node', 'kgraph', 'session', '--help']),
+    ).toBe(false);
+    expect(
+      shouldRenderRootHelpBeforeParse(['node', 'kgraph', 'integrate', '-h']),
+    ).toBe(false);
   });
 });

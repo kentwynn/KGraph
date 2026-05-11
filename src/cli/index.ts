@@ -30,7 +30,6 @@ export function createProgram(): Command {
       'Run the default refresh workflow and optionally return context for a topic',
     )
     .version(version)
-    .addHelpText('beforeAll', renderRootHelp())
     .helpOption(false)
     .action(async (topicParts: string[] = []) => {
       await runDefaultWorkflow(topicParts.join(' '));
@@ -60,11 +59,48 @@ export function createProgram(): Command {
 
 if (isCliEntrypoint()) {
   const program = createProgram();
-  if (process.argv.includes('-h') || process.argv.includes('--help')) {
+  const helpTarget = findExplicitHelpTarget(program, process.argv.slice(2));
+  if (helpTarget === program || shouldRenderRootHelpBeforeParse(process.argv)) {
     console.log(renderRootHelp());
+  } else if (helpTarget) {
+    helpTarget.outputHelp();
   } else {
     await program.parseAsync(process.argv);
   }
+}
+
+export function shouldRenderRootHelpBeforeParse(argv: string[]): boolean {
+  const args = argv.slice(2);
+  return args.length === 1 && (args[0] === '-h' || args[0] === '--help');
+}
+
+function findExplicitHelpTarget(
+  program: Command,
+  args: string[],
+): Command | undefined {
+  let command = program;
+  let matchedSubcommand = false;
+
+  for (const arg of args) {
+    if (arg === '-h' || arg === '--help') {
+      return matchedSubcommand ? command : program;
+    }
+
+    if (arg.startsWith('-')) {
+      continue;
+    }
+
+    const next = command.commands.find(
+      (candidate) =>
+        candidate.name() === arg || candidate.aliases().includes(arg),
+    );
+    if (next) {
+      command = next;
+      matchedSubcommand = true;
+    }
+  }
+
+  return undefined;
 }
 
 function isCliEntrypoint(): boolean {

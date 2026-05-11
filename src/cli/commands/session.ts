@@ -20,6 +20,7 @@ export function registerSessionCommand(program: Command): void {
   const session = program
     .command('session')
     .description('Track agent read/write session activity and token estimates')
+    .helpOption('-h, --help', 'Show help')
     .option('--json', 'Print JSON output')
     .action((options: SessionOptions) =>
       runCommand(async () => {
