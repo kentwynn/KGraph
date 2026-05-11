@@ -70,7 +70,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('integrate list', 'Show configured AI tool integrations'),
     command(
       'integrate add gemini windsurf cline',
-      'Write KGraph instructions using smart mode by default',
+      'Write KGraph instructions using always mode by default',
     ),
     command(
       'integrate add copilot --mode always',

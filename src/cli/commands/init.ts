@@ -30,8 +30,8 @@ export function registerInitCommand(program: Command): void {
     )
     .option(
       '--mode <mode>',
-      'Integration mode: smart, always, manual, or off',
-      'smart',
+      'Integration mode: always, smart, manual, or off',
+      'always',
     )
     .action((options: InitOptions) =>
       runCommand(async () => {
