@@ -100,12 +100,17 @@ kgraph init
 # 2. Optional: connect AI tools so they know the KGraph workflow
 kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
 
-# 3. Run the normal workflow for a topic
+# 3. Optional: configure deep language extractors for non-TS repos
+kgraph extractor add jvm python
+
+# 4. Run the normal workflow for a topic
 kgraph "auth token refresh"
 
-# 4. Check health if something feels off
+# 5. Check health if something feels off
 kgraph doctor
 ```
+
+`kgraph init` now scans once, then prints relevant next steps. When KGraph can detect likely AI tools on the machine, it recommends matching integrations. When the repository contains languages that only have basic built-in extraction today, it recommends optional deep extractors and prints the exact install/configure commands.
 
 After useful AI work, assistants save durable runtime-capture notes into `.kgraph/inbox/`. These notes are not project documentation; they are KGraph input files that the next `kgraph` run processes automatically. You can also process them directly with `kgraph update`.
 
@@ -138,7 +143,7 @@ This is optional. Claude Code can use generated hook scripts for automatic captu
 kgraph init
 ```
 
-Required once per repo. Creates `.kgraph/` and the local config.
+Required once per repo. Creates `.kgraph/`, writes the local config, runs the first scan, and prints suggested next actions based on the detected repo languages and likely local AI tools.
 
 ```bash
 kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline
@@ -258,6 +263,18 @@ New integrations default to `always` mode because coding agents often under-clas
 | Codex | `AGENTS.md`, `.agents/skills/kgraph/SKILL.md` |
 | GitHub Copilot | `.github/copilot-instructions.md`, `.github/prompts/*` |
 | Cursor | `.cursor/rules/kgraph.mdc` |
+
+## Optional Deep Extractors
+
+KGraph ships with built-in extractors for several languages, but TypeScript and JavaScript still have the deepest built-in analysis today. For languages such as Java, Kotlin, Python, Go, Rust, C/C++, and C#, `kgraph init` can recommend optional deep extractors when those languages are detected in the repository.
+
+```bash
+kgraph extractor list
+kgraph extractor add jvm python
+kgraph extractor remove jvm
+```
+
+`extractor add` writes extractor configuration into `.kgraph/config.yaml` and prints the exact `npm install -D ...` command for the matching optional packages. This is explicit on purpose: KGraph recommends install commands by default rather than silently changing package-manager state.
 | Claude Code | `CLAUDE.md`, `.claude/commands/*` |
 | Gemini CLI | `GEMINI.md` |
 | Windsurf | `.windsurf/rules/kgraph.md` |

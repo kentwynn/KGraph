@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { registerContextCommand } from './commands/context.js';
 import { registerDoctorCommand } from './commands/doctor.js';
+import { registerExtractorCommand } from './commands/extractor.js';
 import { registerHistoryCommand } from './commands/history.js';
 import { registerImpactCommand } from './commands/impact.js';
 import { registerInitCommand } from './commands/init.js';
@@ -25,7 +26,10 @@ export function createProgram(): Command {
   program
     .name('kgraph')
     .description('Persistent repo intelligence for AI coding assistants')
-    .argument('[topic...]', 'Run the default refresh workflow and optionally return context for a topic')
+    .argument(
+      '[topic...]',
+      'Run the default refresh workflow and optionally return context for a topic',
+    )
     .version(version)
     .addHelpText('beforeAll', renderRootHelp())
     .helpOption(false)
@@ -47,6 +51,7 @@ export function createProgram(): Command {
   registerUpdateCommand(program);
   registerContextCommand(program);
   registerImpactCommand(program);
+  registerExtractorCommand(program);
   registerIntegrateCommand(program);
   registerVisualizeCommand(program);
   registerHistoryCommand(program);
