@@ -16,6 +16,7 @@ describe('kgraph doctor', () => {
       expect(afterScan.stdout).toContain('OK  workspace');
       expect(afterScan.stdout).toContain('OK  maps');
       expect(afterScan.stdout).toContain('scan result');
+      expect(afterScan.stdout).toContain('OK  quality gate');
 
       const quality = await runCli(repo, ['doctor', '--quality']);
       expect(quality.code).toBe(0);

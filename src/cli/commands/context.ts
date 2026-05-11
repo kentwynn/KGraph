@@ -40,7 +40,7 @@ export function renderContextMarkdown(response: ContextResponse): string {
   lines.push(
     ...formatList(
       response.matchedDomains.map(
-        (item) => `- ${item.item.name} (${item.reasons.join(', ')})`,
+        (item) => `- ${item.item.name} because ${formatReasons(item.reasons)}`,
       ),
     ),
   );
@@ -55,7 +55,7 @@ export function renderContextMarkdown(response: ContextResponse): string {
         ]
           .filter(Boolean)
           .join(', ');
-        return `- ${f.path}${meta ? ` [${meta}]` : ''}`;
+        return `- ${f.path}${meta ? ` [${meta}]` : ''} because ${formatReasons(item.reasons)}`;
       }),
     ),
   );
@@ -69,7 +69,7 @@ export function renderContextMarkdown(response: ContextResponse): string {
           s.startLine != null && s.endLine != null
             ? `:${s.startLine}-${s.endLine}`
             : '';
-        return `- ${s.name} (${kindInfo}) in ${s.filePath}${lineRange}`;
+        return `- ${s.name} (${kindInfo}) in ${s.filePath}${lineRange} because ${formatReasons(item.reasons)}`;
       }),
     ),
   );
@@ -77,22 +77,28 @@ export function renderContextMarkdown(response: ContextResponse): string {
   lines.push(
     ...formatList(
       response.relevantCognition.map(
-        (item) => `- ${item.item.title} [${item.item.referencesStatus}]`,
+        (item) =>
+          `- ${item.item.title} [${item.item.referencesStatus}] because ${formatReasons(item.reasons)}`,
       ),
     ),
   );
   lines.push('', '## Relationships', '');
-  lines.push(...formatGroupedRelationships(response.relationships));
+  lines.push(
+    ...formatGroupedRelationships(
+      response.relationships,
+      response.relationshipExplanations,
+    ),
+  );
   lines.push('', '## Nearby Symbols (1-hop imports)', '');
   lines.push(
     ...formatList(
-      (response.nearbySymbols ?? []).map((s) => {
+      nearbySymbolItems(response).map(({ symbol: s, reasons }) => {
         const kindInfo = [s.kind, s.parentName].filter(Boolean).join(', ');
         const lineRange =
           s.startLine != null && s.endLine != null
             ? `:${s.startLine}-${s.endLine}`
             : '';
-        return `- ${s.name} (${kindInfo}) in ${s.filePath}${lineRange}`;
+        return `- ${s.name} (${kindInfo}) in ${s.filePath}${lineRange} because ${formatReasons(reasons)}`;
       }),
     ),
   );
@@ -103,7 +109,14 @@ export function renderContextMarkdown(response: ContextResponse): string {
 
 function formatGroupedRelationships(
   relationships: ContextResponse['relationships'],
+  explanations?: ContextResponse['relationshipExplanations'],
 ): string[] {
+  const reasonsByRelationship = new Map(
+    (explanations ?? []).map((item) => [
+      relationshipKey(item.relationship),
+      item.reasons,
+    ]),
+  );
   const imports = relationships.filter((r) => r.relationshipType === 'import');
   const calls = relationships.filter((r) => r.relationshipType === 'calls');
   const contains = relationships.filter(
@@ -122,25 +135,85 @@ function formatGroupedRelationships(
   const lines: string[] = [];
   if (imports.length > 0) {
     lines.push('Imports:');
-    for (const r of imports) lines.push(`  ${r.sourceId} → ${r.targetId}`);
+    for (const r of imports) {
+      lines.push(
+        `  ${r.sourceId} → ${r.targetId}${formatRelationshipReason(r, reasonsByRelationship)}`,
+      );
+    }
   }
   if (calls.length > 0) {
     lines.push('Calls:');
-    for (const r of calls) lines.push(`  ${r.sourceId} → ${r.targetId}`);
+    for (const r of calls) {
+      lines.push(
+        `  ${r.sourceId} → ${r.targetId}${formatRelationshipReason(r, reasonsByRelationship)}`,
+      );
+    }
   }
   if (contains.length > 0) {
     lines.push('Contains:');
-    for (const r of contains)
-      lines.push(`  ${r.sourceId} contains ${r.targetId}`);
+    for (const r of contains) {
+      lines.push(
+        `  ${r.sourceId} contains ${r.targetId}${formatRelationshipReason(r, reasonsByRelationship)}`,
+      );
+    }
   }
   if (other.length > 0) {
     lines.push('Other:');
-    for (const r of other)
-      lines.push(`  ${r.sourceId} ${r.relationshipType} ${r.targetId}`);
+    for (const r of other) {
+      lines.push(
+        `  ${r.sourceId} ${r.relationshipType} ${r.targetId}${formatRelationshipReason(r, reasonsByRelationship)}`,
+      );
+    }
   }
   return lines.length > 0 ? lines : ['- None'];
 }
 
 function formatList(items: string[]): string[] {
   return items.length > 0 ? items : ['- None'];
+}
+
+function formatReasons(reasons: string[]): string {
+  if (reasons.length === 0) {
+    return 'it is near the query';
+  }
+  const visible = reasons.slice(0, 3);
+  const remaining = reasons.length - visible.length;
+  return remaining > 0
+    ? `${visible.join('; ')}; and ${remaining} more`
+    : visible.join('; ');
+}
+
+function nearbySymbolItems(
+  response: ContextResponse,
+): Array<{
+  symbol: NonNullable<ContextResponse['nearbySymbols']>[number];
+  reasons: string[];
+}> {
+  if (response.nearbySymbolExplanations) {
+    return response.nearbySymbolExplanations;
+  }
+  return (response.nearbySymbols ?? []).map((symbol) => ({
+    symbol,
+    reasons: ['exported symbol from 1-hop import'],
+  }));
+}
+
+function formatRelationshipReason(
+  relationship: ContextResponse['relationships'][number],
+  reasonsByRelationship: Map<string, string[]>,
+): string {
+  const reasons = reasonsByRelationship.get(relationshipKey(relationship));
+  return reasons && reasons.length > 0
+    ? ` because ${formatReasons(reasons)}`
+    : '';
+}
+
+function relationshipKey(
+  relationship: ContextResponse['relationships'][number],
+): string {
+  return [
+    relationship.sourceId,
+    relationship.targetId,
+    relationship.relationshipType,
+  ].join('\0');
 }

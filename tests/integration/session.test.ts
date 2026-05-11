@@ -17,6 +17,8 @@ describe('kgraph session', () => {
       const status = await runCli(repo, ['session']);
       expect(status.stdout).toContain('KGraph Session');
       expect(status.stdout).toContain('Repeated reads: 1');
+      expect(status.stdout).toContain('Next');
+      expect(status.stdout).toContain('kgraph context "<topic>"');
 
       const json = await runCli(repo, ['session', '--json']);
       expect(JSON.parse(json.stdout).repeatedReadCount).toBe(1);

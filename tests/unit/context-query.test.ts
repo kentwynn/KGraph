@@ -104,6 +104,11 @@ describe('context query', () => {
           expect.objectContaining({ relationshipType: 'calls' }),
         ]),
       );
+      expect(
+        result.relationshipExplanations?.flatMap((item) => item.reasons),
+      ).toEqual(expect.arrayContaining([
+        expect.stringContaining('connected to matched symbol AuthService'),
+      ]));
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -166,6 +171,11 @@ describe('context query', () => {
       expect(result.nearbySymbols).toBeDefined();
       expect(result.nearbySymbols!.map((s) => s.name)).toContain(
         'refreshSession',
+      );
+      expect(result.nearbySymbolExplanations?.[0]?.reasons).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('exported symbol from 1-hop import'),
+        ]),
       );
     } finally {
       await cleanupTempRepo(repo);

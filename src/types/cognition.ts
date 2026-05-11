@@ -44,7 +44,15 @@ export interface ContextResponse {
   relevantSymbols: RankedItem<CodeSymbol>[];
   relevantCognition: RankedItem<CognitionNote>[];
   relationships: Relationship[];
+  relationshipExplanations?: Array<{
+    relationship: Relationship;
+    reasons: string[];
+  }>;
   nearbySymbols?: CodeSymbol[];
+  nearbySymbolExplanations?: Array<{
+    symbol: CodeSymbol;
+    reasons: string[];
+  }>;
   staleReferences: string[];
   warnings: string[];
 }

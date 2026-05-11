@@ -62,6 +62,7 @@ kgraph "blog admin token usage"
 ```
 
 Instead of reading the whole repo, it gets a compact starting point: relevant files, symbols, relationships, domains, prior notes, and stale references to watch.
+Each context item explains why it was returned, such as a path/name match, a matched cognition reference, a domain match, or a nearby import relationship.
 
 When you need change impact instead of broad context:
 
@@ -103,7 +104,7 @@ kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
 # 3. Run the normal workflow for a topic
 kgraph "auth token refresh"
 
-# 4. Check health if something feels off
+# 4. Verify the setup and use doctor as the quality gate
 kgraph doctor
 ```
 
@@ -120,7 +121,7 @@ kgraph "topic"
 kgraph
 ```
 
-Use `kgraph doctor --quality` and `kgraph repair --dry-run` only when stale or noisy cognition references start making context harder to trust.
+Use `kgraph doctor` after setup and before trusting a repo's saved intelligence. It checks initialization, maps, pending inbox notes, integration targets, and actionable quality problems. Use `kgraph doctor --quality` and `kgraph repair --dry-run` when stale or noisy cognition references start making context harder to trust.
 
 Agents can also report session activity so KGraph can estimate token waste:
 
@@ -167,6 +168,8 @@ kgraph doctor --quality
 
 Checks whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Use `--quality` when context shows stale/noisy cognition references, unresolved local imports, unresolved call edges, duplicate cognition titles, or generated files in the scan.
 
+The default doctor result is the main quality gate. It fails on actionable hygiene issues such as stale/noisy cognition, duplicate cognition titles, generated integration files leaking into scans, missing maps, or broken integration targets. Scanner coverage counts such as unresolved local imports or unresolved call edges remain visible in `--quality`, but they do not fail the gate by themselves because they often reflect current parser limits.
+
 ```bash
 kgraph repair --dry-run
 kgraph repair
@@ -192,6 +195,7 @@ kgraph session end --agent codex
 ```
 
 Track agent-reported read/write activity, repeated reads, and estimated token cost. Supported agents are `codex`, `claude-code`, `copilot`, `cursor`, `gemini`, `windsurf`, and `cline`.
+The text report now includes next actions, such as using `kgraph context "<topic>"` before repeated broad file inspection.
 
 ## Optional Step Commands
 
@@ -209,6 +213,7 @@ kgraph context "auth token refresh" --json
 ```
 
 Return context from existing maps and cognition without scanning or updating first.
+Markdown output includes the reason each file, symbol, cognition note, nearby symbol, or relationship was selected. Use `--json` when an agent or script needs the same explanation data programmatically.
 
 ```bash
 kgraph update

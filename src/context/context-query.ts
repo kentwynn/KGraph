@@ -5,12 +5,14 @@ import {
 import type { ContextResponse } from '../types/cognition.js';
 import type { KGraphConfig, KGraphWorkspace } from '../types/config.js';
 import type {
+  CodeSymbol,
   DependencyMap,
   FileMap,
+  Relationship,
   RelationshipMap,
   SymbolMap,
 } from '../types/maps.js';
-import { rankByFields } from './ranking.js';
+import { rankByFields, type Ranked } from './ranking.js';
 
 export async function queryContext(
   workspace: KGraphWorkspace,
@@ -97,6 +99,13 @@ export async function queryContext(
           candidate.relationshipType === relationship.relationshipType,
       ) === index,
   );
+  const relationshipExplanations = explainRelationships(relationships, {
+    rankedRelationships,
+    relevantFiles,
+    relevantSymbols,
+    relevantCognition,
+    matchedDomains,
+  });
 
   const filePaths = new Set(maps.fileMap.files.map((f) => f.path));
   const symbolNames = new Set(maps.symbolMap.symbols.map((s) => s.name));
@@ -142,6 +151,13 @@ export async function queryContext(
         !matchedSymbolIds.has(s.id),
     )
     .slice(0, max);
+  const nearbySymbolExplanations = nearbySymbols.map((symbol) => ({
+    symbol,
+    reasons: [
+      `exported symbol from 1-hop import ${symbol.filePath}`,
+      ...dependenciesForImportedSymbol(symbol, maps.dependencyMap.dependencies),
+    ],
+  }));
 
   return {
     query,
@@ -150,8 +166,117 @@ export async function queryContext(
     relevantSymbols,
     relevantCognition,
     relationships: relationships.slice(0, max),
+    relationshipExplanations: relationshipExplanations.slice(0, max),
     nearbySymbols,
+    nearbySymbolExplanations,
     staleReferences,
     warnings: [],
   };
+}
+
+function explainRelationships(
+  relationships: Relationship[],
+  context: {
+    rankedRelationships: Ranked<Relationship>[];
+    relevantFiles: Ranked<{ path: string }>[];
+    relevantSymbols: Ranked<{ id?: string; filePath: string; name: string }>[];
+    relevantCognition: Ranked<{
+      title: string;
+      relatedFiles: string[];
+      relatedSymbols: string[];
+    }>[];
+    matchedDomains: Ranked<{
+      name: string;
+      files: string[];
+      symbols: string[];
+    }>[];
+  },
+): Array<{ relationship: Relationship; reasons: string[] }> {
+  const rankedReasons = new Map(
+    context.rankedRelationships.map((ranked) => [
+      relationshipKey(ranked.item),
+      ranked.reasons,
+    ]),
+  );
+
+  return relationships.map((relationship) => {
+    const reasons = new Set<string>();
+    for (const reason of rankedReasons.get(relationshipKey(relationship)) ?? []) {
+      reasons.add(reason);
+    }
+
+    for (const file of context.relevantFiles) {
+      if (
+        relationship.sourceId === file.item.path ||
+        relationship.targetId === file.item.path
+      ) {
+        reasons.add(`connected to matched file ${file.item.path}`);
+      }
+    }
+
+    for (const symbol of context.relevantSymbols) {
+      if (
+        relationship.sourceId === symbol.item.id ||
+        relationship.targetId === symbol.item.id ||
+        relationship.sourceId === symbol.item.name ||
+        relationship.targetId === symbol.item.name ||
+        relationship.sourceId === symbol.item.filePath ||
+        relationship.targetId === symbol.item.filePath
+      ) {
+        reasons.add(`connected to matched symbol ${symbol.item.name}`);
+      }
+    }
+
+    for (const note of context.relevantCognition) {
+      if (
+        note.item.relatedFiles.includes(relationship.sourceId) ||
+        note.item.relatedFiles.includes(relationship.targetId) ||
+        note.item.relatedSymbols.includes(relationship.sourceId) ||
+        note.item.relatedSymbols.includes(relationship.targetId)
+      ) {
+        reasons.add(`referenced by cognition "${note.item.title}"`);
+      }
+    }
+
+    for (const domain of context.matchedDomains) {
+      if (
+        domain.item.files.includes(relationship.sourceId) ||
+        domain.item.files.includes(relationship.targetId) ||
+        domain.item.symbols.includes(relationship.sourceId) ||
+        domain.item.symbols.includes(relationship.targetId)
+      ) {
+        reasons.add(`inside matched domain ${domain.item.name}`);
+      }
+    }
+
+    if (reasons.size === 0) {
+      reasons.add(`nearby ${relationship.relationshipType} relationship`);
+    }
+
+    return { relationship, reasons: [...reasons] };
+  });
+}
+
+function dependenciesForImportedSymbol(
+  symbol: CodeSymbol,
+  dependencies: DependencyMap['dependencies'],
+): string[] {
+  return dependencies
+    .filter(
+      (dependency) =>
+        dependency.kind === 'local' &&
+        dependency.resolvedFile === symbol.filePath,
+    )
+    .map(
+      (dependency) =>
+        `imported by ${dependency.fromFile} via ${dependency.specifier}`,
+    );
+}
+
+function relationshipKey(relationship: Relationship): string {
+  return [
+    relationship.sourceId,
+    relationship.targetId,
+    relationship.relationshipType,
+  ].join('\0');
 }

@@ -41,7 +41,13 @@ export async function pathExists(targetPath: string): Promise<boolean> {
 export async function assertWorkspace(rootPath = process.cwd()): Promise<KGraphWorkspace> {
   const workspace = resolveWorkspace(rootPath);
   if (!(await pathExists(workspace.kgraphPath))) {
-    throw new KGraphError("KGraph is not initialized. Run `kgraph init` first.");
+    throw new KGraphError(
+      [
+        "KGraph is not initialized for this repository.",
+        "Run `kgraph init` first, or use `kgraph init --integrations codex,copilot,cursor,claude-code` to initialize and connect common AI tools.",
+        "After init, run `kgraph doctor` to verify maps, integrations, and cognition quality.",
+      ].join("\n"),
+    );
   }
 
   const info = await stat(workspace.kgraphPath);

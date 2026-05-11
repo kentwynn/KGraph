@@ -128,6 +128,8 @@ export function renderSessionReport(report: Awaited<ReturnType<typeof buildSessi
   lines.push(...formatList(report.recentEvents.map((event) => `- ${event.agent} ${event.type}${event.path ? ` ${event.path}` : ''} [${event.captureSource}]`)));
   lines.push('', 'Recent Ledger');
   lines.push(...formatList(report.ledger.map((entry) => `- ${entry.agent} ${entry.readCount} reads, ${entry.writeCount} writes, ${entry.repeatedReadCount} repeated`)));
+  lines.push('', 'Next');
+  lines.push(...sessionNextActions(report));
   return lines.join('\n');
 }
 
@@ -147,4 +149,24 @@ function normalizeSource(value: string | undefined): SessionCaptureSource {
 
 function formatList(items: string[]): string[] {
   return items.length > 0 ? items : ['- None'];
+}
+
+function sessionNextActions(
+  report: Awaited<ReturnType<typeof buildSessionReport>>,
+): string[] {
+  if (report.readCount === 0 && report.writeCount === 0) {
+    return [
+      '- Start tracking with `kgraph session start --agent <name>`.',
+      '- Record meaningful reads/writes with `kgraph session read <path> --agent <name>` and `kgraph session write <path> --agent <name>`.',
+    ];
+  }
+  if (report.repeatedReadCount > 0) {
+    return [
+      '- Repeated reads are present; run `kgraph context "<topic>"` before broad file inspection.',
+      '- End the tracked work with `kgraph session end --agent <name>` when the coding session is done.',
+    ];
+  }
+  return [
+    '- End the tracked work with `kgraph session end --agent <name>` when the coding session is done.',
+  ];
 }

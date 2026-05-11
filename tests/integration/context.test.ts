@@ -19,8 +19,11 @@ describe('kgraph context', () => {
       await runCli(repo, ['update']);
       const markdown = await runCli(repo, ['context', 'auth refresh']);
       expect(markdown.stdout).toContain('# KGraph Context');
+      expect(markdown.stdout).toContain('because');
       const json = await runCli(repo, ['context', 'auth refresh', '--json']);
-      expect(JSON.parse(json.stdout).query).toBe('auth refresh');
+      const parsed = JSON.parse(json.stdout);
+      expect(parsed.query).toBe('auth refresh');
+      expect(parsed.relationshipExplanations).toBeDefined();
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -47,6 +50,7 @@ describe('kgraph context', () => {
       const markdown = await runCli(repo, ['context', 'auth refresh']);
       expect(markdown.stdout).toContain('Imports:');
       expect(markdown.stdout).toContain('→');
+      expect(markdown.stdout).toContain('connected to matched');
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -59,6 +63,7 @@ describe('kgraph context', () => {
       const markdown = await runCli(repo, ['context', 'loginUser']);
       expect(markdown.stdout).toContain('Nearby Symbols');
       expect(markdown.stdout).toContain('refreshSession');
+      expect(markdown.stdout).toContain('1-hop import');
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -120,6 +125,21 @@ describe('kgraph context', () => {
       expect(result.stdout).toContain('Usage');
       expect(result.stdout).toContain('init');
       expect(result.stderr).toBe('');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('prints actionable init guidance before context is available', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      const result = await runCli(repo, ['context', 'auth']);
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain(
+        'KGraph is not initialized for this repository.',
+      );
+      expect(result.stderr).toContain('kgraph init --integrations');
+      expect(result.stderr).toContain('kgraph doctor');
     } finally {
       await cleanupTempRepo(repo);
     }

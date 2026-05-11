@@ -100,12 +100,32 @@ export function registerDoctorCommand(program: Command): void {
                   .join('; '),
         });
 
+        let qualityReport: CognitionQualityReport | undefined;
+        if (maps) {
+          qualityReport = await analyzeCognitionQuality(workspace, maps);
+          const qualityFindings = summarizeQualityFindings(qualityReport);
+          const coverageNotes = summarizeCoverageNotes(qualityReport);
+          checks.push({
+            label: 'quality gate',
+            ok: qualityFindings.length === 0,
+            detail:
+              qualityFindings.length === 0
+                ? [
+                    'no stale/noisy cognition, generated scan noise, or duplicate titles',
+                    ...coverageNotes,
+                  ].join('; ')
+                : qualityFindings.join('; '),
+          });
+        }
+
         printChecks(checks);
         if (options.quality && maps) {
           console.log('');
           console.log('KGraph Cognition Quality');
           console.log('');
-          printQualityReport(await analyzeCognitionQuality(workspace, maps));
+          printQualityReport(
+            qualityReport ?? (await analyzeCognitionQuality(workspace, maps)),
+          );
         }
         if (checks.some((check) => !check.ok)) {
           process.exitCode = 1;
@@ -161,4 +181,40 @@ export function printQualityReport(report: CognitionQualityReport): void {
     }
     console.log(`  next status: ${change.nextStatus}`);
   }
+}
+
+function summarizeQualityFindings(report: CognitionQualityReport): string[] {
+  const findings: string[] = [];
+  if (report.mixedOrStaleCount > 0) {
+    findings.push(`${report.mixedOrStaleCount} stale/mixed/unresolved note(s)`);
+  }
+  if (report.noisyFileRefCount > 0 || report.noisySymbolRefCount > 0) {
+    findings.push(
+      `${report.noisyFileRefCount + report.noisySymbolRefCount} noisy cognition ref(s); run \`kgraph repair --dry-run\``,
+    );
+  }
+  if (report.duplicateTitleCount > 0) {
+    findings.push(`${report.duplicateTitleCount} duplicate cognition title(s)`);
+  }
+  if (report.generatedFileScanCount > 0) {
+    findings.push(
+      `${report.generatedFileScanCount} generated/integration file(s) scanned; update excludes`,
+    );
+  }
+  return findings;
+}
+
+function summarizeCoverageNotes(report: CognitionQualityReport): string[] {
+  const notes: string[] = [];
+  if (report.unresolvedLocalImportCount > 0) {
+    notes.push(
+      `${report.unresolvedLocalImportCount} unresolved local import(s) visible in --quality`,
+    );
+  }
+  if (report.unresolvedCallCount > 0) {
+    notes.push(
+      `${report.unresolvedCallCount} unresolved call edge(s) visible in --quality`,
+    );
+  }
+  return notes;
 }
