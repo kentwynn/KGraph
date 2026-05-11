@@ -3,8 +3,6 @@ import YAML from 'yaml';
 import { KGraphError } from '../cli/errors.js';
 import { pathExists } from '../storage/kgraph-paths.js';
 import type {
-  ExtractorConfig,
-  ExtractorName,
   IntegrationConfig,
   IntegrationMode,
   KGraphConfig,
@@ -80,7 +78,6 @@ export const DEFAULT_CONFIG: KGraphConfig = {
   maxContextItems: 8,
   domainHints: {},
   integrations: [],
-  extractors: [],
 };
 
 export async function writeDefaultConfig(
@@ -143,7 +140,6 @@ export function normalizeConfig(config: Partial<KGraphConfig>): KGraphConfig {
         ? config.domainHints
         : {},
     integrations: normalizeIntegrations(config.integrations),
-    extractors: normalizeExtractors(config.extractors),
   };
 }
 
@@ -198,40 +194,4 @@ function normalizeIntegrationMode(value: unknown): IntegrationMode {
   return value === 'always' || value === 'manual' || value === 'off'
     ? value
     : 'smart';
-}
-
-function normalizeExtractors(value: unknown): ExtractorConfig[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const extractors: ExtractorConfig[] = [];
-  for (const item of value) {
-    if (!item || typeof item !== 'object') {
-      continue;
-    }
-    const candidate = item as Partial<ExtractorConfig>;
-    if (
-      typeof candidate.name !== 'string' ||
-      typeof candidate.packageName !== 'string' ||
-      seen.has(candidate.name)
-    ) {
-      continue;
-    }
-    if (!isExtractorName(candidate.name)) {
-      continue;
-    }
-    seen.add(candidate.name);
-    extractors.push({
-      name: candidate.name,
-      enabled: candidate.enabled !== false,
-      packageName: candidate.packageName,
-    });
-  }
-  return extractors;
-}
-
-function isExtractorName(value: string): value is ExtractorName {
-  return ['c-family', 'csharp', 'go', 'jvm', 'python', 'rust'].includes(value);
 }

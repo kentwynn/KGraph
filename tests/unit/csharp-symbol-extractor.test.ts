@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { extractCSharpSymbols } from '../../src/scanner/csharp-symbol-extractor.js';
 
 describe('c# symbol extractor', () => {
-  it('extracts classes and methods', () => {
-    const result = extractCSharpSymbols(
+  it('extracts classes and methods', async () => {
+    const result = await extractCSharpSymbols(
       `namespace App;\n\npublic class AuthService {\n    public bool Login(string user) {\n        return true;\n    }\n\n    private void Helper() {}\n}\n`,
       'src/AuthService.cs',
     );
@@ -30,8 +30,8 @@ describe('c# symbol extractor', () => {
     );
   });
 
-  it('extracts interface, struct, enum, record', () => {
-    const result = extractCSharpSymbols(
+  it('extracts interface, struct, enum, record', async () => {
+    const result = await extractCSharpSymbols(
       `public interface IRepo {}\npublic struct Point {}\npublic enum Status { Active }\npublic record User(int Id);\n`,
       'src/Types.cs',
     );
@@ -45,8 +45,8 @@ describe('c# symbol extractor', () => {
     );
   });
 
-  it('extracts using statements as dependencies', () => {
-    const result = extractCSharpSymbols(
+  it('extracts using statements as dependencies', async () => {
+    const result = await extractCSharpSymbols(
       `using System;\nusing System.Collections.Generic;\n`,
       'src/Foo.cs',
     );
@@ -61,8 +61,8 @@ describe('c# symbol extractor', () => {
     );
   });
 
-  it('extracts async methods', () => {
-    const result = extractCSharpSymbols(
+  it('extracts async methods', async () => {
+    const result = await extractCSharpSymbols(
       `public class Controller {\n    public async Task<string> FetchAsync(string url) {\n        return "";\n    }\n}\n`,
       'src/Controller.cs',
     );
@@ -73,8 +73,8 @@ describe('c# symbol extractor', () => {
     );
   });
 
-  it('skips comment lines', () => {
-    const result = extractCSharpSymbols(
+  it('skips comment lines', async () => {
+    const result = await extractCSharpSymbols(
       `// public class NotReal {}\npublic class Real {}\n`,
       'src/Real.cs',
     );
@@ -83,8 +83,8 @@ describe('c# symbol extractor', () => {
     expect(classes[0].name).toBe('Real');
   });
 
-  it('returns empty for empty file', () => {
-    const result = extractCSharpSymbols('', 'src/Empty.cs');
+  it('returns empty for empty file', async () => {
+    const result = await extractCSharpSymbols('', 'src/Empty.cs');
     expect(result.symbols).toHaveLength(0);
     expect(result.dependencies).toHaveLength(0);
   });

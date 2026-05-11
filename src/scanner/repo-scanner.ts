@@ -2,6 +2,7 @@ import fg from 'fast-glob';
 import crypto from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { estimateTokens } from '../session/token-estimator.js';
 import type { KGraphConfig } from '../types/config.js';
 import type {
   Dependency,
@@ -23,12 +24,11 @@ import { extractJvmSymbols } from './jvm-symbol-extractor.js';
 import { extractPythonSymbols } from './python-symbol-extractor.js';
 import { extractRustSymbols } from './rust-symbol-extractor.js';
 import { extractTsSymbols } from './ts-symbol-extractor.js';
-import { estimateTokens } from '../session/token-estimator.js';
 
 const C_EXTS = new Set(['.c', '.h', '.cpp', '.cc', '.cxx', '.hpp', '.hxx']);
 const JVM_EXTS = new Set(['.java', '.kt', '.kts']);
 
-function extractSymbols(text: string, repoPath: string) {
+async function extractSymbols(text: string, repoPath: string) {
   const ext = path.extname(repoPath);
   if (ext === '.py' || ext === '.pyw' || ext === '.pyi') {
     return extractPythonSymbols(text, repoPath);
@@ -103,7 +103,7 @@ export async function scanRepository(
       };
 
       if (isPreciseLanguage(repoPath, config)) {
-        const extracted = extractSymbols(text, repoPath);
+        const extracted = await extractSymbols(text, repoPath);
         symbols.push(...extracted.symbols);
         dependencies.push(...extracted.dependencies);
         relationships.push(

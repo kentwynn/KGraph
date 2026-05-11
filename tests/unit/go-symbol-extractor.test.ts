@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { extractGoSymbols } from '../../src/scanner/go-symbol-extractor.js';
 
 describe('go symbol extractor', () => {
-  it('extracts top-level functions', () => {
-    const result = extractGoSymbols(
+  it('extracts top-level functions', async () => {
+    const result = await extractGoSymbols(
       `package main\n\nfunc Greet(name string) string {\n\treturn "Hello " + name\n}\n\nfunc init() {}\n`,
       'src/greet.go',
     );
@@ -23,8 +23,8 @@ describe('go symbol extractor', () => {
     );
   });
 
-  it('extracts struct and interface types', () => {
-    const result = extractGoSymbols(
+  it('extracts struct and interface types', async () => {
+    const result = await extractGoSymbols(
       `package main\n\ntype AuthService struct{}\n\ntype Repository interface {\n\tFind(id int) error\n}\n`,
       'src/auth.go',
     );
@@ -36,8 +36,8 @@ describe('go symbol extractor', () => {
     );
   });
 
-  it('extracts methods with receivers', () => {
-    const result = extractGoSymbols(
+  it('extracts methods with receivers', async () => {
+    const result = await extractGoSymbols(
       `package main\n\ntype User struct{}\n\nfunc (u *User) Login(pass string) error {\n\treturn nil\n}\n`,
       'src/user.go',
     );
@@ -52,8 +52,8 @@ describe('go symbol extractor', () => {
     );
   });
 
-  it('extracts single-line imports', () => {
-    const result = extractGoSymbols(
+  it('extracts single-line imports', async () => {
+    const result = await extractGoSymbols(
       `package main\n\nimport "fmt"\nimport "net/http"\n`,
       'src/main.go',
     );
@@ -65,8 +65,8 @@ describe('go symbol extractor', () => {
     );
   });
 
-  it('extracts grouped import blocks', () => {
-    const result = extractGoSymbols(
+  it('extracts grouped import blocks', async () => {
+    const result = await extractGoSymbols(
       `package main\n\nimport (\n\t"fmt"\n\t"os"\n\tlog "log/slog"\n)\n`,
       'src/main.go',
     );
@@ -79,8 +79,8 @@ describe('go symbol extractor', () => {
     );
   });
 
-  it('skips comment lines', () => {
-    const result = extractGoSymbols(
+  it('skips comment lines', async () => {
+    const result = await extractGoSymbols(
       `// func NotAFunc() {}\nfunc Real() {}\n`,
       'src/real.go',
     );
@@ -88,8 +88,8 @@ describe('go symbol extractor', () => {
     expect(result.symbols[0].name).toBe('Real');
   });
 
-  it('returns empty results for empty file', () => {
-    const result = extractGoSymbols('', 'src/empty.go');
+  it('returns empty results for empty file', async () => {
+    const result = await extractGoSymbols('', 'src/empty.go');
     expect(result.symbols).toHaveLength(0);
     expect(result.dependencies).toHaveLength(0);
   });

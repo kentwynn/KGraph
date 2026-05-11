@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { extractPythonSymbols } from '../../src/scanner/python-symbol-extractor.js';
 
 describe('python symbol extractor', () => {
-  it('extracts top-level functions', () => {
-    const result = extractPythonSymbols(
+  it('extracts top-level functions', async () => {
+    const result = await extractPythonSymbols(
       `def greet(name):\n    return f"Hello {name}"\n\nasync def fetch(url):\n    pass\n`,
       'src/greet.py',
     );
@@ -20,8 +20,8 @@ describe('python symbol extractor', () => {
     ).toBe(true);
   });
 
-  it('extracts classes and their methods', () => {
-    const result = extractPythonSymbols(
+  it('extracts classes and their methods', async () => {
+    const result = await extractPythonSymbols(
       `class AuthService:\n    def login(self, user):\n        pass\n\n    async def logout(self):\n        pass\n`,
       'src/auth.py',
     );
@@ -42,8 +42,8 @@ describe('python symbol extractor', () => {
     );
   });
 
-  it('treats functions after a class block as top-level, not methods', () => {
-    const result = extractPythonSymbols(
+  it('treats functions after a class block as top-level, not methods', async () => {
+    const result = await extractPythonSymbols(
       `class Foo:\n    def inside(self):\n        pass\n\ndef outside():\n    pass\n`,
       'src/foo.py',
     );
@@ -52,8 +52,8 @@ describe('python symbol extractor', () => {
     expect(outside?.parentName).toBeUndefined();
   });
 
-  it('extracts import statements as dependencies', () => {
-    const result = extractPythonSymbols(
+  it('extracts import statements as dependencies', async () => {
+    const result = await extractPythonSymbols(
       `import os\nimport json\n`,
       'src/utils.py',
     );
@@ -65,8 +65,8 @@ describe('python symbol extractor', () => {
     );
   });
 
-  it('extracts from-import as local or package dependency', () => {
-    const result = extractPythonSymbols(
+  it('extracts from-import as local or package dependency', async () => {
+    const result = await extractPythonSymbols(
       `from .auth import login\nfrom flask import request\n`,
       'src/views.py',
     );
@@ -78,8 +78,8 @@ describe('python symbol extractor', () => {
     );
   });
 
-  it('records file-contains relationships for every symbol', () => {
-    const result = extractPythonSymbols(
+  it('records file-contains relationships for every symbol', async () => {
+    const result = await extractPythonSymbols(
       `class Foo:\n    def bar(self):\n        pass\n`,
       'src/foo.py',
     );
@@ -89,15 +89,15 @@ describe('python symbol extractor', () => {
     expect(containsRels.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('returns empty results for an empty file', () => {
-    const result = extractPythonSymbols('', 'src/empty.py');
+  it('returns empty results for an empty file', async () => {
+    const result = await extractPythonSymbols('', 'src/empty.py');
     expect(result.symbols).toHaveLength(0);
     expect(result.dependencies).toHaveLength(0);
     expect(result.warnings).toHaveLength(0);
   });
 
-  it('skips comment lines', () => {
-    const result = extractPythonSymbols(
+  it('skips comment lines', async () => {
+    const result = await extractPythonSymbols(
       `# def not_a_function():\n# class NotAClass:\ndef real():\n    pass\n`,
       'src/commented.py',
     );

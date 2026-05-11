@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { extractJvmSymbols } from '../../src/scanner/jvm-symbol-extractor.js';
 
 describe('jvm symbol extractor — Java', () => {
-  it('extracts classes and methods', () => {
-    const result = extractJvmSymbols(
+  it('extracts classes and methods', async () => {
+    const result = await extractJvmSymbols(
       `package com.example;\n\npublic class AuthService {\n    public boolean login(String user) {\n        return true;\n    }\n    private void helper() {}\n}\n`,
       'src/AuthService.java',
     );
@@ -30,8 +30,8 @@ describe('jvm symbol extractor — Java', () => {
     );
   });
 
-  it('extracts import statements', () => {
-    const result = extractJvmSymbols(
+  it('extracts import statements', async () => {
+    const result = await extractJvmSymbols(
       `import java.util.List;\nimport java.util.Map;\n`,
       'src/Foo.java',
     );
@@ -49,8 +49,8 @@ describe('jvm symbol extractor — Java', () => {
     );
   });
 
-  it('extracts interface', () => {
-    const result = extractJvmSymbols(
+  it('extracts interface', async () => {
+    const result = await extractJvmSymbols(
       `public interface Repository {\n    void save(Object o);\n}\n`,
       'src/Repository.java',
     );
@@ -63,8 +63,8 @@ describe('jvm symbol extractor — Java', () => {
 });
 
 describe('jvm symbol extractor — Kotlin', () => {
-  it('extracts class and fun', () => {
-    const result = extractJvmSymbols(
+  it('extracts class and fun', async () => {
+    const result = await extractJvmSymbols(
       `class SessionManager {\n    fun login(user: String): Boolean = true\n    private fun hash(): String = ""\n}\n`,
       'src/SessionManager.kt',
     );
@@ -85,8 +85,8 @@ describe('jvm symbol extractor — Kotlin', () => {
     );
   });
 
-  it('extracts top-level functions', () => {
-    const result = extractJvmSymbols(
+  it('extracts top-level functions', async () => {
+    const result = await extractJvmSymbols(
       `fun greet(name: String): String = "Hello $name"\n`,
       'src/greet.kt',
     );
@@ -97,8 +97,8 @@ describe('jvm symbol extractor — Kotlin', () => {
     );
   });
 
-  it('extracts data class', () => {
-    const result = extractJvmSymbols(
+  it('extracts data class', async () => {
+    const result = await extractJvmSymbols(
       `data class User(val id: Long, val name: String)\n`,
       'src/User.kt',
     );

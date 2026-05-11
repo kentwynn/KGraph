@@ -1,28 +1,12 @@
 import { readdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {
-  installCommandForExtractors,
-  listExtractorAdapters,
-} from '../extractors/extractor-registry.js';
 import { pathExists } from '../storage/kgraph-paths.js';
-import type {
-  ExtractorConfig,
-  ExtractorName,
-  IntegrationConfig,
-  IntegrationName,
-} from '../types/config.js';
-import type { RepositoryFile } from '../types/maps.js';
+import type { IntegrationConfig, IntegrationName } from '../types/config.js';
 
 export interface InitIntegrationRecommendation {
   name: IntegrationName;
   reason: string;
-}
-
-export interface InitExtractorRecommendation {
-  name: ExtractorName;
-  packageName: string;
-  languages: string[];
 }
 
 interface MachineDetectionContext {
@@ -91,28 +75,6 @@ export function recommendedIntegrationsForInit(options: {
   );
 }
 
-export function recommendedExtractorsForInit(options: {
-  files: RepositoryFile[];
-  configuredExtractors: Pick<ExtractorConfig, 'name'>[];
-}): InitExtractorRecommendation[] {
-  const configured = new Set(
-    options.configuredExtractors.map((item) => item.name),
-  );
-  const detectedLanguages = new Set(options.files.map((file) => file.language));
-
-  return listExtractorAdapters()
-    .filter((adapter) => !configured.has(adapter.name))
-    .map((adapter) => ({
-      name: adapter.name,
-      packageName: adapter.packageName,
-      languages: adapter.languages.filter((language) =>
-        detectedLanguages.has(language),
-      ),
-    }))
-    .filter((adapter) => adapter.languages.length > 0)
-    .sort((left, right) => left.name.localeCompare(right.name));
-}
-
 export function integrationSetupCommand(
   recommendations: InitIntegrationRecommendation[],
 ): string | undefined {
@@ -120,20 +82,6 @@ export function integrationSetupCommand(
     return undefined;
   }
   return `kgraph integrate add ${recommendations.map((item) => item.name).join(' ')}`;
-}
-
-export function extractorSetupCommands(
-  recommendations: InitExtractorRecommendation[],
-): string[] {
-  if (recommendations.length === 0) {
-    return [];
-  }
-  return [
-    `kgraph extractor add ${recommendations.map((item) => item.name).join(' ')}`,
-    installCommandForExtractors(
-      recommendations.map((item) => item.packageName),
-    ),
-  ];
 }
 
 async function hasVsCodeExtension(

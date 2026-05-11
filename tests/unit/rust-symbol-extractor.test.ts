@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { extractRustSymbols } from '../../src/scanner/rust-symbol-extractor.js';
 
 describe('rust symbol extractor', () => {
-  it('extracts top-level functions', () => {
-    const result = extractRustSymbols(
+  it('extracts top-level functions', async () => {
+    const result = await extractRustSymbols(
       `pub fn greet(name: &str) -> String {\n    format!("Hello {}", name)\n}\n\nfn helper() {}\n`,
       'src/greet.rs',
     );
@@ -23,8 +23,8 @@ describe('rust symbol extractor', () => {
     );
   });
 
-  it('extracts structs, enums, and traits', () => {
-    const result = extractRustSymbols(
+  it('extracts structs, enums, and traits', async () => {
+    const result = await extractRustSymbols(
       `pub struct AuthService {}\n\npub enum Status { Active, Inactive }\n\npub trait Repository {}\n`,
       'src/auth.rs',
     );
@@ -49,8 +49,8 @@ describe('rust symbol extractor', () => {
     );
   });
 
-  it('extracts methods from impl blocks', () => {
-    const result = extractRustSymbols(
+  it('extracts methods from impl blocks', async () => {
+    const result = await extractRustSymbols(
       `struct User {}\n\nimpl User {\n    pub fn login(&self) -> bool {\n        true\n    }\n\n    fn internal(&self) {}\n}\n`,
       'src/user.rs',
     );
@@ -72,8 +72,8 @@ describe('rust symbol extractor', () => {
     );
   });
 
-  it('extracts async functions', () => {
-    const result = extractRustSymbols(
+  it('extracts async functions', async () => {
+    const result = await extractRustSymbols(
       `pub async fn fetch(url: &str) -> String {\n    String::new()\n}\n`,
       'src/fetch.rs',
     );
@@ -88,8 +88,8 @@ describe('rust symbol extractor', () => {
     );
   });
 
-  it('extracts use statements as dependencies', () => {
-    const result = extractRustSymbols(
+  it('extracts use statements as dependencies', async () => {
+    const result = await extractRustSymbols(
       `use std::collections::HashMap;\nuse crate::auth::login;\nuse serde::Serialize;\n`,
       'src/main.rs',
     );
@@ -111,8 +111,8 @@ describe('rust symbol extractor', () => {
     );
   });
 
-  it('extracts impl Trait for Type methods', () => {
-    const result = extractRustSymbols(
+  it('extracts impl Trait for Type methods', async () => {
+    const result = await extractRustSymbols(
       `struct Repo {}\n\nimpl Repository for Repo {\n    fn find(&self, id: u64) -> Option<String> {\n        None\n    }\n}\n`,
       'src/repo.rs',
     );
@@ -127,8 +127,8 @@ describe('rust symbol extractor', () => {
     );
   });
 
-  it('skips comment lines', () => {
-    const result = extractRustSymbols(
+  it('skips comment lines', async () => {
+    const result = await extractRustSymbols(
       `// fn not_real() {}\nfn real() {}\n`,
       'src/real.rs',
     );
@@ -136,8 +136,8 @@ describe('rust symbol extractor', () => {
     expect(result.symbols[0].name).toBe('real');
   });
 
-  it('returns empty results for empty file', () => {
-    const result = extractRustSymbols('', 'src/empty.rs');
+  it('returns empty results for empty file', async () => {
+    const result = await extractRustSymbols('', 'src/empty.rs');
     expect(result.symbols).toHaveLength(0);
     expect(result.dependencies).toHaveLength(0);
   });

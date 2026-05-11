@@ -1,7 +1,5 @@
 import type { Command } from 'commander';
 import { loadConfig, writeDefaultConfig } from '../../config/config.js';
-import { installCommandForExtractors } from '../../extractors/extractor-registry.js';
-import { addExtractors } from '../../extractors/extractor-store.js';
 import { normalizeIntegrationNames } from '../../integrations/integration-registry.js';
 import { addIntegrations } from '../../integrations/integration-store.js';
 import { scanRepository } from '../../scanner/repo-scanner.js';
@@ -10,14 +8,11 @@ import { readMaps, writeMaps } from '../../storage/map-store.js';
 import type { IntegrationMode } from '../../types/config.js';
 import { KGraphError, runCommand } from '../errors.js';
 import {
-  promptForInitExtractors,
   promptForInitIntegrations,
-  shouldPromptForInitExtractors,
   shouldPromptForInitIntegrations,
 } from '../init-prompt.js';
 import {
   detectMachineIntegrationRecommendations,
-  recommendedExtractorsForInit,
   recommendedIntegrationsForInit,
 } from '../init-recommendations.js';
 import { renderInitSummary } from '../init-summary.js';
@@ -89,10 +84,6 @@ export function registerInitCommand(program: Command): void {
           configuredIntegrations: config.integrations,
           detectedIntegrations: detectedMachineIntegrations,
         });
-        let recommendedExtractors = recommendedExtractorsForInit({
-          files: result.files,
-          configuredExtractors: config.extractors,
-        });
 
         if (
           shouldPromptForInitIntegrations({
@@ -120,36 +111,12 @@ export function registerInitCommand(program: Command): void {
           }
         }
 
-        if (
-          shouldPromptForInitExtractors({
-            configuredExtractors: config.extractors,
-          })
-        ) {
-          const selected = await promptForInitExtractors(recommendedExtractors);
-          if (selected.length > 0) {
-            const changed = await addExtractors(workspace, selected);
-            console.log(
-              `Configured extractors: ${changed.map((item) => item.name).join(', ')}`,
-            );
-            console.log(
-              `Install packages: ${installCommandForExtractors(changed.map((item) => item.packageName))}`,
-            );
-            config = await loadConfig(workspace);
-            recommendedExtractors = recommendedExtractorsForInit({
-              files: result.files,
-              configuredExtractors: config.extractors,
-            });
-          }
-        }
-
         console.log('');
         console.log(
           renderInitSummary({
             files: result.files,
             integrations: config.integrations,
             recommendedIntegrations,
-            extractors: config.extractors,
-            recommendedExtractors,
           }),
         );
       }),

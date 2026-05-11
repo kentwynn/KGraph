@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { extractCSymbols } from '../../src/scanner/c-symbol-extractor.js';
 
 describe('c symbol extractor', () => {
-  it('extracts top-level functions from C', () => {
-    const result = extractCSymbols(
+  it('extracts top-level functions from C', async () => {
+    const result = await extractCSymbols(
       `#include <stdio.h>\n\nint add(int a, int b) {\n    return a + b;\n}\n\nvoid greet(const char* name) {\n    printf("Hello %s\\n", name);\n}\n`,
       'src/math.c',
     );
@@ -15,8 +15,8 @@ describe('c symbol extractor', () => {
     );
   });
 
-  it('extracts class and methods from C++', () => {
-    const result = extractCSymbols(
+  it('extracts class and methods from C++', async () => {
+    const result = await extractCSymbols(
       `class AuthService {\npublic:\n    bool login(std::string user) {\n        return true;\n    }\n};\n`,
       'src/auth.cpp',
     );
@@ -32,8 +32,8 @@ describe('c symbol extractor', () => {
     );
   });
 
-  it('extracts #include as dependencies', () => {
-    const result = extractCSymbols(
+  it('extracts #include as dependencies', async () => {
+    const result = await extractCSymbols(
       `#include <vector>\n#include "auth.h"\n`,
       'src/main.cpp',
     );
@@ -45,8 +45,8 @@ describe('c symbol extractor', () => {
     );
   });
 
-  it('skips comment lines', () => {
-    const result = extractCSymbols(
+  it('skips comment lines', async () => {
+    const result = await extractCSymbols(
       `// int not_a_func() {\nint real(int x) {\n    return x;\n}\n`,
       'src/real.c',
     );
@@ -55,8 +55,8 @@ describe('c symbol extractor', () => {
     expect(funcs[0].name).toBe('real');
   });
 
-  it('returns empty for empty file', () => {
-    const result = extractCSymbols('', 'src/empty.c');
+  it('returns empty for empty file', async () => {
+    const result = await extractCSymbols('', 'src/empty.c');
     expect(result.symbols).toHaveLength(0);
     expect(result.dependencies).toHaveLength(0);
   });

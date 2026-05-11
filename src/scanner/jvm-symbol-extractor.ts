@@ -1,31 +1,37 @@
+import type { Node } from 'web-tree-sitter';
 import type { CodeSymbol, Dependency, Relationship } from '../types/maps.js';
+import { parseSource } from './tree-sitter-parser.js';
 import type { SymbolExtractionResult } from './ts-symbol-extractor.js';
 
+type GrammarKey = 'java' | 'kotlin';
+
 // Handles Java (.java) and Kotlin (.kt, .kts)
-export function extractJvmSymbols(
+export async function extractJvmSymbols(
   sourceText: string,
   filePath: string,
-): SymbolExtractionResult {
-  const ext =
-    filePath.endsWith('.kt') || filePath.endsWith('.kts') ? 'kotlin' : 'java';
-  const lines = sourceText.split('\n');
+): Promise<SymbolExtractionResult> {
   const symbols: CodeSymbol[] = [];
   const dependencies: Dependency[] = [];
   const relationships: Relationship[] = [];
   const warnings: string[] = [];
 
-  // Stack tracks class/object/interface scope
-  const typeStack: Array<{ name: string; braceDepth: number }> = [];
-  let braceDepth = 0;
+  if (!sourceText.trim()) {
+    return { symbols, dependencies, relationships, warnings };
+  }
+
+  const lang: GrammarKey =
+    filePath.endsWith('.kt') || filePath.endsWith('.kts') ? 'kotlin' : 'java';
+  const tree = await parseSource(sourceText, lang);
 
   const addSymbol = (
     name: string,
     kind: CodeSymbol['kind'],
-    lineNum: number,
+    startLine: number,
+    endLine: number,
     exported: boolean,
     parentName?: string,
   ): void => {
-    const id = [filePath, kind, parentName, name, lineNum]
+    const id = [filePath, kind, parentName, name, startLine]
       .filter(Boolean)
       .join('#');
     symbols.push({
@@ -33,8 +39,8 @@ export function extractJvmSymbols(
       name,
       kind,
       filePath,
-      startLine: lineNum,
-      endLine: lineNum,
+      startLine,
+      endLine,
       exported,
       parentName,
     });
@@ -48,93 +54,203 @@ export function extractJvmSymbols(
     });
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-    const trimmed = line.trim();
+  function hasModifier(node: Node, modifier: string): boolean {
+    const mods =
+      node.childForFieldName('modifiers') ??
+      node.namedChildren.find((c) => c.type === 'modifiers');
+    if (!mods) return false;
+    return mods.text.includes(modifier);
+  }
 
-    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*'))
-      continue;
+  function walkJava(node: Node, parentClassName?: string): void {
+    switch (node.type) {
+      case 'import_declaration': {
+        // Java import: scoped_identifier child
+        const scopedId = node.namedChildren.find(
+          (c) => c.type === 'scoped_identifier' || c.type === 'identifier',
+        );
+        if (scopedId) {
+          const specifier = scopedId.text.replace(/\.\*$/, '');
+          dependencies.push({ fromFile: filePath, specifier, kind: 'package' });
+          relationships.push({
+            sourceType: 'file',
+            sourceId: filePath,
+            targetType: 'package',
+            targetId: specifier,
+            relationshipType: 'import',
+            confidence: 'high',
+          });
+        }
+        return;
+      }
 
-    braceDepth +=
-      (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
+      case 'class_declaration':
+      case 'interface_declaration':
+      case 'enum_declaration':
+      case 'annotation_type_declaration': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          const exported = hasModifier(node, 'public');
+          addSymbol(
+            nameNode.text,
+            'class',
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            exported,
+            parentClassName,
+          );
+          // Walk class body for methods and nested types
+          const body =
+            node.childForFieldName('body') ??
+            node.namedChildren.find(
+              (c) =>
+                c.type === 'class_body' ||
+                c.type === 'interface_body' ||
+                c.type === 'enum_body',
+            );
+          if (body) {
+            for (const child of body.namedChildren) {
+              walkJava(child, nameNode.text);
+            }
+          }
+        }
+        return;
+      }
 
-    while (
-      typeStack.length > 0 &&
-      braceDepth < typeStack[typeStack.length - 1].braceDepth
-    ) {
-      typeStack.pop();
+      case 'method_declaration':
+      case 'constructor_declaration': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          const exported = hasModifier(node, 'public');
+          const kind: CodeSymbol['kind'] = parentClassName
+            ? 'method'
+            : 'function';
+          addSymbol(
+            nameNode.text,
+            kind,
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            exported,
+            parentClassName,
+          );
+        }
+        return;
+      }
     }
 
-    // import statement
-    const importMatch = trimmed.match(/^import\s+([\w.]+(?:\.\*)?)/);
-    if (importMatch) {
-      const specifier = importMatch[1].replace(/\.\*$/, '');
-      dependencies.push({ fromFile: filePath, specifier, kind: 'package' });
-      relationships.push({
-        sourceType: 'file',
-        sourceId: filePath,
-        targetType: 'package',
-        targetId: specifier,
-        relationshipType: 'import',
-        confidence: 'high',
-      });
-      continue;
-    }
-
-    if (ext === 'java') {
-      // class / interface / enum / @interface
-      const typeMatch = trimmed.match(
-        /\b(?:public\s+|private\s+|protected\s+|abstract\s+|final\s+)*(?:class|interface|enum|@interface)\s+(\w+)/,
-      );
-      if (typeMatch) {
-        const parent = typeStack[typeStack.length - 1];
-        const exported = trimmed.includes('public');
-        addSymbol(typeMatch[1], 'class', lineNum, exported, parent?.name);
-        typeStack.push({ name: typeMatch[1], braceDepth });
-        continue;
-      }
-
-      // method: visibility returnType methodName(
-      // Avoid matching field declarations (no parenthesis)
-      const methodMatch = trimmed.match(
-        /\b(?:public|private|protected|static|final|synchronized|abstract|native|default|void|@Override\s+(?:public|protected))\b.*\s+(\w+)\s*\(/,
-      );
-      if (methodMatch && !trimmed.startsWith('//')) {
-        const parent = typeStack[typeStack.length - 1];
-        const exported = trimmed.includes('public');
-        const kind: CodeSymbol['kind'] = parent ? 'method' : 'function';
-        addSymbol(methodMatch[1], kind, lineNum, exported, parent?.name);
-        continue;
-      }
-    }
-
-    if (ext === 'kotlin') {
-      // class / interface / object / data class / sealed class
-      const typeMatch = trimmed.match(
-        /\b(?:data\s+|sealed\s+|abstract\s+|open\s+|inner\s+)?(?:class|interface|object|enum\s+class)\s+(\w+)/,
-      );
-      if (typeMatch) {
-        const parent = typeStack[typeStack.length - 1];
-        const exported =
-          !trimmed.startsWith('private') && !trimmed.startsWith('internal');
-        addSymbol(typeMatch[1], 'class', lineNum, exported, parent?.name);
-        typeStack.push({ name: typeMatch[1], braceDepth });
-        continue;
-      }
-
-      // fun
-      const funcMatch = trimmed.match(/\bfun\s+(\w+)\s*[(<]/);
-      if (funcMatch) {
-        const parent = typeStack[typeStack.length - 1];
-        const exported =
-          !trimmed.startsWith('private') && !trimmed.startsWith('internal');
-        const kind: CodeSymbol['kind'] = parent ? 'method' : 'function';
-        addSymbol(funcMatch[1], kind, lineNum, exported, parent?.name);
-        continue;
-      }
+    for (const child of node.namedChildren) {
+      walkJava(child, parentClassName);
     }
   }
+
+  function walkKotlin(node: Node, parentClassName?: string): void {
+    switch (node.type) {
+      case 'import': {
+        // Kotlin import: qualified_identifier child
+        const qualId = node.namedChildren.find(
+          (c) => c.type === 'qualified_identifier' || c.type === 'identifier',
+        );
+        if (qualId) {
+          const specifier = qualId.text;
+          dependencies.push({ fromFile: filePath, specifier, kind: 'package' });
+          relationships.push({
+            sourceType: 'file',
+            sourceId: filePath,
+            targetType: 'package',
+            targetId: specifier,
+            relationshipType: 'import',
+            confidence: 'high',
+          });
+        }
+        return;
+      }
+
+      case 'class_declaration': {
+        const nameNode =
+          node.childForFieldName('name') ??
+          node.namedChildren.find((c) => c.type === 'identifier');
+        if (nameNode) {
+          const exported =
+            !hasModifier(node, 'private') && !hasModifier(node, 'internal');
+          addSymbol(
+            nameNode.text,
+            'class',
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            exported,
+            parentClassName,
+          );
+          // Walk class body
+          const body = node.namedChildren.find((c) => c.type === 'class_body');
+          if (body) {
+            for (const child of body.namedChildren) {
+              walkKotlin(child, nameNode.text);
+            }
+          }
+        }
+        return;
+      }
+
+      case 'object_declaration': {
+        const nameNode = node.namedChildren.find(
+          (c) => c.type === 'identifier',
+        );
+        if (nameNode) {
+          const exported =
+            !hasModifier(node, 'private') && !hasModifier(node, 'internal');
+          addSymbol(
+            nameNode.text,
+            'class',
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            exported,
+            parentClassName,
+          );
+          const body = node.namedChildren.find((c) => c.type === 'class_body');
+          if (body) {
+            for (const child of body.namedChildren) {
+              walkKotlin(child, nameNode.text);
+            }
+          }
+        }
+        return;
+      }
+
+      case 'function_declaration': {
+        const nameNode = node.namedChildren.find(
+          (c) => c.type === 'identifier',
+        );
+        if (nameNode) {
+          const exported =
+            !hasModifier(node, 'private') && !hasModifier(node, 'internal');
+          const kind: CodeSymbol['kind'] = parentClassName
+            ? 'method'
+            : 'function';
+          addSymbol(
+            nameNode.text,
+            kind,
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            exported,
+            parentClassName,
+          );
+        }
+        return;
+      }
+    }
+
+    for (const child of node.namedChildren) {
+      walkKotlin(child, parentClassName);
+    }
+  }
+
+  if (lang === 'java') {
+    walkJava(tree.rootNode);
+  } else {
+    walkKotlin(tree.rootNode);
+  }
+
+  tree.delete();
 
   return { symbols, dependencies, relationships, warnings };
 }

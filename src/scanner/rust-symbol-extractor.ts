@@ -1,58 +1,32 @@
+import type { Node } from 'web-tree-sitter';
 import type { CodeSymbol, Dependency, Relationship } from '../types/maps.js';
+import { parseSource } from './tree-sitter-parser.js';
 import type { SymbolExtractionResult } from './ts-symbol-extractor.js';
 
-export function extractRustSymbols(
+export async function extractRustSymbols(
   sourceText: string,
   filePath: string,
-): SymbolExtractionResult {
-  const lines = sourceText.split('\n');
+): Promise<SymbolExtractionResult> {
   const symbols: CodeSymbol[] = [];
   const dependencies: Dependency[] = [];
   const relationships: Relationship[] = [];
   const warnings: string[] = [];
 
-  // Track current impl block: { typeName, indent }
-  const implStack: Array<{ typeName: string; braceDepth: number }> = [];
-  let braceDepth = 0;
+  if (!sourceText.trim()) {
+    return { symbols, dependencies, relationships, warnings };
+  }
+
+  const tree = await parseSource(sourceText, 'rust');
 
   const addSymbol = (
     name: string,
     kind: CodeSymbol['kind'],
-    lineNum: number,
-    parentName?: string,
-  ): void => {
-    const id = [filePath, kind, parentName, name, lineNum]
-      .filter(Boolean)
-      .join('#');
-    // Rust: pub = exported
-    symbols.push({
-      id,
-      name,
-      kind,
-      filePath,
-      startLine: lineNum,
-      endLine: lineNum,
-      exported: false, // set by caller
-      parentName,
-    });
-    relationships.push({
-      sourceType: 'file',
-      sourceId: filePath,
-      targetType: 'symbol',
-      targetId: id,
-      relationshipType: 'contains',
-      confidence: 'high',
-    });
-  };
-
-  const addSymbolExported = (
-    name: string,
-    kind: CodeSymbol['kind'],
-    lineNum: number,
+    startLine: number,
+    endLine: number,
     exported: boolean,
     parentName?: string,
   ): void => {
-    const id = [filePath, kind, parentName, name, lineNum]
+    const id = [filePath, kind, parentName, name, startLine]
       .filter(Boolean)
       .join('#');
     symbols.push({
@@ -60,8 +34,8 @@ export function extractRustSymbols(
       name,
       kind,
       filePath,
-      startLine: lineNum,
-      endLine: lineNum,
+      startLine,
+      endLine,
       exported,
       parentName,
     });
@@ -75,77 +49,131 @@ export function extractRustSymbols(
     });
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-    const trimmed = line.trim();
+  function hasPub(node: Node): boolean {
+    return node.namedChildren.some((c) => c.type === 'visibility_modifier');
+  }
 
-    if (!trimmed || trimmed.startsWith('//')) continue;
-
-    // Track brace depth for impl block scoping
-    braceDepth +=
-      (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
-
-    // Pop impl blocks we've exited
-    while (
-      implStack.length > 0 &&
-      braceDepth < implStack[implStack.length - 1].braceDepth
-    ) {
-      implStack.pop();
-    }
-
-    // use statement: use crate::path or use external::path
-    const useMatch = trimmed.match(/^use\s+([\w:]+)/);
-    if (useMatch) {
-      const specifier = useMatch[1];
-      const kind =
-        specifier.startsWith('crate::') ||
-        specifier.startsWith('super::') ||
-        specifier.startsWith('self::')
-          ? 'local'
-          : 'package';
-      dependencies.push({ fromFile: filePath, specifier, kind });
-      relationships.push({
-        sourceType: 'file',
-        sourceId: filePath,
-        targetType: kind === 'local' ? 'file' : 'package',
-        targetId: specifier,
-        relationshipType: 'import',
-        confidence: 'high',
-      });
-      continue;
-    }
-
-    // impl block: impl TypeName or impl Trait for TypeName
-    const implMatch = trimmed.match(
-      /^impl(?:<[^>]*>)?\s+(?:\w+\s+for\s+)?(\w+)/,
-    );
-    if (implMatch) {
-      implStack.push({ typeName: implMatch[1], braceDepth });
-      continue;
-    }
-
-    // struct / enum / trait definition
-    const typeMatch = trimmed.match(/^(pub\s+)?(?:struct|enum|trait)\s+(\w+)/);
-    if (typeMatch) {
-      addSymbolExported(typeMatch[2], 'class', lineNum, !!typeMatch[1]);
-      continue;
-    }
-
-    // fn definition (inside or outside impl)
-    const fnMatch = trimmed.match(/^(pub\s+)?(?:async\s+)?fn\s+(\w+)/);
-    if (fnMatch) {
-      const exported = !!fnMatch[1];
-      const name = fnMatch[2];
-      const parent = implStack[implStack.length - 1];
-      if (parent) {
-        addSymbolExported(name, 'method', lineNum, exported, parent.typeName);
-      } else {
-        addSymbolExported(name, 'function', lineNum, exported);
+  function extractUseSpecifier(node: Node): string {
+    // use_declaration has a child tree of scoped_identifier / scoped_use_list / use_wildcard
+    // We want the text without 'use' and ';'
+    for (const child of node.namedChildren) {
+      if (child.type !== 'visibility_modifier') {
+        return child.text;
       }
-      continue;
+    }
+    return '';
+  }
+
+  function walk(node: Node, implTypeName?: string): void {
+    switch (node.type) {
+      case 'use_declaration': {
+        const specifier = extractUseSpecifier(node);
+        if (specifier) {
+          const kind =
+            specifier.startsWith('crate::') ||
+            specifier.startsWith('super::') ||
+            specifier.startsWith('self::')
+              ? 'local'
+              : 'package';
+          dependencies.push({
+            fromFile: filePath,
+            specifier,
+            kind,
+          } as Dependency);
+          relationships.push({
+            sourceType: 'file',
+            sourceId: filePath,
+            targetType: kind === 'local' ? 'file' : 'package',
+            targetId: specifier,
+            relationshipType: 'import',
+            confidence: 'high',
+          });
+        }
+        return;
+      }
+
+      case 'struct_item':
+      case 'enum_item':
+      case 'trait_item': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          addSymbol(
+            nameNode.text,
+            'class',
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            hasPub(node),
+          );
+        }
+        return;
+      }
+
+      case 'impl_item': {
+        // impl TypeName { ... } or impl Trait for TypeName { ... }
+        const typeNode = node.childForFieldName('type');
+        const typeName =
+          typeNode?.type === 'type_identifier' ? typeNode.text : typeNode?.text;
+        const body =
+          node.childForFieldName('body') ??
+          node.namedChildren.find((c) => c.type === 'declaration_list');
+        if (body && typeName) {
+          for (const child of body.namedChildren) {
+            walk(child, typeName);
+          }
+        }
+        return;
+      }
+
+      case 'function_item': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          const exported = hasPub(node);
+          if (implTypeName) {
+            addSymbol(
+              nameNode.text,
+              'method',
+              node.startPosition.row + 1,
+              node.endPosition.row + 1,
+              exported,
+              implTypeName,
+            );
+          } else {
+            addSymbol(
+              nameNode.text,
+              'function',
+              node.startPosition.row + 1,
+              node.endPosition.row + 1,
+              exported,
+            );
+          }
+        }
+        return;
+      }
+
+      case 'function_signature_item': {
+        // trait method signatures
+        const nameNode = node.childForFieldName('name');
+        if (nameNode && implTypeName) {
+          addSymbol(
+            nameNode.text,
+            'method',
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            false,
+            implTypeName,
+          );
+        }
+        return;
+      }
+    }
+
+    for (const child of node.namedChildren) {
+      walk(child, implTypeName);
     }
   }
+
+  walk(tree.rootNode);
+  tree.delete();
 
   return { symbols, dependencies, relationships, warnings };
 }

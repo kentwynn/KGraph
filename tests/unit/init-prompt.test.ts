@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  shouldPromptForInitExtractors,
-  shouldPromptForInitIntegrations,
-} from '../../src/cli/init-prompt.js';
+import { shouldPromptForInitIntegrations } from '../../src/cli/init-prompt.js';
 
 describe('init integration prompt', () => {
   it('prompts for interactive init runs with no integrations configured', () => {
@@ -34,31 +31,6 @@ describe('init integration prompt', () => {
       shouldPromptForInitIntegrations({
         explicitIntegrationsRequested: false,
         configuredIntegrations: [],
-        interactive: false,
-      }),
-    ).toBe(false);
-  });
-});
-
-describe('init extractor prompt', () => {
-  it('prompts when no extractors configured and interactive', () => {
-    expect(
-      shouldPromptForInitExtractors({
-        configuredExtractors: [],
-        interactive: true,
-      }),
-    ).toBe(true);
-
-    expect(
-      shouldPromptForInitExtractors({
-        configuredExtractors: [{ name: 'jvm' }],
-        interactive: true,
-      }),
-    ).toBe(false);
-
-    expect(
-      shouldPromptForInitExtractors({
-        configuredExtractors: [],
         interactive: false,
       }),
     ).toBe(false);

@@ -1,27 +1,32 @@
+import type { Node } from 'web-tree-sitter';
 import type { CodeSymbol, Dependency, Relationship } from '../types/maps.js';
+import { parseSource } from './tree-sitter-parser.js';
 import type { SymbolExtractionResult } from './ts-symbol-extractor.js';
 
-export function extractCSharpSymbols(
+export async function extractCSharpSymbols(
   sourceText: string,
   filePath: string,
-): SymbolExtractionResult {
-  const lines = sourceText.split('\n');
+): Promise<SymbolExtractionResult> {
   const symbols: CodeSymbol[] = [];
   const dependencies: Dependency[] = [];
   const relationships: Relationship[] = [];
   const warnings: string[] = [];
 
-  const typeStack: Array<{ name: string; braceDepth: number }> = [];
-  let braceDepth = 0;
+  if (!sourceText.trim()) {
+    return { symbols, dependencies, relationships, warnings };
+  }
+
+  const tree = await parseSource(sourceText, 'c_sharp');
 
   const addSymbol = (
     name: string,
     kind: CodeSymbol['kind'],
-    lineNum: number,
+    startLine: number,
+    endLine: number,
     exported: boolean,
     parentName?: string,
   ): void => {
-    const id = [filePath, kind, parentName, name, lineNum]
+    const id = [filePath, kind, parentName, name, startLine]
       .filter(Boolean)
       .join('#');
     symbols.push({
@@ -29,8 +34,8 @@ export function extractCSharpSymbols(
       name,
       kind,
       filePath,
-      startLine: lineNum,
-      endLine: lineNum,
+      startLine,
+      endLine,
       exported,
       parentName,
     });
@@ -44,83 +49,115 @@ export function extractCSharpSymbols(
     });
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-    const trimmed = line.trim();
-
-    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*'))
-      continue;
-
-    braceDepth +=
-      (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
-
-    while (
-      typeStack.length > 0 &&
-      braceDepth < typeStack[typeStack.length - 1].braceDepth
-    ) {
-      typeStack.pop();
+  function hasVisibility(node: Node, vis: string): boolean {
+    for (const child of node.children) {
+      if (child.type === 'modifier' && child.text === vis) return true;
     }
+    return false;
+  }
 
-    // using statement
-    const usingMatch = trimmed.match(/^using\s+([\w.]+)\s*;/);
-    if (usingMatch) {
-      const specifier = usingMatch[1];
-      dependencies.push({ fromFile: filePath, specifier, kind: 'package' });
-      relationships.push({
-        sourceType: 'file',
-        sourceId: filePath,
-        targetType: 'package',
-        targetId: specifier,
-        relationshipType: 'import',
-        confidence: 'high',
-      });
-      continue;
-    }
+  function isExported(node: Node): boolean {
+    return hasVisibility(node, 'public') || hasVisibility(node, 'internal');
+  }
 
-    // class / interface / struct / enum / record
-    const typeMatch = trimmed.match(
-      /\b(?:public|private|protected|internal|static|abstract|sealed|partial|readonly)?\s*(?:public|private|protected|internal|static|abstract|sealed|partial|readonly)?\s*(?:class|interface|struct|enum|record)\s+(\w+)/,
-    );
-    if (typeMatch && typeMatch[1]) {
-      const parent = typeStack[typeStack.length - 1];
-      const exported =
-        trimmed.includes('public') || trimmed.includes('internal');
-      addSymbol(typeMatch[1], 'class', lineNum, exported, parent?.name);
-      typeStack.push({ name: typeMatch[1], braceDepth });
-      continue;
-    }
+  function walk(node: Node, parentClassName?: string): void {
+    switch (node.type) {
+      case 'using_directive': {
+        // using System; or using System.Collections.Generic;
+        const nameNode =
+          node.namedChildren.find((c) => c.type === 'qualified_name') ??
+          node.namedChildren.find((c) => c.type === 'identifier');
+        if (nameNode) {
+          const specifier = nameNode.text;
+          dependencies.push({ fromFile: filePath, specifier, kind: 'package' });
+          relationships.push({
+            sourceType: 'file',
+            sourceId: filePath,
+            targetType: 'package',
+            targetId: specifier,
+            relationshipType: 'import',
+            confidence: 'high',
+          });
+        }
+        return;
+      }
 
-    // method: visibility [modifiers] returnType MethodName(
-    // Must have parens, no semicolon (not a field), not a control-flow keyword
-    const CONTROL_FLOW = new Set([
-      'if',
-      'for',
-      'foreach',
-      'while',
-      'switch',
-      'catch',
-      'else',
-      'using',
-      'lock',
-      'return',
-    ]);
-    if (!trimmed.endsWith(';')) {
-      // Strip generic type parameters (e.g. Task<string> → Task) before matching method name
-      const normalizedForMethod = trimmed.replace(/<[^>]*>/g, '');
-      const methodMatch = normalizedForMethod.match(
-        /\b(?:public|private|protected|internal|static|virtual|override|abstract|async|new|sealed)[\w\s]*\s+(\w+)\s*\(/,
-      );
-      if (methodMatch && !CONTROL_FLOW.has(methodMatch[1])) {
-        const parent = typeStack[typeStack.length - 1];
-        const exported =
-          trimmed.includes('public') || trimmed.includes('internal');
-        const kind: CodeSymbol['kind'] = parent ? 'method' : 'function';
-        addSymbol(methodMatch[1], kind, lineNum, exported, parent?.name);
-        continue;
+      case 'namespace_declaration':
+      case 'file_scoped_namespace_declaration': {
+        // Recurse into namespace body
+        const body =
+          node.childForFieldName('body') ??
+          node.namedChildren.find((c) => c.type === 'declaration_list');
+        if (body) {
+          for (const child of body.namedChildren) {
+            walk(child, parentClassName);
+          }
+        } else {
+          // file-scoped namespace: declarations are siblings
+          for (const child of node.namedChildren) {
+            walk(child, parentClassName);
+          }
+        }
+        return;
+      }
+
+      case 'class_declaration':
+      case 'interface_declaration':
+      case 'struct_declaration':
+      case 'enum_declaration':
+      case 'record_declaration': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          const exported = isExported(node);
+          addSymbol(
+            nameNode.text,
+            'class',
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            exported,
+            parentClassName,
+          );
+          // Walk body for methods and nested types
+          const body =
+            node.childForFieldName('body') ??
+            node.namedChildren.find((c) => c.type === 'declaration_list');
+          if (body) {
+            for (const child of body.namedChildren) {
+              walk(child, nameNode.text);
+            }
+          }
+        }
+        return;
+      }
+
+      case 'method_declaration':
+      case 'constructor_declaration': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          const exported = isExported(node);
+          const kind: CodeSymbol['kind'] = parentClassName
+            ? 'method'
+            : 'function';
+          addSymbol(
+            nameNode.text,
+            kind,
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            exported,
+            parentClassName,
+          );
+        }
+        return;
       }
     }
+
+    for (const child of node.namedChildren) {
+      walk(child, parentClassName);
+    }
   }
+
+  walk(tree.rootNode);
+  tree.delete();
 
   return { symbols, dependencies, relationships, warnings };
 }

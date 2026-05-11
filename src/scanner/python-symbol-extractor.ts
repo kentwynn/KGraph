@@ -1,31 +1,37 @@
+import type { Node } from 'web-tree-sitter';
 import type {
   CodeSymbol,
   Dependency,
   DependencyKind,
   Relationship,
 } from '../types/maps.js';
+import { parseSource } from './tree-sitter-parser.js';
 import type { SymbolExtractionResult } from './ts-symbol-extractor.js';
 
-export function extractPythonSymbols(
+export async function extractPythonSymbols(
   sourceText: string,
   filePath: string,
-): SymbolExtractionResult {
-  const lines = sourceText.split('\n');
+): Promise<SymbolExtractionResult> {
   const symbols: CodeSymbol[] = [];
   const dependencies: Dependency[] = [];
   const relationships: Relationship[] = [];
   const warnings: string[] = [];
 
-  // Stack tracks nested class scope: [{name, indent}]
-  const classStack: Array<{ name: string; indent: number }> = [];
+  if (!sourceText.trim()) {
+    return { symbols, dependencies, relationships, warnings };
+  }
+
+  const tree = await parseSource(sourceText, 'python');
 
   const addSymbol = (
     name: string,
     kind: CodeSymbol['kind'],
-    lineNum: number,
+    startLine: number,
+    endLine: number,
+    exported: boolean,
     parentName?: string,
   ): void => {
-    const id = [filePath, kind, parentName, name, lineNum]
+    const id = [filePath, kind, parentName, name, startLine]
       .filter(Boolean)
       .join('#');
     symbols.push({
@@ -33,9 +39,9 @@ export function extractPythonSymbols(
       name,
       kind,
       filePath,
-      startLine: lineNum,
-      endLine: lineNum,
-      exported: false,
+      startLine,
+      endLine,
+      exported,
       parentName,
     });
     relationships.push({
@@ -48,80 +54,110 @@ export function extractPythonSymbols(
     });
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-    const trimmed = line.trimStart();
+  function walk(node: Node, parentClassName?: string): void {
+    switch (node.type) {
+      case 'class_definition': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          const startLine = node.startPosition.row + 1;
+          const endLine = node.endPosition.row + 1;
+          addSymbol(
+            nameNode.text,
+            'class',
+            startLine,
+            endLine,
+            false,
+            parentClassName,
+          );
+          // Walk children for nested classes/methods
+          const body = node.childForFieldName('body');
+          if (body) {
+            for (const child of body.namedChildren) {
+              walk(child, nameNode.text);
+            }
+          }
+        }
+        return; // Don't recurse further from here
+      }
 
-    if (!trimmed || trimmed.startsWith('#')) continue;
+      case 'function_definition': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          const startLine = node.startPosition.row + 1;
+          const endLine = node.endPosition.row + 1;
+          const kind: CodeSymbol['kind'] = parentClassName
+            ? 'method'
+            : 'function';
+          addSymbol(
+            nameNode.text,
+            kind,
+            startLine,
+            endLine,
+            false,
+            parentClassName,
+          );
+        }
+        return; // Don't recurse into function bodies
+      }
 
-    const indent = line.length - trimmed.length;
+      case 'import_statement': {
+        // import os / import os.path
+        const startLine = node.startPosition.row + 1;
+        for (const child of node.namedChildren) {
+          if (child.type === 'dotted_name' || child.type === 'aliased_import') {
+            const specifier =
+              child.type === 'aliased_import'
+                ? (child.childForFieldName('name')?.text ?? child.text)
+                : child.text;
+            dependencies.push({
+              fromFile: filePath,
+              specifier,
+              kind: 'package',
+            });
+            addSymbol(specifier, 'import', startLine, startLine, false);
+            relationships.push({
+              sourceType: 'file',
+              sourceId: filePath,
+              targetType: 'package',
+              targetId: specifier,
+              relationshipType: 'import',
+              confidence: 'high',
+            });
+          }
+        }
+        return;
+      }
 
-    // Pop classes we've exited: any class whose indent >= current line's indent
-    // (unless this line IS the class that opened at that indent — handled by re-pushing below)
-    while (
-      classStack.length > 0 &&
-      classStack[classStack.length - 1].indent >= indent
-    ) {
-      classStack.pop();
+      case 'import_from_statement': {
+        // from X import Y
+        const moduleNode = node.childForFieldName('module_name');
+        if (moduleNode) {
+          const specifier = moduleNode.text;
+          const kind: DependencyKind = specifier.startsWith('.')
+            ? 'local'
+            : 'package';
+          dependencies.push({ fromFile: filePath, specifier, kind });
+          relationships.push({
+            sourceType: 'file',
+            sourceId: filePath,
+            targetType: kind === 'local' ? 'file' : 'package',
+            targetId: specifier,
+            relationshipType: 'import',
+            confidence: kind === 'local' ? 'medium' : 'high',
+          });
+        }
+        return;
+      }
     }
 
-    // class definition
-    const classMatch = trimmed.match(/^class\s+([A-Za-z_]\w*)/);
-    if (classMatch) {
-      const name = classMatch[1];
-      const parent = classStack[classStack.length - 1];
-      addSymbol(name, 'class', lineNum, parent?.name);
-      classStack.push({ name, indent });
-      continue;
-    }
-
-    // function / method definition (sync or async)
-    const funcMatch = trimmed.match(/^(?:async\s+)?def\s+([A-Za-z_]\w*)/);
-    if (funcMatch) {
-      const name = funcMatch[1];
-      const parent = classStack[classStack.length - 1];
-      const kind: CodeSymbol['kind'] =
-        parent !== undefined ? 'method' : 'function';
-      addSymbol(name, kind, lineNum, parent?.name);
-      continue;
-    }
-
-    // import module
-    const importMatch = trimmed.match(/^import\s+([\w.]+)/);
-    if (importMatch) {
-      const specifier = importMatch[1];
-      dependencies.push({ fromFile: filePath, specifier, kind: 'package' });
-      addSymbol(specifier, 'import', lineNum);
-      relationships.push({
-        sourceType: 'file',
-        sourceId: filePath,
-        targetType: 'package',
-        targetId: specifier,
-        relationshipType: 'import',
-        confidence: 'high',
-      });
-      continue;
-    }
-
-    // from X import Y
-    const fromMatch = trimmed.match(/^from\s+(\S+)\s+import/);
-    if (fromMatch) {
-      const specifier = fromMatch[1];
-      const kind: DependencyKind = specifier.startsWith('.')
-        ? 'local'
-        : 'package';
-      dependencies.push({ fromFile: filePath, specifier, kind });
-      relationships.push({
-        sourceType: 'file',
-        sourceId: filePath,
-        targetType: kind === 'local' ? 'file' : 'package',
-        targetId: specifier,
-        relationshipType: 'import',
-        confidence: kind === 'local' ? 'medium' : 'high',
-      });
+    // Recurse into children for top-level statements
+    for (const child of node.namedChildren) {
+      walk(child, parentClassName);
     }
   }
+
+  walk(tree.rootNode);
+  tree.delete();
 
   return { symbols, dependencies, relationships, warnings };
 }

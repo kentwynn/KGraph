@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   detectMachineIntegrationRecommendations,
-  extractorSetupCommands,
   integrationSetupCommand,
-  recommendedExtractorsForInit,
   recommendedIntegrationsForInit,
 } from '../../src/cli/init-recommendations.js';
 
@@ -58,7 +56,7 @@ describe('init recommendations', () => {
     ]);
   });
 
-  it('filters out already configured integrations and extractors', () => {
+  it('filters out already configured integrations', () => {
     expect(
       recommendedIntegrationsForInit({
         configuredIntegrations: [{ name: 'copilot' }],
@@ -68,23 +66,6 @@ describe('init recommendations', () => {
         ],
       }),
     ).toEqual([{ name: 'codex', reason: 'codex executable detected on PATH' }]);
-
-    expect(
-      recommendedExtractorsForInit({
-        files: [
-          { language: 'java' },
-          { language: 'python' },
-          { language: 'yaml' },
-        ] as never,
-        configuredExtractors: [{ name: 'python' }],
-      }),
-    ).toEqual([
-      {
-        name: 'jvm',
-        packageName: '@kentwynn/kgraph-extractor-jvm',
-        languages: ['java'],
-      },
-    ]);
   });
 
   it('builds init next-step commands from recommendations', () => {
@@ -94,18 +75,5 @@ describe('init recommendations', () => {
         { name: 'codex', reason: 'codex executable detected on PATH' },
       ]),
     ).toBe('kgraph integrate add copilot codex');
-
-    expect(
-      extractorSetupCommands([
-        {
-          name: 'jvm',
-          packageName: '@kentwynn/kgraph-extractor-jvm',
-          languages: ['java'],
-        },
-      ]),
-    ).toEqual([
-      'kgraph extractor add jvm',
-      'npm install -D @kentwynn/kgraph-extractor-jvm',
-    ]);
   });
 });

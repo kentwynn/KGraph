@@ -1,16 +1,7 @@
 import * as clack from '@clack/prompts';
-import { listExtractorAdapters } from '../extractors/extractor-registry.js';
 import { listIntegrationAdapters } from '../integrations/integration-registry.js';
-import type {
-  ExtractorConfig,
-  ExtractorName,
-  IntegrationConfig,
-  IntegrationName,
-} from '../types/config.js';
-import type {
-  InitExtractorRecommendation,
-  InitIntegrationRecommendation,
-} from './init-recommendations.js';
+import type { IntegrationConfig, IntegrationName } from '../types/config.js';
+import type { InitIntegrationRecommendation } from './init-recommendations.js';
 
 // --- Integration prompt ---
 
@@ -87,86 +78,6 @@ export async function promptForInitIntegrations(
   }
 
   return selected as IntegrationName[];
-}
-
-// --- Extractor prompt ---
-
-export function shouldPromptForInitExtractors(options: {
-  configuredExtractors: Pick<ExtractorConfig, 'name'>[];
-  interactive?: boolean;
-}): boolean {
-  const interactive = options.interactive ?? isInteractiveTerminal();
-  return interactive && options.configuredExtractors.length === 0;
-}
-
-export async function promptForInitExtractors(
-  recommendations: InitExtractorRecommendation[],
-): Promise<ExtractorName[]> {
-  const recNames = recommendations.map((item) => item.name);
-  const hasRecommendations = recommendations.length > 0;
-
-  const action = await clack.select({
-    message: 'Optional deep language extractors',
-    options: [
-      ...(hasRecommendations
-        ? [
-            {
-              value: 'recommended' as const,
-              label: `Use recommended (${recNames.join(', ')})`,
-              hint: recommendations
-                .map((item) => `${item.name} for ${item.languages.join(', ')}`)
-                .join('; '),
-            },
-          ]
-        : []),
-      {
-        value: 'custom' as const,
-        label: 'Custom selection',
-        hint: hasRecommendations
-          ? undefined
-          : 'no language-specific extractors detected; pick manually',
-      },
-      { value: 'skip' as const, label: 'Skip' },
-    ],
-  });
-
-  if (clack.isCancel(action) || action === 'skip') {
-    return [];
-  }
-
-  if (action === 'recommended') {
-    return recNames;
-  }
-
-  const recommendedNames = new Set(recNames);
-  const otherAdapters = listExtractorAdapters().filter(
-    (adapter) => !recommendedNames.has(adapter.name),
-  );
-
-  const allOptions = [
-    ...recommendations.map((rec) => ({
-      value: rec.name,
-      label: rec.name,
-      hint: `${rec.languages.join(', ')} — ${rec.packageName} (recommended)`,
-    })),
-    ...otherAdapters.map((adapter) => ({
-      value: adapter.name,
-      label: adapter.name,
-      hint: `${adapter.languages.join(', ')} — ${adapter.packageName}`,
-    })),
-  ];
-
-  const selected = await clack.multiselect({
-    message: 'Select extractors (space to toggle, enter to confirm)',
-    options: allOptions,
-    required: false,
-  });
-
-  if (clack.isCancel(selected)) {
-    return [];
-  }
-
-  return selected as ExtractorName[];
 }
 
 function isInteractiveTerminal(): boolean {

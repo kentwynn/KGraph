@@ -27,29 +27,4 @@ describe('config', () => {
       ]),
     );
   });
-
-  it('normalizes configured extractors', () => {
-    const config = normalizeConfig({
-      extractors: [
-        {
-          name: 'jvm',
-          enabled: true,
-          packageName: '@kentwynn/kgraph-extractor-jvm',
-        },
-        {
-          name: 'unknown',
-          enabled: true,
-          packageName: '@kentwynn/unknown',
-        } as never,
-      ],
-    });
-
-    expect(config.extractors).toEqual([
-      {
-        name: 'jvm',
-        enabled: true,
-        packageName: '@kentwynn/kgraph-extractor-jvm',
-      },
-    ]);
-  });
 });

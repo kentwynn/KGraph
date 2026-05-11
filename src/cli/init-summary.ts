@@ -1,9 +1,7 @@
-import type { ExtractorConfig, IntegrationConfig } from '../types/config.js';
+import type { IntegrationConfig } from '../types/config.js';
 import type { RepositoryFile } from '../types/maps.js';
 import {
-  extractorSetupCommands,
   integrationSetupCommand,
-  type InitExtractorRecommendation,
   type InitIntegrationRecommendation,
 } from './init-recommendations.js';
 
@@ -24,14 +22,14 @@ const LANGUAGE_PRESENTATION: Record<
   javascriptreact: { label: 'JavaScript', coverage: 'deep' },
   typescript: { label: 'TypeScript', coverage: 'deep' },
   typescriptreact: { label: 'TypeScript', coverage: 'deep' },
-  python: { label: 'Python', coverage: 'basic' },
-  go: { label: 'Go', coverage: 'basic' },
-  rust: { label: 'Rust', coverage: 'basic' },
-  java: { label: 'Java', coverage: 'basic' },
-  kotlin: { label: 'Kotlin', coverage: 'basic' },
-  c: { label: 'C', coverage: 'basic' },
-  cpp: { label: 'C++', coverage: 'basic' },
-  csharp: { label: 'C#', coverage: 'basic' },
+  python: { label: 'Python', coverage: 'deep' },
+  go: { label: 'Go', coverage: 'deep' },
+  rust: { label: 'Rust', coverage: 'deep' },
+  java: { label: 'Java', coverage: 'deep' },
+  kotlin: { label: 'Kotlin', coverage: 'deep' },
+  c: { label: 'C', coverage: 'deep' },
+  cpp: { label: 'C++', coverage: 'deep' },
+  csharp: { label: 'C#', coverage: 'deep' },
   yaml: { label: 'YAML', coverage: 'generic' },
   json: { label: 'JSON', coverage: 'generic' },
   toml: { label: 'TOML', coverage: 'generic' },
@@ -84,16 +82,8 @@ export function renderInitSummary(options: {
   files: RepositoryFile[];
   integrations: Pick<IntegrationConfig, 'name' | 'enabled' | 'mode'>[];
   recommendedIntegrations: InitIntegrationRecommendation[];
-  extractors: Pick<ExtractorConfig, 'name' | 'enabled' | 'packageName'>[];
-  recommendedExtractors: InitExtractorRecommendation[];
 }): string {
   const languages = summarizeInitLanguages(options.files);
-  const recommendedExtractorByLanguage = new Map<string, string>();
-  for (const extractor of options.recommendedExtractors) {
-    for (const language of extractor.languages) {
-      recommendedExtractorByLanguage.set(language, extractor.name);
-    }
-  }
   const lines = ['KGraph Init Summary', ''];
 
   lines.push('AI integrations');
@@ -118,30 +108,8 @@ export function renderInitSummary(options: {
     lines.push('  none detected yet');
   } else {
     for (const language of languages) {
-      const recommendedExtractor = recommendedExtractorByLanguage.get(
-        language.language,
-      );
       lines.push(
-        `  ${language.label}: ${formatFileCount(language.fileCount)}, ${coverageDescription(language.coverage)}${recommendedExtractor ? `; recommended extractor: ${recommendedExtractor}` : ''}`,
-      );
-    }
-  }
-
-  lines.push('');
-  lines.push('Optional extractors');
-  if (options.extractors.length === 0) {
-    lines.push('  configured: none');
-  } else {
-    for (const extractor of options.extractors) {
-      lines.push(
-        `  configured: ${extractor.name}: ${extractor.enabled ? extractor.packageName : 'off'}`,
-      );
-    }
-  }
-  if (options.recommendedExtractors.length > 0) {
-    for (const extractor of options.recommendedExtractors) {
-      lines.push(
-        `  recommended: ${extractor.name} for ${extractor.languages.map(humanizeLanguage).join(', ')} (${extractor.packageName})`,
+        `  ${language.label}: ${formatFileCount(language.fileCount)}, ${coverageDescription(language.coverage)}`,
       );
     }
   }
@@ -156,9 +124,6 @@ export function renderInitSummary(options: {
     lines.push(`  ${integrationCommand}  Optional: connect detected AI tools`);
   } else if (options.integrations.length === 0) {
     lines.push('  kgraph integrate add <agent>  Optional: connect an AI tool');
-  }
-  for (const command of extractorSetupCommands(options.recommendedExtractors)) {
-    lines.push(`  ${command}`);
   }
   lines.push('  kgraph doctor  Check workspace health');
 

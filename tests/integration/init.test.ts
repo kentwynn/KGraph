@@ -52,23 +52,13 @@ describe('kgraph init', () => {
       expect(result.stdout).toContain(
         'TypeScript: 1 file, deep built-in extraction',
       );
-      expect(result.stdout).toContain(
-        'Java: 1 file, basic built-in extraction; recommended extractor: jvm',
-      );
+      expect(result.stdout).toContain('Java: 1 file, deep built-in extraction');
       expect(result.stdout).toContain('YAML: 1 file, generic file coverage');
-      expect(result.stdout).toContain('Optional extractors');
-      expect(result.stdout).toContain(
-        'recommended: jvm for Java (@kentwynn/kgraph-extractor-jvm)',
-      );
       expect(result.stdout).toContain(
         'kgraph "topic"  Run the normal refresh and context workflow',
       );
       expect(result.stdout).toContain(
         'kgraph integrate add <agent>  Optional: connect an AI tool',
-      );
-      expect(result.stdout).toContain('kgraph extractor add jvm');
-      expect(result.stdout).toContain(
-        'npm install -D @kentwynn/kgraph-extractor-jvm',
       );
     } finally {
       await cleanupTempRepo(repo);

@@ -7,7 +7,6 @@ export interface KGraphConfig {
   maxContextItems: number;
   domainHints: Record<string, DomainHint>;
   integrations: IntegrationConfig[];
-  extractors: ExtractorConfig[];
 }
 
 export interface DomainHint {
@@ -26,25 +25,11 @@ export type IntegrationName =
 
 export type IntegrationMode = 'smart' | 'always' | 'manual' | 'off';
 
-export type ExtractorName =
-  | 'c-family'
-  | 'csharp'
-  | 'go'
-  | 'jvm'
-  | 'python'
-  | 'rust';
-
 export interface IntegrationConfig {
   name: IntegrationName;
   enabled: boolean;
   mode: IntegrationMode;
   targetPath: string;
-}
-
-export interface ExtractorConfig {
-  name: ExtractorName;
-  enabled: boolean;
-  packageName: string;
 }
 
 export interface KGraphWorkspace {

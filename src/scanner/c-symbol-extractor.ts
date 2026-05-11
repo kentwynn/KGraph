@@ -1,27 +1,36 @@
+import type { Node } from 'web-tree-sitter';
 import type { CodeSymbol, Dependency, Relationship } from '../types/maps.js';
+import { parseSource } from './tree-sitter-parser.js';
 import type { SymbolExtractionResult } from './ts-symbol-extractor.js';
 
+const CPP_EXTS = new Set(['.cpp', '.cc', '.cxx', '.hpp', '.hxx']);
+
 // Handles C (.c, .h) and C++ (.cpp, .cc, .cxx, .hpp, .hxx)
-export function extractCSymbols(
+export async function extractCSymbols(
   sourceText: string,
   filePath: string,
-): SymbolExtractionResult {
-  const lines = sourceText.split('\n');
+): Promise<SymbolExtractionResult> {
   const symbols: CodeSymbol[] = [];
   const dependencies: Dependency[] = [];
   const relationships: Relationship[] = [];
   const warnings: string[] = [];
 
-  const typeStack: Array<{ name: string; braceDepth: number }> = [];
-  let braceDepth = 0;
+  if (!sourceText.trim()) {
+    return { symbols, dependencies, relationships, warnings };
+  }
+
+  const ext = filePath.substring(filePath.lastIndexOf('.'));
+  const grammar = CPP_EXTS.has(ext) ? 'cpp' : 'c';
+  const tree = await parseSource(sourceText, grammar);
 
   const addSymbol = (
     name: string,
     kind: CodeSymbol['kind'],
-    lineNum: number,
+    startLine: number,
+    endLine: number,
     parentName?: string,
   ): void => {
-    const id = [filePath, kind, parentName, name, lineNum]
+    const id = [filePath, kind, parentName, name, startLine]
       .filter(Boolean)
       .join('#');
     symbols.push({
@@ -29,8 +38,8 @@ export function extractCSymbols(
       name,
       kind,
       filePath,
-      startLine: lineNum,
-      endLine: lineNum,
+      startLine,
+      endLine,
       exported: false,
       parentName,
     });
@@ -44,87 +53,132 @@ export function extractCSymbols(
     });
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-    const trimmed = line.trim();
-
-    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*'))
-      continue;
-
-    braceDepth +=
-      (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
-
-    while (
-      typeStack.length > 0 &&
-      braceDepth < typeStack[typeStack.length - 1].braceDepth
-    ) {
-      typeStack.pop();
+  function getFuncName(node: Node): string | null {
+    // function_definition has a function_declarator child which contains the identifier
+    const declarator = node.childForFieldName('declarator');
+    if (!declarator) return null;
+    if (declarator.type === 'function_declarator') {
+      const nameNode = declarator.childForFieldName('declarator');
+      return nameNode?.text ?? null;
     }
-
-    // #include <...> or #include "..."
-    const includeMatch = trimmed.match(/^#include\s+[<"]([^>"]+)[>"]/);
-    if (includeMatch) {
-      const specifier = includeMatch[1];
-      const kind = trimmed.includes('"') ? 'local' : 'package';
-      dependencies.push({ fromFile: filePath, specifier, kind });
-      relationships.push({
-        sourceType: 'file',
-        sourceId: filePath,
-        targetType: kind === 'local' ? 'file' : 'package',
-        targetId: specifier,
-        relationshipType: 'import',
-        confidence: 'high',
-      });
-      continue;
+    // For pointer_declarator wrapping function_declarator
+    const funcDecl = declarator.descendantsOfType('function_declarator')[0];
+    if (funcDecl) {
+      const nameNode = funcDecl.childForFieldName('declarator');
+      return nameNode?.text ?? null;
     }
+    return null;
+  }
 
-    // class / struct (C++ with body — has name before {)
-    const classMatch = trimmed.match(
-      /\b(?:class|struct)\s+(\w+)\s*(?::[^{]*)?\s*\{/,
-    );
-    if (classMatch) {
-      addSymbol(
-        classMatch[1],
-        'class',
-        lineNum,
-        typeStack[typeStack.length - 1]?.name,
-      );
-      typeStack.push({ name: classMatch[1], braceDepth });
-      continue;
-    }
+  function walk(node: Node, parentClassName?: string): void {
+    switch (node.type) {
+      case 'preproc_include': {
+        // #include <...> or #include "..."
+        const pathNode =
+          node.namedChildren.find((c) => c.type === 'system_lib_string') ??
+          node.namedChildren.find((c) => c.type === 'string_literal');
+        if (pathNode) {
+          let specifier: string;
+          let kind: 'local' | 'package';
+          if (pathNode.type === 'system_lib_string') {
+            // <iostream> — strip angle brackets
+            specifier = pathNode.text.replace(/^<|>$/g, '');
+            kind = 'package';
+          } else {
+            // "myheader.h" — extract string content
+            const content = pathNode.namedChildren.find(
+              (c) => c.type === 'string_content',
+            );
+            specifier = content?.text ?? pathNode.text.replace(/^"|"$/g, '');
+            kind = 'local';
+          }
+          dependencies.push({ fromFile: filePath, specifier, kind });
+          relationships.push({
+            sourceType: 'file',
+            sourceId: filePath,
+            targetType: kind === 'local' ? 'file' : 'package',
+            targetId: specifier,
+            relationshipType: 'import',
+            confidence: 'high',
+          });
+        }
+        return;
+      }
 
-    // Function definition: returnType funcName( — must have ( and no ; on same line
-    // Exclude preprocessor, declarations without body
-    if (!trimmed.endsWith(';') && !trimmed.startsWith('#')) {
-      const funcMatch = trimmed.match(
-        /\b(\w+)\s*\((?:[^)]*)?\)\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?(?:final\s*)?\{?$/,
-      );
-      // Filter out common false positives: if/for/while/switch/catch/else
-      const CONTROL_FLOW = new Set([
-        'if',
-        'for',
-        'while',
-        'switch',
-        'catch',
-        'else',
-        'return',
-        'sizeof',
-        'typeof',
-      ]);
-      if (
-        funcMatch &&
-        !CONTROL_FLOW.has(funcMatch[1]) &&
-        funcMatch[1] !== 'class' &&
-        funcMatch[1] !== 'struct'
-      ) {
-        const parent = typeStack[typeStack.length - 1];
-        const kind: CodeSymbol['kind'] = parent ? 'method' : 'function';
-        addSymbol(funcMatch[1], kind, lineNum, parent?.name);
-        continue;
+      case 'class_specifier':
+      case 'struct_specifier': {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) {
+          addSymbol(
+            nameNode.text,
+            'class',
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            parentClassName,
+          );
+          // Walk body for methods
+          const body = node.childForFieldName('body');
+          if (body) {
+            for (const child of body.namedChildren) {
+              walk(child, nameNode.text);
+            }
+          }
+        }
+        return;
+      }
+
+      case 'function_definition': {
+        const name = getFuncName(node);
+        if (name) {
+          const kind: CodeSymbol['kind'] = parentClassName
+            ? 'method'
+            : 'function';
+          addSymbol(
+            name,
+            kind,
+            node.startPosition.row + 1,
+            node.endPosition.row + 1,
+            parentClassName,
+          );
+        }
+        return;
+      }
+
+      case 'declaration': {
+        // Could be a function declaration (prototype) inside a class
+        if (parentClassName) {
+          const declarator = node.childForFieldName('declarator');
+          if (declarator) {
+            const funcDecl =
+              declarator.type === 'function_declarator'
+                ? declarator
+                : declarator.descendantsOfType('function_declarator')[0];
+            if (funcDecl) {
+              const nameNode = funcDecl.childForFieldName('declarator');
+              if (nameNode) {
+                addSymbol(
+                  nameNode.text,
+                  'method',
+                  node.startPosition.row + 1,
+                  node.endPosition.row + 1,
+                  parentClassName,
+                );
+              }
+              return;
+            }
+          }
+        }
+        break;
       }
     }
+
+    for (const child of node.namedChildren) {
+      walk(child, parentClassName);
+    }
   }
+
+  walk(tree.rootNode);
+  tree.delete();
 
   return { symbols, dependencies, relationships, warnings };
 }
