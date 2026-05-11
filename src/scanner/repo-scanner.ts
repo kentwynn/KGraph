@@ -67,11 +67,42 @@ export async function scanRepository(
     ignore: buildFastGlobIgnore(allExcludes),
   });
 
+  // Build lookup maps from previous scan for incremental skip
+  const prevFileByPath = new Map(
+    (previous?.files ?? []).map((f) => [f.path, f]),
+  );
+  const prevSymbolsByFile = new Map<string, ScanResult['symbols']>();
+  const prevDepsByFile = new Map<string, ScanResult['dependencies']>();
+  const prevRelsBySource = new Map<string, Relationship[]>();
+  if (previous) {
+    for (const sym of previous.symbols) {
+      const arr = prevSymbolsByFile.get(sym.filePath) ?? [];
+      arr.push(sym);
+      prevSymbolsByFile.set(sym.filePath, arr);
+    }
+    for (const dep of previous.dependencies) {
+      const arr = prevDepsByFile.get(dep.fromFile) ?? [];
+      arr.push(dep);
+      prevDepsByFile.set(dep.fromFile, arr);
+    }
+    for (const rel of previous.relationships) {
+      if (
+        rel.relationshipType !== 'import' &&
+        rel.relationshipType !== 'moved-from'
+      ) {
+        const arr = prevRelsBySource.get(rel.sourceId) ?? [];
+        arr.push(rel);
+        prevRelsBySource.set(rel.sourceId, arr);
+      }
+    }
+  }
+
   const files: RepositoryFile[] = [];
   const symbols: ScanResult['symbols'] = [];
   const dependencies: ScanResult['dependencies'] = [];
   const relationships: Relationship[] = [];
   const warnings: string[] = [];
+  let skippedFiles = 0;
 
   for (const repoPath of entries.sort()) {
     if (shouldExclude(repoPath, mergedConfig)) {
@@ -80,10 +111,34 @@ export async function scanRepository(
 
     const absolutePath = path.join(rootPath, repoPath);
     try {
-      const [info, content] = await Promise.all([
-        stat(absolutePath),
-        readFile(absolutePath),
-      ]);
+      const info = await stat(absolutePath);
+
+      // Incremental skip: if mtime and size match previous, carry forward
+      const prevFile = prevFileByPath.get(repoPath);
+      if (
+        prevFile &&
+        prevFile.sizeBytes === info.size &&
+        prevFile.modifiedAt === info.mtime.toISOString()
+      ) {
+        files.push({ ...prevFile, modifiedAt: info.mtime.toISOString() });
+        const prevSyms = prevSymbolsByFile.get(repoPath);
+        if (prevSyms) symbols.push(...prevSyms);
+        const prevDeps = prevDepsByFile.get(repoPath);
+        if (prevDeps) dependencies.push(...prevDeps);
+        const prevRels = prevRelsBySource.get(repoPath);
+        if (prevRels) relationships.push(...prevRels);
+        // Also carry forward symbol-sourced relationships
+        if (prevSyms) {
+          for (const sym of prevSyms) {
+            const symRels = prevRelsBySource.get(sym.id);
+            if (symRels) relationships.push(...symRels);
+          }
+        }
+        skippedFiles++;
+        continue;
+      }
+
+      const content = await readFile(absolutePath);
       const text = content.toString('utf8');
       const contentHash = crypto
         .createHash('sha256')
@@ -134,7 +189,14 @@ export async function scanRepository(
   resolveLocalDependencies(dependencies, files);
   relationships.push(...buildImportRelationships(dependencies));
   relationships.push(...detectMovedFiles(previous?.files ?? [], files));
-  return { files, symbols, dependencies, relationships, warnings };
+  return {
+    files,
+    symbols,
+    dependencies,
+    relationships,
+    warnings,
+    skippedFiles,
+  };
 }
 
 const SOURCE_EXTENSIONS = [

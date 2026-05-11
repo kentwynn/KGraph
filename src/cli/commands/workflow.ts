@@ -1,5 +1,7 @@
-import { updateCognition } from '../../cognition/cognition-updater.js';
-import { refreshCognitionReferenceStatuses } from '../../cognition/cognition-updater.js';
+import {
+  refreshCognitionReferenceStatuses,
+  updateCognition,
+} from '../../cognition/cognition-updater.js';
 import { loadConfig } from '../../config/config.js';
 import { queryContext } from '../../context/context-query.js';
 import { scanRepository } from '../../scanner/repo-scanner.js';
@@ -45,16 +47,19 @@ export async function runDefaultWorkflow(query?: string): Promise<void> {
       false,
     );
 
-    console.log(renderWorkflowBanner({
-      files: scan.files.length,
-      symbols: scan.symbols.length,
-      cognitionNotes: update.processed.length,
-      integrations: config.integrations.map((integration) => ({
-        name: integration.name,
-        mode: integration.mode,
-        enabled: integration.enabled,
-      })),
-    }));
+    console.log(
+      renderWorkflowBanner({
+        files: scan.files.length,
+        symbols: scan.symbols.length,
+        skippedFiles: scan.skippedFiles,
+        cognitionNotes: update.processed.length,
+        integrations: config.integrations.map((integration) => ({
+          name: integration.name,
+          mode: integration.mode,
+          enabled: integration.enabled,
+        })),
+      }),
+    );
     console.log('');
     for (const warning of [...scan.warnings, ...update.warnings]) {
       console.warn(`Warning: ${warning}`);

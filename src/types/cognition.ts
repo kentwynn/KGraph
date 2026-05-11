@@ -1,6 +1,6 @@
-import type { CodeSymbol, Relationship, RepositoryFile } from "./maps.js";
+import type { CodeSymbol, Relationship, RepositoryFile } from './maps.js';
 
-export type ReferenceStatus = "current" | "stale" | "unresolved" | "mixed";
+export type ReferenceStatus = 'current' | 'stale' | 'unresolved' | 'mixed';
 
 export interface ParsedCognitionNote {
   title: string;
@@ -44,6 +44,7 @@ export interface ContextResponse {
   relevantSymbols: RankedItem<CodeSymbol>[];
   relevantCognition: RankedItem<CognitionNote>[];
   relationships: Relationship[];
+  nearbySymbols?: CodeSymbol[];
   staleReferences: string[];
   warnings: string[];
 }

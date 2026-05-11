@@ -107,6 +107,7 @@ interface WorkflowBannerStats {
   files: number;
   symbols: number;
   cognitionNotes: number;
+  skippedFiles?: number;
   integrations?: WorkflowBannerIntegration[];
 }
 
@@ -141,7 +142,13 @@ export function renderWorkflowBanner(
     `  ${theme.bold('KGraph')} ${theme.dim('repo intelligence refreshed')}`,
     '',
     theme.bold('Refresh Complete'),
-    command('files', String(stats.files)),
+    command(
+      'files',
+      String(stats.files) +
+        (stats.skippedFiles
+          ? ` (${stats.skippedFiles} unchanged, skipped)`
+          : ''),
+    ),
     command('symbols', String(stats.symbols)),
     command('cognition notes processed', String(stats.cognitionNotes)),
     command('integration modes', integrationLine),

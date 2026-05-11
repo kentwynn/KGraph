@@ -116,6 +116,33 @@ export async function queryContext(
         .map((ref) => `${note.title}: ${ref}`),
     ]);
 
+  // Collect nearby symbols: exported symbols from files 1-hop imported by matched files
+  const matchedFilePaths = new Set([
+    ...relevantFiles.map((f) => f.item.path),
+    ...relevantSymbols.map((s) => s.item.filePath),
+  ]);
+  const matchedSymbolIds = new Set(relevantSymbols.map((s) => s.item.id));
+  const importedFilePaths = new Set<string>();
+  for (const dep of maps.dependencyMap.dependencies) {
+    if (
+      dep.kind === 'local' &&
+      dep.resolvedFile &&
+      matchedFilePaths.has(dep.fromFile)
+    ) {
+      importedFilePaths.add(dep.resolvedFile);
+    }
+  }
+  // Remove files already in the matched set
+  for (const p of matchedFilePaths) importedFilePaths.delete(p);
+  const nearbySymbols = maps.symbolMap.symbols
+    .filter(
+      (s) =>
+        s.exported &&
+        importedFilePaths.has(s.filePath) &&
+        !matchedSymbolIds.has(s.id),
+    )
+    .slice(0, max);
+
   return {
     query,
     matchedDomains,
@@ -123,6 +150,7 @@ export async function queryContext(
     relevantSymbols,
     relevantCognition,
     relationships: relationships.slice(0, max),
+    nearbySymbols,
     staleReferences,
     warnings: [],
   };

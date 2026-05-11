@@ -1,22 +1,22 @@
-export type ScanStatus = "mapped" | "generic" | "failed";
-export type DependencyKind = "local" | "package" | "unknown";
+export type ScanStatus = 'mapped' | 'generic' | 'failed';
+export type DependencyKind = 'local' | 'package' | 'unknown';
 export type SymbolKind =
-  | "function"
-  | "class"
-  | "method"
-  | "type"
-  | "interface"
-  | "export"
-  | "import";
+  | 'function'
+  | 'class'
+  | 'method'
+  | 'type'
+  | 'interface'
+  | 'export'
+  | 'import';
 export type RelationshipType =
-  | "import"
-  | "contains"
-  | "symbol-contains"
-  | "calls"
-  | "mentions"
-  | "belongs-to-domain"
-  | "stale-reference"
-  | "moved-from";
+  | 'import'
+  | 'contains'
+  | 'symbol-contains'
+  | 'calls'
+  | 'mentions'
+  | 'belongs-to-domain'
+  | 'stale-reference'
+  | 'moved-from';
 
 export interface RepositoryFile {
   id: string;
@@ -55,7 +55,7 @@ export interface Relationship {
   targetType: string;
   targetId: string;
   relationshipType: RelationshipType;
-  confidence: "high" | "medium" | "low";
+  confidence: 'high' | 'medium' | 'low';
 }
 
 export interface FileMap {
@@ -84,4 +84,5 @@ export interface ScanResult {
   dependencies: Dependency[];
   relationships: Relationship[];
   warnings: string[];
+  skippedFiles?: number;
 }
