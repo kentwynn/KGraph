@@ -59,7 +59,7 @@ select:hover,button:hover{background:#475569}
   <span id="t-title">\u29e1 KGraph \u00b7 ${repoName}</span>
   <span id="t-stats">${meta.fileCount} files &middot; ${meta.symbolCount} symbols &middot; ${meta.cognitionCount} notes &middot; ~${meta.tokenEstimate} tokens</span>
   <div id="t-controls">
-    <label class="clabel"><input type="checkbox" id="tog-sym"> Symbols</label>
+    <label class="clabel"><input type="checkbox" id="tog-lbl" checked> Labels</label>
     <label class="clabel"><input type="checkbox" id="tog-cog" checked> Cognition</label>
     <select id="sel-layout" title="Graph layout algorithm">
       <option value="dagre">Hierarchical</option>
@@ -115,15 +115,26 @@ select:hover,button:hover{background:#475569}
     cytoscape.use(cytoscapeDagre);
   }
 
-  var LARGE_THRESHOLD = 500;
-  var isLarge = GRAPH_DATA.elements.length > LARGE_THRESHOLD;
-
-  // Hide symbol nodes and their edges by default for performance
+  // Separate symbol data from graph elements — symbols are shown in sidebar only.
+  var SYMBOL_TYPES = { symbol: 1, contains: 1, 'symbol-contains': 1, calls: 1 };
+  var coreElements = [];
+  var symbolsByFile = {};
   GRAPH_DATA.elements.forEach(function (el) {
-    if (el.data.type === 'symbol' || el.data.type === 'contains' || el.data.type === 'symbol-contains' || el.data.type === 'calls') {
-      el.classes = (el.classes || '') + ' hidden';
+    if (el.data.type === 'symbol') {
+      var fp = el.data.path;
+      if (!symbolsByFile[fp]) symbolsByFile[fp] = [];
+      symbolsByFile[fp].push(el.data);
+    } else if (!SYMBOL_TYPES[el.data.type]) {
+      coreElements.push(el);
     }
   });
+
+  var LARGE_THRESHOLD = 200;
+  var isLarge = coreElements.length > LARGE_THRESHOLD;
+
+  if (isLarge) {
+    document.getElementById('tog-lbl').checked = false;
+  }
 
   function esc(v) {
     return String(v == null ? '' : v)
@@ -139,13 +150,13 @@ select:hover,button:hover{background:#475569}
 
   var cy = cytoscape({
     container: document.getElementById('cy'),
-    elements: GRAPH_DATA.elements,
+    elements: coreElements,
     style: [
       {
         selector: 'node',
         style: {
           'background-color': 'data(color)',
-          label: 'data(label)',
+          label: isLarge ? '' : 'data(label)',
           color: '#94a3b8',
           'font-size': '10px',
           'text-valign': 'bottom',
@@ -153,8 +164,8 @@ select:hover,button:hover{background:#475569}
           'text-margin-y': '5px',
           'border-width': 1,
           'border-color': '#1e293b',
-          width: 30,
-          height: 30,
+          width: isLarge ? 20 : 30,
+          height: isLarge ? 20 : 30,
           'text-wrap': 'ellipsis',
           'text-max-width': '80px',
           'overlay-opacity': 0
@@ -222,7 +233,7 @@ select:hover,button:hover{background:#475569}
       { selector: '.hidden', style: { display: 'none' } }
     ],
     layout: isLarge
-      ? { name: 'cose', animate: false, padding: 40, nodeOverlap: 20, idealEdgeLength: 80 }
+      ? { name: 'cose', animate: false, padding: 40, nodeOverlap: 20, idealEdgeLength: 80, numIter: 100 }
       : { name: 'dagre', rankDir: 'LR', nodeSep: 60, rankSep: 120, padding: 40, animate: true, animationDuration: 400 }
   });
 
@@ -241,12 +252,25 @@ select:hover,button:hover{background:#475569}
     }
   };
 
+  var SYMBOL_KIND_COLORS = { 'function': '#22c55e', 'class': '#a855f7', method: '#14b8a6', 'export': '#f97316', 'import': '#64748b' };
+
   function renderFilePanel(d) {
+    var syms = symbolsByFile[d.path] || [];
+    var symHtml = '';
+    if (syms.length) {
+      symHtml = '<div class="sb-sect"><div class="sb-lbl">Symbols (' + syms.length + ')</div><ul class="sb-list">' +
+        syms.map(function (s) {
+          var c = SYMBOL_KIND_COLORS[s.kind] || '#94a3b8';
+          return '<li><span style="color:' + c + ';font-weight:600">' + esc(s.kind) + '</span> <span class="sb-code">' + esc(s.label) + '</span>' +
+            (s.parentName ? ' <span style="color:#475569">in ' + esc(s.parentName) + '</span>' : '') + '</li>';
+        }).join('') + '</ul></div>';
+    }
     return '<div class="sb-badge" style="background:' + esc(d.color) + '22;color:' + esc(d.color) + ';border:1px solid ' + esc(d.color) + '44">' + esc(d.language) + '</div>' +
       '<div class="sb-title">' + esc(d.path) + '</div>' +
       '<div class="sb-sect"><div class="sb-lbl">Scan Status</div><div class="sb-val">' + esc(d.scanStatus) + '</div></div>' +
       '<div class="sb-sect"><div class="sb-lbl">File Size</div><div class="sb-val">' + bytes(d.size) + '</div></div>' +
-      '<div class="sb-sect"><div class="sb-lbl">Estimated Tokens</div><div class="sb-val">~' + esc(d.tokenEstimate || 0) + ' tokens</div></div>';
+      '<div class="sb-sect"><div class="sb-lbl">Estimated Tokens</div><div class="sb-val">~' + esc(d.tokenEstimate || 0) + ' tokens</div></div>' +
+      symHtml;
   }
 
   function renderCognitionPanel(d) {
@@ -281,14 +305,8 @@ select:hover,button:hover{background:#475569}
     document.getElementById('sidebar').classList.remove('open');
   });
 
-  document.getElementById('tog-sym').addEventListener('change', function (e) {
-    if (e.target.checked) {
-      cy.nodes('.symbol').removeClass('hidden');
-      cy.edges('.relationship.contains, .relationship.symbol-contains, .relationship.calls').removeClass('hidden');
-    } else {
-      cy.nodes('.symbol').addClass('hidden');
-      cy.edges('.relationship.contains, .relationship.symbol-contains, .relationship.calls').addClass('hidden');
-    }
+  document.getElementById('tog-lbl').addEventListener('change', function (e) {
+    cy.style().selector('node').style('label', e.target.checked ? 'data(label)' : '').update();
   });
 
   document.getElementById('tog-cog').addEventListener('change', function (e) {
