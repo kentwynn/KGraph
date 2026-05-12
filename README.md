@@ -267,7 +267,7 @@ kgraph integrate list
 kgraph integrate remove cursor
 ```
 
-New integrations default to `always` mode because coding agents often under-classify small UI, route, button, and link changes as not needing repo context.
+New integrations default to `smart` mode. Use `--mode always` to force KGraph on every chat, or `--mode manual` to run only when explicitly asked.
 
 | Mode     | Behavior                                                                                                                                                                                                |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

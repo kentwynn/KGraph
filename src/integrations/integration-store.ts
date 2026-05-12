@@ -44,7 +44,7 @@ export async function listIntegrations(
 export async function addIntegrations(
   workspace: KGraphWorkspace,
   names: IntegrationName[],
-  mode: IntegrationMode = 'always',
+  mode: IntegrationMode = 'smart',
 ): Promise<IntegrationConfig[]> {
   const config = await loadConfig(workspace);
   const byName = new Map(
