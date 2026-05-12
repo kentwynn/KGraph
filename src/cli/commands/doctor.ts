@@ -7,6 +7,7 @@ import {
 } from '../../cognition/cognition-quality.js';
 import { loadConfig } from '../../config/config.js';
 import { listIntegrations } from '../../integrations/integration-store.js';
+import { getCurrentCommit, isGitRepo } from '../../scanner/git-utils.js';
 import {
   assertWorkspace,
   pathExists,
@@ -24,7 +25,8 @@ export function registerDoctorCommand(program: Command): void {
       runCommand(async () => {
         const rootPath = process.cwd();
         const workspace = resolveWorkspace(rootPath);
-        const checks: Array<{ label: string; ok: boolean; detail: string }> = [];
+        const checks: Array<{ label: string; ok: boolean; detail: string }> =
+          [];
 
         const initialized = await pathExists(workspace.kgraphPath);
         checks.push({
@@ -51,7 +53,9 @@ export function registerDoctorCommand(program: Command): void {
         checks.push({
           label: 'maps',
           ok: mapStatus,
-          detail: mapStatus ? 'structural maps are present' : 'run `kgraph scan` or just `kgraph`',
+          detail: mapStatus
+            ? 'structural maps are present'
+            : 'run `kgraph scan` or just `kgraph`',
         });
 
         const maps = mapStatus ? await readMaps(workspace) : undefined;
@@ -61,6 +65,21 @@ export function registerDoctorCommand(program: Command): void {
             ok: true,
             detail: `${maps.fileMap.files.length} files, ${maps.symbolMap.symbols.length} symbols, ${maps.dependencyMap.dependencies.length} dependencies`,
           });
+
+          // Detect whether the repo has advanced past the commit that was scanned
+          if (maps.fileMap.scannedAtCommit && (await isGitRepo(rootPath))) {
+            const headCommit = await getCurrentCommit(rootPath);
+            const stale =
+              headCommit !== null &&
+              headCommit !== maps.fileMap.scannedAtCommit;
+            checks.push({
+              label: 'scan freshness',
+              ok: !stale,
+              detail: stale
+                ? `scanned at ${maps.fileMap.scannedAtCommit.slice(0, 7)}, HEAD is ${headCommit!.slice(0, 7)} — run \`kgraph scan\``
+                : `maps current at ${maps.fileMap.scannedAtCommit.slice(0, 7)}`,
+            });
+          }
         } else {
           const paths = mapPaths(workspace);
           const missing = [];
@@ -157,6 +176,7 @@ function printChecks(
 export function printQualityReport(report: CognitionQualityReport): void {
   console.log(`Notes: ${report.noteCount}`);
   console.log(`Mixed/stale/unresolved notes: ${report.mixedOrStaleCount}`);
+  console.log(`Orphaned notes (all refs dead): ${report.orphanedNoteCount}`);
   console.log(`Noisy file refs: ${report.noisyFileRefCount}`);
   console.log(`Noisy symbol refs: ${report.noisySymbolRefCount}`);
   console.log(`Unresolved local imports: ${report.unresolvedLocalImportCount}`);
@@ -165,8 +185,12 @@ export function printQualityReport(report: CognitionQualityReport): void {
   console.log(`Generated files scanned: ${report.generatedFileScanCount}`);
   console.log(`Expensive files: ${report.expensiveFileCount}`);
   console.log(`Session repeated reads: ${report.sessionRepeatedReadCount}`);
-  console.log(`Session estimated read tokens: ${report.sessionEstimatedReadTokens}`);
-  console.log(`Session repeated-read tokens: ${report.sessionEstimatedRepeatedReadTokens}`);
+  console.log(
+    `Session estimated read tokens: ${report.sessionEstimatedReadTokens}`,
+  );
+  console.log(
+    `Session repeated-read tokens: ${report.sessionEstimatedRepeatedReadTokens}`,
+  );
   if (report.changes.length === 0) {
     return;
   }
@@ -185,6 +209,11 @@ export function printQualityReport(report: CognitionQualityReport): void {
 
 function summarizeQualityFindings(report: CognitionQualityReport): string[] {
   const findings: string[] = [];
+  if (report.orphanedNoteCount > 0) {
+    findings.push(
+      `${report.orphanedNoteCount} orphaned cognition note(s) (all refs dead); run \`kgraph repair\` to archive`,
+    );
+  }
   if (report.mixedOrStaleCount > 0) {
     findings.push(`${report.mixedOrStaleCount} stale/mixed/unresolved note(s)`);
   }

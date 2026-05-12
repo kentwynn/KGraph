@@ -1,17 +1,24 @@
+import { mkdir, rename } from 'node:fs/promises';
+import path from 'node:path';
+import { buildSessionReport } from '../session/session-store.js';
 import {
   overwriteDomainRecord,
   readCognitionNotes,
   readDomainRecords,
   writeCognitionNote,
 } from '../storage/cognition-store.js';
-import type { KGraphWorkspace } from '../types/config.js';
 import type {
   CognitionNote,
   DomainRecord,
   ReferenceStatus,
 } from '../types/cognition.js';
-import type { DependencyMap, FileMap, RelationshipMap, SymbolMap } from '../types/maps.js';
-import { buildSessionReport } from '../session/session-store.js';
+import type { KGraphWorkspace } from '../types/config.js';
+import type {
+  DependencyMap,
+  FileMap,
+  RelationshipMap,
+  SymbolMap,
+} from '../types/maps.js';
 
 export interface CognitionRepairChange {
   noteId: string;
@@ -34,12 +41,18 @@ export interface CognitionQualityReport {
   sessionRepeatedReadCount: number;
   sessionEstimatedReadTokens: number;
   sessionEstimatedRepeatedReadTokens: number;
+  orphanedNoteCount: number;
   changes: CognitionRepairChange[];
 }
 
 export async function analyzeCognitionQuality(
   workspace: KGraphWorkspace,
-  maps: { fileMap: FileMap; symbolMap: SymbolMap; dependencyMap?: DependencyMap; relationshipMap?: RelationshipMap },
+  maps: {
+    fileMap: FileMap;
+    symbolMap: SymbolMap;
+    dependencyMap?: DependencyMap;
+    relationshipMap?: RelationshipMap;
+  },
 ): Promise<CognitionQualityReport> {
   const notes = await readCognitionNotes(workspace);
   const session = await buildSessionReport(workspace);
@@ -50,6 +63,9 @@ export async function analyzeCognitionQuality(
         change.removedFileRefs.length > 0 ||
         change.removedSymbolRefs.length > 0,
     );
+  const orphanedNoteCount = notes.filter(
+    (note) => note.referencesStatus === 'stale',
+  ).length;
 
   return {
     noteCount: notes.length,
@@ -65,20 +81,29 @@ export async function analyzeCognitionQuality(
       0,
     ),
     unresolvedLocalImportCount: countUnresolvedLocalImports(maps.dependencyMap),
-    unresolvedCallCount: countUnresolvedCalls(maps.symbolMap, maps.relationshipMap),
+    unresolvedCallCount: countUnresolvedCalls(
+      maps.symbolMap,
+      maps.relationshipMap,
+    ),
     duplicateTitleCount: countDuplicateTitles(notes),
     generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
     expensiveFileCount: countExpensiveFiles(maps.fileMap),
     sessionRepeatedReadCount: session.repeatedReadCount,
     sessionEstimatedReadTokens: session.estimatedReadTokens,
     sessionEstimatedRepeatedReadTokens: session.estimatedRepeatedReadTokens,
+    orphanedNoteCount,
     changes,
   };
 }
 
 export async function repairCognition(
   workspace: KGraphWorkspace,
-  maps: { fileMap: FileMap; symbolMap: SymbolMap; dependencyMap?: DependencyMap; relationshipMap?: RelationshipMap },
+  maps: {
+    fileMap: FileMap;
+    symbolMap: SymbolMap;
+    dependencyMap?: DependencyMap;
+    relationshipMap?: RelationshipMap;
+  },
   dryRun = false,
 ): Promise<CognitionQualityReport> {
   const notes = await readCognitionNotes(workspace);
@@ -102,8 +127,24 @@ export async function repairCognition(
   }
 
   if (!dryRun && changes.length > 0) {
-    await repairDomainRecords(workspace, nextNotes, maps);
+    // Exclude fully-orphaned notes from domain records — they are being archived
+    await repairDomainRecords(
+      workspace,
+      nextNotes.filter((n) => n.referencesStatus !== 'stale'),
+      maps,
+    );
   }
+
+  // Archive fully-orphaned notes (all refs dead) so they no longer appear in context
+  const orphanedNotes = nextNotes.filter(
+    (note) => note.referencesStatus === 'stale',
+  );
+  if (!dryRun) {
+    for (const note of orphanedNotes) {
+      await archiveOrphanedNote(workspace, note);
+    }
+  }
+  const orphanedNoteCount = orphanedNotes.length;
 
   return {
     noteCount: notes.length,
@@ -119,13 +160,17 @@ export async function repairCognition(
       0,
     ),
     unresolvedLocalImportCount: countUnresolvedLocalImports(maps.dependencyMap),
-    unresolvedCallCount: countUnresolvedCalls(maps.symbolMap, maps.relationshipMap),
+    unresolvedCallCount: countUnresolvedCalls(
+      maps.symbolMap,
+      maps.relationshipMap,
+    ),
     duplicateTitleCount: countDuplicateTitles(nextNotes),
     generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
     expensiveFileCount: countExpensiveFiles(maps.fileMap),
     sessionRepeatedReadCount: session.repeatedReadCount,
     sessionEstimatedReadTokens: session.estimatedReadTokens,
     sessionEstimatedRepeatedReadTokens: session.estimatedRepeatedReadTokens,
+    orphanedNoteCount,
     changes,
   };
 }
@@ -151,7 +196,9 @@ function countUnresolvedCalls(
         relationship.targetType === 'symbol' &&
         !symbolIds.has(relationship.targetId) &&
         !symbolNames.has(relationship.targetId) &&
-        ![...symbolNames].some((name) => relationship.targetId.endsWith(`#${name}`)),
+        ![...symbolNames].some((name) =>
+          relationship.targetId.endsWith(`#${name}`),
+        ),
     ).length ?? 0
   );
 }
@@ -185,7 +232,8 @@ function countGeneratedScannedFiles(fileMap: FileMap): number {
 }
 
 function countExpensiveFiles(fileMap: FileMap): number {
-  return fileMap.files.filter((file) => (file.tokenEstimate ?? 0) >= 1000).length;
+  return fileMap.files.filter((file) => (file.tokenEstimate ?? 0) >= 1000)
+    .length;
 }
 
 function analyzeNote(
@@ -193,7 +241,9 @@ function analyzeNote(
   maps: { fileMap: FileMap; symbolMap: SymbolMap },
 ): CognitionRepairChange {
   const filePaths = new Set(maps.fileMap.files.map((file) => file.path));
-  const symbolNames = new Set(maps.symbolMap.symbols.map((symbol) => symbol.name));
+  const symbolNames = new Set(
+    maps.symbolMap.symbols.map((symbol) => symbol.name),
+  );
   const removedFileRefs = note.relatedFiles.filter(
     (ref) => !filePaths.has(ref) && isNoisyFileRef(ref),
   );
@@ -239,7 +289,9 @@ async function repairDomainRecords(
 ): Promise<void> {
   const domains = await readDomainRecords(workspace);
   const filePaths = new Set(maps.fileMap.files.map((file) => file.path));
-  const symbolNames = new Set(maps.symbolMap.symbols.map((symbol) => symbol.name));
+  const symbolNames = new Set(
+    maps.symbolMap.symbols.map((symbol) => symbol.name),
+  );
   const notesById = new Map(notes.map((note) => [note.id, note]));
 
   for (const domain of domains) {
@@ -248,9 +300,7 @@ async function repairDomainRecords(
       .filter((note): note is CognitionNote => Boolean(note));
     const next: DomainRecord = {
       ...domain,
-      pathHints: unique(
-        relatedNotes.flatMap((note) => note.relatedFiles),
-      ),
+      pathHints: unique(relatedNotes.flatMap((note) => note.relatedFiles)),
       files: unique(
         relatedNotes
           .flatMap((note) => note.relatedFiles)
@@ -272,7 +322,9 @@ function evaluateReferenceStatus(
   maps: { fileMap: FileMap; symbolMap: SymbolMap },
 ): ReferenceStatus {
   const filePaths = new Set(maps.fileMap.files.map((file) => file.path));
-  const symbolNames = new Set(maps.symbolMap.symbols.map((symbol) => symbol.name));
+  const symbolNames = new Set(
+    maps.symbolMap.symbols.map((symbol) => symbol.name),
+  );
   const references = [
     ...relatedFiles.map((file) => filePaths.has(file)),
     ...relatedSymbols.map((symbol) => symbolNames.has(symbol)),
@@ -284,13 +336,33 @@ function evaluateReferenceStatus(
 }
 
 function isNoisyFileRef(ref: string): boolean {
-  return !ref.includes('/') && /^[A-Z][A-Za-z0-9_-]*\.[A-Za-z0-9_-]+$/.test(ref);
+  return (
+    !ref.includes('/') && /^[A-Z][A-Za-z0-9_-]*\.[A-Za-z0-9_-]+$/.test(ref)
+  );
 }
 
 function isNoisySymbolRef(ref: string): boolean {
-  return /^[a-z][A-Za-z0-9_$]*$/.test(ref);
+  // Only treat as noise if the ref is a short all-lowercase word (no camelCase, no _ or $).
+  // Preserve camelCase refs even when unresolved — the symbol may have been renamed.
+  if (/[A-Z_$]/.test(ref)) return false;
+  return ref.length <= 5;
 }
 
 function unique<T>(items: T[]): T[] {
   return [...new Set(items)];
+}
+
+async function archiveOrphanedNote(
+  workspace: KGraphWorkspace,
+  note: CognitionNote,
+): Promise<void> {
+  const archivedDir = path.join(workspace.cognitionPath, 'archived');
+  await mkdir(archivedDir, { recursive: true });
+  const source = path.join(workspace.cognitionPath, `${note.id}.md`);
+  const target = path.join(archivedDir, `${note.id}.md`);
+  try {
+    await rename(source, target);
+  } catch {
+    // source file may already be missing — ignore
+  }
 }

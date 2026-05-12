@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { KGraphError } from '../cli/errors.js';
 import { getIntegrationAdapter } from '../integrations/integration-registry.js';
 import { pathExists } from '../storage/kgraph-paths.js';
 import type { KGraphWorkspace } from '../types/config.js';
@@ -13,7 +14,6 @@ import type {
   SessionReport,
   SessionState,
 } from '../types/session.js';
-import { KGraphError } from '../cli/errors.js';
 import { estimateTokens } from './token-estimator.js';
 
 const EMPTY_STATE: SessionState = {
@@ -26,7 +26,9 @@ export function assertSessionAgent(value: string): SessionAgent {
   return getIntegrationAdapter(value).name;
 }
 
-export async function readSessionState(workspace: KGraphWorkspace): Promise<SessionState> {
+export async function readSessionState(
+  workspace: KGraphWorkspace,
+): Promise<SessionState> {
   const filePath = currentPath(workspace);
   if (!(await pathExists(filePath))) {
     return { ...EMPTY_STATE, active: {}, events: [] };
@@ -38,7 +40,9 @@ export async function resetSession(workspace: KGraphWorkspace): Promise<void> {
   await rm(currentPath(workspace), { force: true });
 }
 
-export async function readSessionLedger(workspace: KGraphWorkspace): Promise<SessionLedgerEntry[]> {
+export async function readSessionLedger(
+  workspace: KGraphWorkspace,
+): Promise<SessionLedgerEntry[]> {
   const filePath = ledgerPath(workspace);
   if (!(await pathExists(filePath))) {
     return [];
@@ -58,6 +62,17 @@ export async function recordSessionEvent(
 ): Promise<SessionEvent> {
   const now = new Date().toISOString();
   const state = await readSessionState(workspace);
+
+  // Auto-close any open session for this agent before starting a new one so
+  // the ledger entry is never silently lost on repeated start calls.
+  if (input.type === 'start' && state.active[input.agent]) {
+    await appendLedgerEntry(
+      workspace,
+      summarizeAgentSession(input.agent, state, now),
+    );
+    delete state.active[input.agent];
+  }
+
   const active = state.active[input.agent] ?? {
     agent: input.agent,
     sessionId: `${input.agent}-${now.replace(/[:.]/g, '-')}`,
@@ -101,7 +116,10 @@ export async function recordSessionEvent(
   state.updatedAt = now;
 
   if (input.type === 'end') {
-    await appendLedgerEntry(workspace, summarizeAgentSession(input.agent, state, now));
+    await appendLedgerEntry(
+      workspace,
+      summarizeAgentSession(input.agent, state, now),
+    );
     delete state.active[input.agent];
   }
 
@@ -109,7 +127,9 @@ export async function recordSessionEvent(
   return event;
 }
 
-export async function buildSessionReport(workspace: KGraphWorkspace): Promise<SessionReport> {
+export async function buildSessionReport(
+  workspace: KGraphWorkspace,
+): Promise<SessionReport> {
   const [state, ledger] = await Promise.all([
     readSessionState(workspace),
     readSessionLedger(workspace),
@@ -152,19 +172,37 @@ async function estimatePathTokens(
   }
 }
 
-async function writeSessionState(workspace: KGraphWorkspace, state: SessionState): Promise<void> {
+async function writeSessionState(
+  workspace: KGraphWorkspace,
+  state: SessionState,
+): Promise<void> {
   await mkdir(workspace.sessionsPath, { recursive: true });
-  await writeFile(currentPath(workspace), `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  await writeFile(
+    currentPath(workspace),
+    `${JSON.stringify(state, null, 2)}\n`,
+    'utf8',
+  );
 }
 
-async function appendLedgerEntry(workspace: KGraphWorkspace, entry: SessionLedgerEntry): Promise<void> {
+async function appendLedgerEntry(
+  workspace: KGraphWorkspace,
+  entry: SessionLedgerEntry,
+): Promise<void> {
   const ledger = await readSessionLedger(workspace);
   ledger.push(entry);
   await mkdir(workspace.sessionsPath, { recursive: true });
-  await writeFile(ledgerPath(workspace), `${JSON.stringify(ledger, null, 2)}\n`, 'utf8');
+  await writeFile(
+    ledgerPath(workspace),
+    `${JSON.stringify(ledger, null, 2)}\n`,
+    'utf8',
+  );
 }
 
-function summarizeAgentSession(agent: SessionAgent, state: SessionState, endedAt: string): SessionLedgerEntry {
+function summarizeAgentSession(
+  agent: SessionAgent,
+  state: SessionState,
+  endedAt: string,
+): SessionLedgerEntry {
   const active = state.active[agent];
   if (!active) {
     throw new KGraphError(`No active session for agent "${agent}".`);
@@ -187,11 +225,20 @@ function summarizeAgentSession(agent: SessionAgent, state: SessionState, endedAt
   };
 }
 
-function topRepeatedReads(events: SessionEvent[]): Array<{ path: string; count: number; estimatedTokens: number }> {
-  const byPath = new Map<string, { path: string; count: number; estimatedTokens: number }>();
+function topRepeatedReads(
+  events: SessionEvent[],
+): Array<{ path: string; count: number; estimatedTokens: number }> {
+  const byPath = new Map<
+    string,
+    { path: string; count: number; estimatedTokens: number }
+  >();
   for (const event of events) {
     if (!event.path) continue;
-    const current = byPath.get(event.path) ?? { path: event.path, count: 0, estimatedTokens: 0 };
+    const current = byPath.get(event.path) ?? {
+      path: event.path,
+      count: 0,
+      estimatedTokens: 0,
+    };
     current.count += 1;
     current.estimatedTokens += event.tokenEstimate ?? 0;
     byPath.set(event.path, current);

@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { cleanupTempRepo, copyFixture, runCli } from '../fixtures/helpers.js';
 import type { CognitionNote } from '../../src/types/cognition.js';
+import { cleanupTempRepo, copyFixture, runCli } from '../fixtures/helpers.js';
 
 describe('kgraph repair', () => {
   it('previews and removes noisy stale cognition references', async () => {
@@ -32,7 +32,9 @@ describe('kgraph repair', () => {
 
       const dryRun = await runCli(repo, ['repair', '--dry-run']);
       expect(dryRun.stdout).toContain('remove file ref: Next.js');
-      expect(dryRun.stdout).toContain('remove symbol ref: className');
+      // className has uppercase and looks like a real identifier — preserved for human review,
+      // not auto-deleted (it may have been renamed rather than removed)
+      expect(dryRun.stdout).not.toContain('remove symbol ref: className');
 
       const repair = await runCli(repo, ['repair']);
       expect(repair.code).toBe(0);
@@ -40,15 +42,19 @@ describe('kgraph repair', () => {
 
       const repaired = await readCognition(repo, 'auth-cleanup.md');
       expect(repaired.relatedFiles).toEqual(['src/auth.ts']);
-      expect(repaired.relatedSymbols).toEqual(['loginUser']);
-      expect(repaired.referencesStatus).toBe('current');
+      // loginUser exists in the fixture; className is camelCase so it is preserved
+      expect(repaired.relatedSymbols).toEqual(['loginUser', 'className']);
+      expect(repaired.referencesStatus).toBe('mixed');
     } finally {
       await cleanupTempRepo(repo);
     }
   });
 });
 
-async function readCognition(repo: string, fileName: string): Promise<CognitionNote> {
+async function readCognition(
+  repo: string,
+  fileName: string,
+): Promise<CognitionNote> {
   const raw = await readJsonFromMarkdown(
     path.join(repo, '.kgraph/cognition', fileName),
   );
