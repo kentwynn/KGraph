@@ -375,23 +375,22 @@ npm run release:pack
 
 ## Release
 
-Releases are PR-first because `main` is protected. First bump the version on a release branch without creating the tag:
+Releases are PR-first because `main` is protected. Use the Makefile helper to bump the version on a release branch, push it, and open a pull request when the GitHub CLI is available:
 
 ```bash
-git switch -c release-v0.2.2
-npm version patch --no-git-tag-version
-git add package.json package-lock.json
-git commit -m "chore: release 0.2.2"
-git push -u origin release-v0.2.2
+make release
 ```
 
-Open a pull request into `main` and wait for required checks to pass. After the PR is merged, tag the merged commit from an up-to-date `main`:
+Use `RELEASE=minor` or `RELEASE=major` when needed:
 
 ```bash
-git switch main
-git pull
-git tag v0.2.2
-git push origin v0.2.2
+make release RELEASE=minor
+```
+
+After the PR is merged, tag the merged commit from an up-to-date `main`:
+
+```bash
+make release-tag VERSION=v0.2.2
 ```
 
 The release workflow builds, tests, packs, publishes the npm package on version tags, creates a GitHub Release, and uploads the tarball artifact. Do not push directly to `main` for releases.
