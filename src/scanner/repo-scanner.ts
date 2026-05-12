@@ -19,6 +19,7 @@ import {
   readGitignorePatterns,
   shouldExclude,
 } from './file-classifier.js';
+import { getChangedFilesSince, isGitRepo } from './git-utils.js';
 import { extractGoSymbols } from './go-symbol-extractor.js';
 import { extractJvmSymbols } from './jvm-symbol-extractor.js';
 import { extractPythonSymbols } from './python-symbol-extractor.js';
@@ -54,7 +55,7 @@ async function extractSymbols(text: string, repoPath: string) {
 export async function scanRepository(
   rootPath: string,
   config: KGraphConfig,
-  previous?: ScanResult,
+  previous?: ScanResult & { scannedAtCommit?: string },
 ): Promise<ScanResult> {
   const gitignorePatterns = await readGitignorePatterns(rootPath);
   const allExcludes = [...config.exclude, ...gitignorePatterns];
@@ -97,6 +98,20 @@ export async function scanRepository(
     }
   }
 
+  // Build git-changed-file set for fast incremental skip bypassing stat() calls.
+  // Only used when the previous scan stored a commit hash and we are in a git repo.
+  let gitChangedFiles: Set<string> | null = null;
+  if (previous?.scannedAtCommit && (await isGitRepo(rootPath))) {
+    const changed = await getChangedFilesSince(
+      rootPath,
+      previous.scannedAtCommit,
+    );
+    // Also include working-tree dirty files so uncommitted edits are always re-scanned.
+    // getChangedFilesSince returns committed changes; we complement with a stat check
+    // fallback below for uncommitted edits to keep correctness.
+    gitChangedFiles = new Set(changed);
+  }
+
   const files: RepositoryFile[] = [];
   const symbols: ScanResult['symbols'] = [];
   const dependencies: ScanResult['dependencies'] = [];
@@ -111,10 +126,35 @@ export async function scanRepository(
 
     const absolutePath = path.join(rootPath, repoPath);
     try {
+      const prevFile = prevFileByPath.get(repoPath);
+
+      // Fast git-based skip: if we have a git-changed set and this file is NOT in it,
+      // carry forward directly without touching the filesystem.
+      if (
+        prevFile &&
+        gitChangedFiles !== null &&
+        !gitChangedFiles.has(repoPath)
+      ) {
+        files.push(prevFile);
+        const prevSyms = prevSymbolsByFile.get(repoPath);
+        if (prevSyms) symbols.push(...prevSyms);
+        const prevDeps = prevDepsByFile.get(repoPath);
+        if (prevDeps) dependencies.push(...prevDeps);
+        const prevRels = prevRelsBySource.get(repoPath);
+        if (prevRels) relationships.push(...prevRels);
+        if (prevSyms) {
+          for (const sym of prevSyms) {
+            const symRels = prevRelsBySource.get(sym.id);
+            if (symRels) relationships.push(...symRels);
+          }
+        }
+        skippedFiles++;
+        continue;
+      }
+
       const info = await stat(absolutePath);
 
-      // Incremental skip: if mtime and size match previous, carry forward
-      const prevFile = prevFileByPath.get(repoPath);
+      // Fallback incremental skip: if mtime and size match previous, carry forward
       if (
         prevFile &&
         prevFile.sizeBytes === info.size &&

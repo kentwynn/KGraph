@@ -104,6 +104,28 @@ export function renderContextMarkdown(response: ContextResponse): string {
   );
   lines.push('', '## Stale References', '');
   lines.push(...formatList(response.staleReferences.map((ref) => `- ${ref}`)));
+  lines.push('', '## Recent Git Changes', '');
+  if (response.gitChanges && response.gitChanges.length > 0) {
+    const staged = response.gitChanges.filter((c) => c.status === 'staged');
+    const unstaged = response.gitChanges.filter((c) => c.status === 'unstaged');
+    const recent = response.gitChanges.filter(
+      (c) => c.status === 'recent-commit',
+    );
+    if (staged.length > 0) {
+      lines.push('Staged:');
+      for (const c of staged) lines.push(`  ${c.path} (${c.reason})`);
+    }
+    if (unstaged.length > 0) {
+      lines.push('Unstaged:');
+      for (const c of unstaged) lines.push(`  ${c.path} (${c.reason})`);
+    }
+    if (recent.length > 0) {
+      lines.push('Recent commits:');
+      for (const c of recent) lines.push(`  ${c.path} (${c.reason})`);
+    }
+  } else {
+    lines.push('- None');
+  }
   return lines.join('\n');
 }
 
@@ -183,9 +205,7 @@ function formatReasons(reasons: string[]): string {
     : visible.join('; ');
 }
 
-function nearbySymbolItems(
-  response: ContextResponse,
-): Array<{
+function nearbySymbolItems(response: ContextResponse): Array<{
   symbol: NonNullable<ContextResponse['nearbySymbols']>[number];
   reasons: string[];
 }> {

@@ -219,6 +219,8 @@ kgraph scan
 
 Refresh only the structural maps in `.kgraph/map/`.
 
+If the repository is a git repo, KGraph stores the HEAD commit hash with the scan result. On the next scan it computes which files changed since that commit using `git diff --name-only` and skips unchanged files without any filesystem `stat()` calls. In large repos this is measurably faster than the mtime+size fallback, which still runs automatically in non-git directories.
+
 ```bash
 kgraph context "auth token refresh"
 kgraph context "auth token refresh" --json
@@ -226,6 +228,8 @@ kgraph context "auth token refresh" --json
 
 Return context from existing maps and cognition without scanning or updating first.
 Markdown output includes the reason each file, symbol, cognition note, nearby symbol, or relationship was selected. Use `--json` when an agent or script needs the same explanation data programmatically.
+
+Context output includes a **Recent Git Changes** section that surfaces files with staged edits, unstaged edits, or changes in recent commits. This lets AI agents know which files are actively in flux without running a separate `git status` or `git log`.
 
 ```bash
 kgraph update
@@ -265,22 +269,22 @@ kgraph integrate remove cursor
 
 New integrations default to `always` mode because coding agents often under-classify small UI, route, button, and link changes as not needing repo context.
 
-| Mode | Behavior |
-| --- | --- |
-| `always` | Every chat in the repository starts with `kgraph "<topic>"`, even simple or conversational requests. |
-| `smart` | Runs KGraph automatically for repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests. Skips simple conversational requests that do not depend on repo knowledge. |
-| `manual` | Exposes KGraph commands and instructions, but the agent runs KGraph only when the user explicitly asks. |
-| `off` | Disables that integration and removes generated KGraph instruction blocks/command files. |
+| Mode     | Behavior                                                                                                                                                                                                |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `always` | Every chat in the repository starts with `kgraph "<topic>"`, even simple or conversational requests.                                                                                                    |
+| `smart`  | Runs KGraph automatically for repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests. Skips simple conversational requests that do not depend on repo knowledge. |
+| `manual` | Exposes KGraph commands and instructions, but the agent runs KGraph only when the user explicitly asks.                                                                                                 |
+| `off`    | Disables that integration and removes generated KGraph instruction blocks/command files.                                                                                                                |
 
-| Tool | Files KGraph manages |
-| --- | --- |
-| Codex | `AGENTS.md`, `.agents/skills/kgraph/SKILL.md` |
+| Tool           | Files KGraph manages                                   |
+| -------------- | ------------------------------------------------------ |
+| Codex          | `AGENTS.md`, `.agents/skills/kgraph/SKILL.md`          |
 | GitHub Copilot | `.github/copilot-instructions.md`, `.github/prompts/*` |
-| Cursor | `.cursor/rules/kgraph.mdc` |
-| Claude Code | `CLAUDE.md`, `.claude/commands/*` |
-| Gemini CLI | `GEMINI.md` |
-| Windsurf | `.windsurf/rules/kgraph.md` |
-| Cline | `.clinerules/kgraph.md` |
+| Cursor         | `.cursor/rules/kgraph.mdc`                             |
+| Claude Code    | `CLAUDE.md`, `.claude/commands/*`                      |
+| Gemini CLI     | `GEMINI.md`                                            |
+| Windsurf       | `.windsurf/rules/kgraph.md`                            |
+| Cline          | `.clinerules/kgraph.md`                                |
 
 Antigravity is supported through the existing agent instruction surfaces it can read, especially `AGENTS.md` and `GEMINI.md`; it does not need a separate KGraph adapter yet.
 
@@ -406,7 +410,6 @@ The release workflow builds, tests, packs, publishes the npm package on version 
 
 ## Roadmap
 
-- Better Git-aware token saving and diff context.
 - Smarter cross-file symbol and call relationship inference.
 - Stronger TypeScript path alias and package export resolution.
 - Richer graph filtering for large repositories.

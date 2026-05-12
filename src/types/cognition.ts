@@ -37,6 +37,14 @@ export interface RankedItem<T> {
   reasons: string[];
 }
 
+export type GitChangeStatus = 'staged' | 'unstaged' | 'recent-commit';
+
+export interface GitContextChange {
+  path: string;
+  status: GitChangeStatus;
+  reason: string;
+}
+
 export interface ContextResponse {
   query: string;
   matchedDomains: RankedItem<DomainRecord>[];
@@ -53,6 +61,7 @@ export interface ContextResponse {
     symbol: CodeSymbol;
     reasons: string[];
   }>;
+  gitChanges?: GitContextChange[];
   staleReferences: string[];
   warnings: string[];
 }
