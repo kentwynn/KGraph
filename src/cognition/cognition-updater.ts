@@ -79,6 +79,12 @@ export async function updateCognition(
     }
   }
 
+  // Refresh reference statuses on all existing notes so that notes which
+  // became stale since the last scan reflect the current map state.
+  if (!dryRun) {
+    await refreshCognitionReferenceStatuses(workspace, currentMaps);
+  }
+
   return { processed, warnings };
 }
 

@@ -33,10 +33,16 @@ export async function queryContext(
   const cognition = await readCognitionNotes(workspace);
   const domains = await readDomainRecords(workspace);
   const max = config.maxContextItems;
-  const relevantFiles = rankByFields(query, maps.fileMap.files, [
+  let relevantFiles = rankByFields(query, maps.fileMap.files, [
     { name: 'path', value: (file) => file.path },
     { name: 'language', value: (file) => file.language },
-  ]).slice(0, max);
+  ])
+    .map((ranked) => ({
+      ...ranked,
+      score: ranked.score - Math.floor((ranked.item.tokenEstimate ?? 0) / 2000),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max);
   const relevantSymbols = rankByFields(query, maps.symbolMap.symbols, [
     { name: 'name', value: (symbol) => symbol.name },
     { name: 'path', value: (symbol) => symbol.filePath },
@@ -56,6 +62,38 @@ export async function queryContext(
     { name: 'tags', value: (domain) => domain.tags },
     { name: 'path', value: (domain) => domain.pathHints },
   ]).slice(0, max);
+
+  // Inject files linked by matched cognition notes/domains that didn't score on name alone
+  const rankedFilePaths = new Set(relevantFiles.map((f) => f.item.path));
+  const cognitionLinkedMap = new Map<string, string[]>();
+  for (const ranked of relevantCognition) {
+    for (const fp of ranked.item.relatedFiles) {
+      if (!rankedFilePaths.has(fp)) {
+        const reasons = cognitionLinkedMap.get(fp) ?? [];
+        reasons.push(`linked by cognition note "${ranked.item.title}"`);
+        cognitionLinkedMap.set(fp, reasons);
+      }
+    }
+  }
+  for (const ranked of matchedDomains) {
+    for (const fp of ranked.item.files) {
+      if (!rankedFilePaths.has(fp)) {
+        const reasons = cognitionLinkedMap.get(fp) ?? [];
+        reasons.push(`in domain "${ranked.item.name}"`);
+        cognitionLinkedMap.set(fp, reasons);
+      }
+    }
+  }
+  relevantFiles = [
+    ...relevantFiles,
+    ...maps.fileMap.files
+      .filter((f) => cognitionLinkedMap.has(f.path))
+      .map((f) => ({
+        item: f,
+        score: 1,
+        reasons: cognitionLinkedMap.get(f.path)!,
+      })),
+  ];
 
   const relatedIds = new Set<string>([
     ...relevantFiles.map((file) => file.item.path),
@@ -114,12 +152,14 @@ export async function queryContext(
 
   const filePaths = new Set(maps.fileMap.files.map((f) => f.path));
   const symbolNames = new Set(maps.symbolMap.symbols.map((s) => s.name));
+  const matchedCognitionIds = new Set(relevantCognition.map((r) => r.item.id));
   const staleReferences = cognition
     .filter(
       (note) =>
-        note.referencesStatus === 'stale' ||
-        note.referencesStatus === 'unresolved' ||
-        note.referencesStatus === 'mixed',
+        matchedCognitionIds.has(note.id) &&
+        (note.referencesStatus === 'stale' ||
+          note.referencesStatus === 'unresolved' ||
+          note.referencesStatus === 'mixed'),
     )
     .flatMap((note) => [
       ...note.relatedFiles
@@ -148,11 +188,27 @@ export async function queryContext(
   }
   // Remove files already in the matched set
   for (const p of matchedFilePaths) importedFilePaths.delete(p);
+  // Skip generic utility/barrel files with many exports — surface only focused modules
+  const exportCountByFile = new Map<string, number>();
+  for (const s of maps.symbolMap.symbols) {
+    if (s.exported) {
+      exportCountByFile.set(
+        s.filePath,
+        (exportCountByFile.get(s.filePath) ?? 0) + 1,
+      );
+    }
+  }
+  const MAX_NEARBY_FILE_EXPORTS = 15;
+  const relevantImportedFilePaths = new Set(
+    [...importedFilePaths].filter(
+      (fp) => (exportCountByFile.get(fp) ?? 0) <= MAX_NEARBY_FILE_EXPORTS,
+    ),
+  );
   const nearbySymbols = maps.symbolMap.symbols
     .filter(
       (s) =>
         s.exported &&
-        importedFilePaths.has(s.filePath) &&
+        relevantImportedFilePaths.has(s.filePath) &&
         !matchedSymbolIds.has(s.id),
     )
     .slice(0, max);
