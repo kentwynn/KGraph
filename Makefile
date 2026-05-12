@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: help release release-tag
+.PHONY: help release release-tag clean-branches clean-branches-dry-run
 
 RELEASE ?= patch
 
@@ -11,7 +11,9 @@ help:
 		'KGraph make targets:' \
 		'  make release              Bump package version on a release branch, push it, and open a PR when gh is available' \
 		'  make release RELEASE=minor Same release flow with npm version minor' \
-		'  make release-tag VERSION=v0.2.2 Tag the merged release commit on main and push the tag'
+		'  make release-tag VERSION=v0.2.2 Tag the merged release commit on main and push the tag' \
+		'  make clean-branches-dry-run List merged local/remote branches that can be cleaned' \
+		'  make clean-branches       Delete merged local/remote branches, keeping main, release-*, and dependabot/*'
 
 release:
 	@if ! git diff --quiet || ! git diff --cached --quiet; then \
@@ -60,3 +62,30 @@ release-tag:
 	fi
 	git tag "$${VERSION}"
 	git push origin "$${VERSION}"
+
+clean-branches-dry-run:
+	git fetch origin --prune
+	git switch main
+	git pull --ff-only origin main
+	echo 'Merged local branches that would be deleted:'
+	git branch --merged main | sed 's/^[* ]*//' | grep -Ev '^(main|release-|$$)' || true
+	echo ''
+	echo 'Merged remote branches that would be deleted:'
+	git branch -r --merged origin/main | sed 's#^[ ]*origin/##' | grep -Ev '^(HEAD|main|release-|dependabot/|$$)' || true
+
+clean-branches:
+	git fetch origin --prune
+	git switch main
+	git pull --ff-only origin main
+	LOCAL_BRANCHES="$$(git branch --merged main | sed 's/^[* ]*//' | grep -Ev '^(main|release-|$$)' || true)"
+	if [ -n "$${LOCAL_BRANCHES}" ]; then \
+		echo "$${LOCAL_BRANCHES}" | xargs git branch -d; \
+	else \
+		echo 'No merged local branches to delete.'; \
+	fi
+	REMOTE_BRANCHES="$$(git branch -r --merged origin/main | sed 's#^[ ]*origin/##' | grep -Ev '^(HEAD|main|release-|dependabot/|$$)' || true)"
+	if [ -n "$${REMOTE_BRANCHES}" ]; then \
+		echo "$${REMOTE_BRANCHES}" | xargs -I {} git push origin --delete {}; \
+	else \
+		echo 'No merged remote branches to delete.'; \
+	fi
