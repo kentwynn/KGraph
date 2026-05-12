@@ -1,0 +1,50 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/wiki/**
+      - .github/workflows/wiki-sync.yml
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync docs/wiki to GitHub Wiki
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Sync wiki files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WIKI_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git
+        run: |
+          set -euo pipefail
+
+          rm -rf /tmp/kgraph-wiki
+          if git clone "$WIKI_URL" /tmp/kgraph-wiki; then
+            rm -rf /tmp/kgraph-wiki/*
+          else
+            mkdir -p /tmp/kgraph-wiki
+            git -C /tmp/kgraph-wiki init
+            git -C /tmp/kgraph-wiki remote add origin "$WIKI_URL"
+          fi
+
+          cp docs/wiki/*.md /tmp/kgraph-wiki/
+          git -C /tmp/kgraph-wiki config user.name "github-actions[bot]"
+          git -C /tmp/kgraph-wiki config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C /tmp/kgraph-wiki add .
+
+          if git -C /tmp/kgraph-wiki diff --cached --quiet; then
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+
+          git -C /tmp/kgraph-wiki commit -m "Sync wiki from docs/wiki"
+          git -C /tmp/kgraph-wiki push origin HEAD:master
