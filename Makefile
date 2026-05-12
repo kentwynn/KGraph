@@ -21,9 +21,11 @@ release:
 	git fetch origin
 	git switch main
 	git pull --ff-only origin main
-	NEXT_VERSION="$$(npm version "$(RELEASE)" --no-git-tag-version)"
+	CURRENT_VERSION="$$(node -p "require('./package.json').version")"
+	NEXT_VERSION="$$(node -e 'const current = process.argv[1]; const release = process.argv[2]; const exact = release.replace(/^v/, ""); if (/^\d+\.\d+\.\d+$$/.test(exact)) { console.log(`v$${exact}`); process.exit(0); } const parts = current.split(".").map(Number); if (parts.length !== 3 || parts.some(Number.isNaN)) { throw new Error(`Invalid package version: $${current}`); } if (release === "patch") parts[2] += 1; else if (release === "minor") { parts[1] += 1; parts[2] = 0; } else if (release === "major") { parts[0] += 1; parts[1] = 0; parts[2] = 0; } else { throw new Error(`Unsupported RELEASE value: $${release}`); } console.log(`v$${parts.join(".")}`);' "$${CURRENT_VERSION}" "$(RELEASE)")"
 	BRANCH="release-$${NEXT_VERSION}"
 	git switch -c "$${BRANCH}"
+	npm version "$${NEXT_VERSION}" --no-git-tag-version
 	git add package.json package-lock.json
 	git commit -m "chore: release $${NEXT_VERSION}"
 	git push -u origin "$${BRANCH}"
