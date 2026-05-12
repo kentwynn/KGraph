@@ -375,14 +375,26 @@ npm run release:pack
 
 ## Release
 
-Releases are tag-driven:
+Releases are PR-first because `main` is protected. First bump the version on a release branch without creating the tag:
 
 ```bash
-npm version patch
-git push origin main --follow-tags
+git switch -c release-v0.2.2
+npm version patch --no-git-tag-version
+git add package.json package-lock.json
+git commit -m "chore: release 0.2.2"
+git push -u origin release-v0.2.2
 ```
 
-The release workflow builds, tests, packs, publishes the npm package on version tags, creates a GitHub Release, and uploads the tarball artifact.
+Open a pull request into `main` and wait for required checks to pass. After the PR is merged, tag the merged commit from an up-to-date `main`:
+
+```bash
+git switch main
+git pull
+git tag v0.2.2
+git push origin v0.2.2
+```
+
+The release workflow builds, tests, packs, publishes the npm package on version tags, creates a GitHub Release, and uploads the tarball artifact. Do not push directly to `main` for releases.
 
 ## Design Principles
 
