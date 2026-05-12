@@ -77,15 +77,17 @@ clean-branches:
 	git fetch origin --prune
 	git switch main
 	git pull --ff-only origin main
-	LOCAL_BRANCHES="$$(git branch --merged main | sed 's/^[* ]*//' | grep -Ev '^(main|release-|$$)' || true)"
-	if [ -n "$${LOCAL_BRANCHES}" ]; then \
-		echo "$${LOCAL_BRANCHES}" | xargs git branch -d; \
+	git branch --merged main | sed 's/^[* ]*//' | grep -Ev '^(main|release-|$$)' > /tmp/kgraph-local-branches || true
+	if [ -s /tmp/kgraph-local-branches ]; then \
+		xargs git branch -d < /tmp/kgraph-local-branches; \
 	else \
 		echo 'No merged local branches to delete.'; \
 	fi
-	REMOTE_BRANCHES="$$(git branch -r --merged origin/main | sed 's#^[ ]*origin/##' | grep -Ev '^(HEAD|main|release-|dependabot/|$$)' || true)"
-	if [ -n "$${REMOTE_BRANCHES}" ]; then \
-		echo "$${REMOTE_BRANCHES}" | xargs -I {} git push origin --delete {}; \
+	rm -f /tmp/kgraph-local-branches
+	git branch -r --merged origin/main | sed 's#^[ ]*origin/##' | grep -Ev '^(HEAD|main|release-|dependabot/|$$)' > /tmp/kgraph-remote-branches || true
+	if [ -s /tmp/kgraph-remote-branches ]; then \
+		xargs -I {} git push origin --delete {} < /tmp/kgraph-remote-branches; \
 	else \
 		echo 'No merged remote branches to delete.'; \
 	fi
+	rm -f /tmp/kgraph-remote-branches
