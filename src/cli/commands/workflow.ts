@@ -33,6 +33,7 @@ export async function runDefaultWorkflow(query?: string): Promise<void> {
       dependencies: previousMaps.dependencyMap.dependencies,
       relationships: previousMaps.relationshipMap.relationships,
       warnings: [],
+      scannedAtCommit: previousMaps.fileMap.scannedAtCommit,
     });
 
     await writeMaps(workspace, scan);

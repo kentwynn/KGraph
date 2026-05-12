@@ -60,6 +60,7 @@ export interface Relationship {
 
 export interface FileMap {
   generatedAt: string;
+  scannedAtCommit?: string;
   files: RepositoryFile[];
 }
 
@@ -85,4 +86,5 @@ export interface ScanResult {
   relationships: Relationship[];
   warnings: string[];
   skippedFiles?: number;
+  scannedAtCommit?: string;
 }

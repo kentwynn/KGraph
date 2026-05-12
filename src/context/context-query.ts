@@ -1,8 +1,13 @@
 import {
+  getRecentlyCommittedFiles,
+  getWorkingTreeChangesDetailed,
+  isGitRepo,
+} from '../scanner/git-utils.js';
+import {
   readCognitionNotes,
   readDomainRecords,
 } from '../storage/cognition-store.js';
-import type { ContextResponse } from '../types/cognition.js';
+import type { ContextResponse, GitContextChange } from '../types/cognition.js';
 import type { KGraphConfig, KGraphWorkspace } from '../types/config.js';
 import type {
   CodeSymbol,
@@ -159,6 +164,45 @@ export async function queryContext(
     ],
   }));
 
+  // Collect git changes: working-tree and recently committed files known to KGraph
+  const knownFilePaths = new Set(maps.fileMap.files.map((f) => f.path));
+  const gitChanges: GitContextChange[] = [];
+  if (await isGitRepo(workspace.rootPath)) {
+    const workingTreeChanges = await getWorkingTreeChangesDetailed(
+      workspace.rootPath,
+    );
+    for (const change of workingTreeChanges) {
+      if (!knownFilePaths.has(change.path)) continue;
+      const status =
+        change.staged && !change.unstaged
+          ? 'staged'
+          : change.unstaged && !change.staged
+            ? 'unstaged'
+            : 'staged'; // both staged and unstaged → report as staged
+      gitChanges.push({
+        path: change.path,
+        status,
+        reason:
+          change.staged && change.unstaged
+            ? 'partially staged'
+            : status === 'staged'
+              ? 'staged change'
+              : 'unstaged change',
+      });
+    }
+    const committedPaths = new Set(gitChanges.map((c) => c.path));
+    const recentCommitted = await getRecentlyCommittedFiles(workspace.rootPath);
+    for (const filePath of recentCommitted) {
+      if (!knownFilePaths.has(filePath) || committedPaths.has(filePath))
+        continue;
+      gitChanges.push({
+        path: filePath,
+        status: 'recent-commit',
+        reason: 'changed in recent commits',
+      });
+    }
+  }
+
   return {
     query,
     matchedDomains,
@@ -169,6 +213,7 @@ export async function queryContext(
     relationshipExplanations: relationshipExplanations.slice(0, max),
     nearbySymbols,
     nearbySymbolExplanations,
+    gitChanges,
     staleReferences,
     warnings: [],
   };
@@ -201,7 +246,8 @@ function explainRelationships(
 
   return relationships.map((relationship) => {
     const reasons = new Set<string>();
-    for (const reason of rankedReasons.get(relationshipKey(relationship)) ?? []) {
+    for (const reason of rankedReasons.get(relationshipKey(relationship)) ??
+      []) {
       reasons.add(reason);
     }
 
