@@ -1,4 +1,5 @@
 import type { IntegrationAdapter } from '../integration-registry.js';
+import { numberedWorkflow } from '../workflow-steps.js';
 
 export const copilotAdapter: IntegrationAdapter = {
   name: 'copilot',
@@ -6,16 +7,29 @@ export const copilotAdapter: IntegrationAdapter = {
   targetPath: '.github/copilot-instructions.md',
   instructions: `## KGraph Workflow
 
-1. {{KGRAPH_CONTEXT_POLICY}}
-2. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.
-3. Track meaningful session activity with \`kgraph session start --agent copilot\`, \`kgraph session read <path> --agent copilot\`, \`kgraph session write <path> --agent copilot\`, and \`kgraph session end --agent copilot\`.
-4. Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when prior work or decisions matter.
-
-{{KGRAPH_CAPTURE_POLICY}}
-
-5. Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.
+${numberedWorkflow('copilot')}
 `,
   commandFiles: [
+    {
+      path: '.github/agents/kgraph.agent.md',
+      content: `---
+name: kgraph
+description: Use KGraph persistent repo intelligence to answer questions about this codebase. Runs kgraph context, scan, update, impact, history, and session commands to ground responses in durable local knowledge.
+tools:
+  - run_in_terminal
+  - read_file
+  - file_search
+  - grep_search
+  - semantic_search
+---
+
+## KGraph Agent
+
+You are a KGraph-powered agent. Before exploring the repository freely, always:
+
+${numberedWorkflow('copilot')}
+`,
+    },
     {
       path: '.github/prompts/kgraph-doctor.prompt.md',
       content: `---
@@ -114,5 +128,8 @@ Run \`kgraph history\` or \`kgraph history "$ARGUMENTS"\` to display processed c
 `,
     },
   ],
-  obsoleteCommandFiles: ['.github/prompts/kgraph.prompt.md'],
+  obsoleteCommandFiles: [
+    '.github/prompts/kgraph.prompt.md',
+    '.github/kgraph.agent.md',
+  ],
 };

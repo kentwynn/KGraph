@@ -1,4 +1,5 @@
 import type { IntegrationAdapter } from '../integration-registry.js';
+import { numberedWorkflow } from '../workflow-steps.js';
 
 export const claudeCodeAdapter: IntegrationAdapter = {
   name: 'claude-code',
@@ -13,18 +14,7 @@ export const claudeCodeAdapter: IntegrationAdapter = {
       path: '.claude/commands/kgraph.md',
       content: `Use KGraph persistent repo intelligence for the current request.
 
-1. Infer the topic from the user's request.
-2. {{KGRAPH_CONTEXT_POLICY}}
-3. Use the returned files, symbols, relationships, and cognition before broad exploration.
-4. Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.
-5. Track meaningful session activity with \`kgraph session start --agent claude-code\`, \`kgraph session read <path> --agent claude-code\`, \`kgraph session write <path> --agent claude-code\`, and \`kgraph session end --agent claude-code\` when native hooks are unavailable.
-6. Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when prior work or decisions matter.
-
-{{KGRAPH_CAPTURE_POLICY}}
-
-7. Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.
-8. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-9. Run \`kgraph history\` or \`kgraph history "<topic>"\` to review past cognition sessions with git author attribution.
+${numberedWorkflow('claude-code', { sessionQualifier: 'when native hooks are unavailable' })}
 `,
     },
     {

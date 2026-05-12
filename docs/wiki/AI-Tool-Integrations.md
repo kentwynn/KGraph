@@ -11,25 +11,25 @@ kgraph integrate list
 
 ## Integration Modes
 
-| Mode | Behavior |
-| --- | --- |
-| `always` | Every chat in the repository starts with `kgraph "<topic>"`. |
-| `smart` | Runs KGraph for repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests. |
-| `manual` | Exposes KGraph instructions, but the agent runs KGraph only when explicitly requested. |
-| `off` | Disables that integration and removes KGraph-managed instruction blocks or files. |
+| Mode     | Behavior                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------- |
+| `always` | Every chat in the repository starts with `kgraph "<topic>"`.                                                   |
+| `smart`  | Runs KGraph for repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests. |
+| `manual` | Exposes KGraph instructions, but the agent runs KGraph only when explicitly requested.                         |
+| `off`    | Disables that integration and removes KGraph-managed instruction blocks or files.                              |
 
-New integrations default to `always` mode because coding agents often under-classify small UI, route, button, and link changes as not needing repo context.
+New integrations default to `smart` mode. Use `--mode always` to force KGraph on every chat, or `--mode manual` to run only when explicitly asked.
 
 ## Managed Files
 
-| Tool | Files KGraph manages |
-| --- | --- |
-| Codex | `AGENTS.md`, `.agents/skills/kgraph/SKILL.md` |
+| Tool           | Files KGraph manages                                   |
+| -------------- | ------------------------------------------------------ |
+| Codex          | `AGENTS.md`, `.agents/skills/kgraph/SKILL.md`          |
 | GitHub Copilot | `.github/copilot-instructions.md`, `.github/prompts/*` |
-| Cursor | `.cursor/rules/kgraph.mdc` |
-| Claude Code | `CLAUDE.md`, `.claude/commands/*` |
-| Gemini CLI | `GEMINI.md` |
-| Windsurf | `.windsurf/rules/kgraph.md` |
-| Cline | `.clinerules/kgraph.md` |
+| Cursor         | `.cursor/rules/kgraph.mdc`                             |
+| Claude Code    | `CLAUDE.md`, `.claude/commands/*`                      |
+| Gemini CLI     | `GEMINI.md`                                            |
+| Windsurf       | `.windsurf/rules/kgraph.md`                            |
+| Cline          | `.clinerules/kgraph.md`                                |
 
 KGraph preserves existing user-authored content and updates only its marked instruction blocks or generated command files.
