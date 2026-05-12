@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    groups:
+      npm-production:
+        dependency-type: production
+      npm-development:
+        dependency-type: development
+    commit-message:
+      prefix: deps
+      include: scope
