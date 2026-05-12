@@ -22,19 +22,19 @@ jobs:
 
       - name: Sync wiki files
         env:
-          GH_TOKEN: ${{ github.token }}
-          WIKI_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git
+          WIKI_TOKEN: ${{ secrets.KGRAPH_WIKI_TOKEN || github.token }}
         run: |
           set -euo pipefail
+          WIKI_URL="https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+
+          if ! git ls-remote "$WIKI_URL" >/dev/null 2>&1; then
+            echo "::warning title=Wiki sync skipped::GitHub Wiki repository is not available to this workflow yet. Create the wiki once in GitHub, or add a KGRAPH_WIKI_TOKEN secret with repository/wiki access, then rerun this workflow."
+            exit 0
+          fi
 
           rm -rf /tmp/kgraph-wiki
-          if git clone "$WIKI_URL" /tmp/kgraph-wiki; then
-            rm -rf /tmp/kgraph-wiki/*
-          else
-            mkdir -p /tmp/kgraph-wiki
-            git -C /tmp/kgraph-wiki init
-            git -C /tmp/kgraph-wiki remote add origin "$WIKI_URL"
-          fi
+          git clone "$WIKI_URL" /tmp/kgraph-wiki
+          rm -rf /tmp/kgraph-wiki/*
 
           cp docs/wiki/*.md /tmp/kgraph-wiki/
           git -C /tmp/kgraph-wiki config user.name "github-actions[bot]"
