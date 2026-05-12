@@ -53,7 +53,7 @@ release-tag:
 	git fetch origin
 	git switch main
 	git pull --ff-only origin main
-	PACKAGE_VERSION="v$$(node -p "require('./package.json').version")"
+	PACKAGE_VERSION="$$(node -e 'console.log(`v$${require("./package.json").version}`)')"
 	if [ "$${PACKAGE_VERSION}" != "$${VERSION}" ]; then \
 		echo "package.json is at $${PACKAGE_VERSION}, but VERSION=$${VERSION}"; \
 		exit 1; \
