@@ -74,6 +74,8 @@ That shows matched files/symbols, files importing the target, known callers/call
 
 ## Install
 
+The official npm package is `@kentwynn/kgraph`; the official repository is `github.com/kentwynn/KGraph`.
+
 Use the published CLI:
 
 ```bash
@@ -89,6 +91,8 @@ npx @kentwynn/kgraph@latest "auth token refresh"
 ```
 
 KGraph requires Node.js 20 or newer.
+
+KGraph's core functionality is free and local-first. It does not require accounts, telemetry, cloud services, API keys, or source-code upload.
 
 ## Quick Start
 
@@ -302,7 +306,7 @@ All runtime data lives under `.kgraph/`:
 └── context/
 ```
 
-The files are local, inspectable, and human-readable. There is no database, telemetry, cloud service, account, API key, embedding service, or model provider.
+The files are local, inspectable, and human-readable. Core KGraph functionality is free. There is no database, telemetry, cloud service, account, API key, embedding service, model provider, or source-code upload.
 
 ## Language Support
 
@@ -391,8 +395,9 @@ The release workflow builds, tests, packs, publishes the npm package on version 
 
 ## Roadmap
 
+- Better Git-aware token saving and diff context.
 - Smarter cross-file symbol and call relationship inference.
 - Stronger TypeScript path alias and package export resolution.
 - Richer graph filtering for large repositories.
-- Optional MCP server for editor tool-call access.
-- Team workflows for shared committed cognition.
+- Optional MCP and editor integration.
+- Team-friendly shared cognition workflows that stay local-first.

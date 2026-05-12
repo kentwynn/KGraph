@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a KGraph feature or workflow improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        KGraph is local-first. Feature requests are strongest when they explain the developer workflow and avoid requiring accounts, telemetry, cloud services, or source-code upload.
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What developer or coding-agent workflow should this improve?
+  - type: textarea
+    id: current-workflow
+    attributes:
+      label: Current workflow
+      description: How do you handle this today?
+  - type: textarea
+    id: proposed-shape
+    attributes:
+      label: Proposed command or API shape
+      description: If you have a command, option, config field, or output shape in mind, describe it here.
+      placeholder: "kgraph impact --since main"
+  - type: textarea
+    id: local-first
+    attributes:
+      label: Local-first impact
+      description: How should this work without telemetry, accounts, cloud services, or source-code upload?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Mention simpler approaches or tradeoffs.

@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a KGraph CLI bug or broken workflow.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough detail to reproduce the CLI behavior without sharing private source code.
+  - type: input
+    id: kgraph-version
+    attributes:
+      label: KGraph version
+      description: Run `kgraph --version`.
+      placeholder: "0.2.1"
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      description: Run `node --version`.
+      placeholder: "v20.17.0"
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "macOS 15, Ubuntu 24.04, Windows 11"
+  - type: textarea
+    id: command
+    attributes:
+      label: Command run
+      description: Paste the KGraph command or workflow that failed.
+      render: shell
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect KGraph to do?
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Paste relevant output. Remove private paths, secrets, and source code if needed.
+      render: text
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add repository shape, language, integration, or config details that may matter.

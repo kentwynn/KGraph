@@ -1,0 +1,26 @@
+name: Question
+description: Ask about KGraph setup, usage, or behavior.
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask a focused question about installing, configuring, or using KGraph.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to understand or accomplish?
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Include the command, integration, language, or repository shape if relevant.
+  - type: textarea
+    id: output
+    attributes:
+      label: Relevant output
+      description: Optional. Paste command output with private details removed.
+      render: text
