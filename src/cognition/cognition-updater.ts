@@ -36,7 +36,11 @@ export async function updateCognition(
       const raw = await readFile(inboxPath, 'utf8');
       const parsed = parseMarkdownNote(raw);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const id = `${timestamp}-${slugify(parsed.title) || path.basename(inboxPath, '.md')}`;
+      // Always include the inbox basename as a per-note unique suffix so two notes with
+      // the same title processed in the same millisecond never receive the same ID.
+      const base = path.basename(inboxPath, '.md');
+      const slug = slugify(parsed.title);
+      const id = slug ? `${timestamp}-${slug}-${base}` : `${timestamp}-${base}`;
       const archivedPath = path.join(
         workspace.processedInteractionsPath,
         `${timestamp}-${path.basename(inboxPath)}`,

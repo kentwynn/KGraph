@@ -22,7 +22,7 @@ export function parseMarkdownNote(markdown: string): ParsedCognitionNote {
     tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     summary: sections.Summary,
     sections,
-    relatedFiles: unique(extractMatches(combined, PATH_REF)),
+    relatedFiles: unique(extractMatches(stripCodeFences(combined), PATH_REF)),
     relatedSymbols: unique(extractSymbolRefs(sections)),
     warnings,
   };
@@ -92,4 +92,10 @@ function extractSymbolRefs(sections: Record<string, string>): string[] {
 
 function unique<T>(items: T[]): T[] {
   return [...new Set(items)];
+}
+
+function stripCodeFences(text: string): string {
+  // Remove triple-backtick code blocks so paths inside code examples are not
+  // mistaken for real file references, which would create phantom stale refs.
+  return text.replace(/```[\s\S]*?```/g, '');
 }

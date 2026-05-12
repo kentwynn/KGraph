@@ -84,6 +84,27 @@ export async function queryContext(
       }
     }
   }
+  // Apply domainHints from config: inject paths for hints whose name matches the query
+  const queryTokens = new Set(
+    query
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean),
+  );
+  for (const [hintName, hint] of Object.entries(config.domainHints)) {
+    const hintWords = hintName
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean);
+    if (!hintWords.some((w) => queryTokens.has(w))) continue;
+    for (const fp of hint.paths ?? []) {
+      if (!rankedFilePaths.has(fp)) {
+        const reasons = cognitionLinkedMap.get(fp) ?? [];
+        reasons.push(`in configured domain hint "${hintName}"`);
+        cognitionLinkedMap.set(fp, reasons);
+      }
+    }
+  }
   relevantFiles = [
     ...relevantFiles,
     ...maps.fileMap.files

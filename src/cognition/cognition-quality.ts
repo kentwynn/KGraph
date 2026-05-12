@@ -126,7 +126,12 @@ export async function repairCognition(
     }
   }
 
-  if (!dryRun && changes.length > 0) {
+  // Archive fully-orphaned notes (all refs dead) so they no longer appear in context
+  const orphanedNotes = nextNotes.filter(
+    (note) => note.referencesStatus === 'stale',
+  );
+
+  if (!dryRun && (changes.length > 0 || orphanedNotes.length > 0)) {
     // Exclude fully-orphaned notes from domain records — they are being archived
     await repairDomainRecords(
       workspace,
@@ -135,10 +140,6 @@ export async function repairCognition(
     );
   }
 
-  // Archive fully-orphaned notes (all refs dead) so they no longer appear in context
-  const orphanedNotes = nextNotes.filter(
-    (note) => note.referencesStatus === 'stale',
-  );
   if (!dryRun) {
     for (const note of orphanedNotes) {
       await archiveOrphanedNote(workspace, note);
