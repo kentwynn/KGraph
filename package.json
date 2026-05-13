@@ -61,10 +61,10 @@
   },
   "devDependencies": {
     "@release-it/conventional-changelog": "^11.0.0",
-    "@types/node": "^20.17.10",
+    "@types/node": "^25.7.0",
     "release-it": "^20.0.1",
     "tsx": "^4.19.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.6"
   },
   "engines": {
     "node": ">=20"
