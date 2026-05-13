@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.13](https://github.com/kentwynn/KGraph/compare/v0.2.12...v0.2.13) (2026-05-13)
+
+### ### Added
+
+* refactor integration system - uninstall, instruction blocks, workflow steps and test coverage ([3fc0dce](https://github.com/kentwynn/KGraph/commit/3fc0dce2efa982d8b7a92d467d07b3147fb6cf99))
+
 ## [0.2.12](https://github.com/kentwynn/KGraph/compare/v0.2.11...v0.2.12) (2026-05-13)
 
 ### ### Added
