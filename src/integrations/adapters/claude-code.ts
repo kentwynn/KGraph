@@ -24,7 +24,7 @@ ${numberedWorkflow('claude-code', { sessionQualifier: 'when native hooks are una
     },
     {
       path: '.claude/commands/kgraph-repair.md',
-      content: `Run \`kgraph repair --dry-run\` first and summarize the proposed cognition cleanup. Run \`kgraph repair\` only when the user asks to apply the cleanup.
+      content: `Run \`kgraph repair --dry-run\` first and summarize the proposed atom-reference cleanup. Run \`kgraph repair\` only when the user asks to apply the cleanup.
 `,
     },
     {
@@ -69,7 +69,7 @@ ${numberedWorkflow('claude-code', { sessionQualifier: 'when native hooks are una
     },
     {
       path: '.claude/commands/kgraph-impact.md',
-      content: `Run \`kgraph impact "$ARGUMENTS"\` to show matched files/symbols, import users, callers, callees, related cognition, and risk hints.
+      content: `Run \`kgraph impact "$ARGUMENTS"\` to show matched files/symbols, import users, callers, callees, related knowledge atoms, and risk hints.
 `,
     },
     {

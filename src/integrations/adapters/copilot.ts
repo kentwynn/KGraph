@@ -48,7 +48,7 @@ agent: agent
 argument-hint: "--dry-run or apply"
 ---
 
-Run \`kgraph repair --dry-run\` first and summarize the proposed cognition cleanup. Run \`kgraph repair\` only when the user asks to apply the cleanup.
+Run \`kgraph repair --dry-run\` first and summarize the proposed atom-reference cleanup. Run \`kgraph repair\` only when the user asks to apply the cleanup.
 `,
     },
     {
@@ -167,7 +167,7 @@ agent: agent
 argument-hint: "File, symbol, or topic"
 ---
 
-Run \`kgraph impact "$ARGUMENTS"\` to show matched files/symbols, import users, callers, callees, related cognition, and risk hints.
+Run \`kgraph impact "$ARGUMENTS"\` to show matched files/symbols, import users, callers, callees, related knowledge atoms, and risk hints.
 `,
     },
     {

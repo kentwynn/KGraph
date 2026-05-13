@@ -25,7 +25,7 @@ Runs the normal refresh workflow and returns focused context for a topic.
 kgraph "blog admin token usage"
 ```
 
-The workflow refreshes maps, processes pending cognition notes, and returns compact context.
+The workflow refreshes maps, processes pending capture notes into knowledge atoms, and returns compact context.
 
 ## `kgraph doctor`
 
@@ -36,7 +36,7 @@ kgraph doctor
 kgraph doctor --quality
 ```
 
-Use `--quality` when context feels stale, noisy, or incomplete.
+Use `--quality` when atom references feel stale, noisy, or incomplete.
 
 ## `kgraph impact`
 
@@ -47,7 +47,58 @@ kgraph impact "Button"
 kgraph impact "createSession" --json
 ```
 
-Impact output includes matched files, symbols, imports, callers, callees, cognition, and risk hints.
+Impact output includes matched files, symbols, imports, callers, callees, related knowledge atoms, and risk hints.
+
+## `kgraph knowledge`
+
+Inspects and manages canonical knowledge atoms.
+
+```bash
+kgraph knowledge list
+kgraph knowledge list --type finding --topic auth --json
+kgraph knowledge get <atom-id>
+kgraph knowledge archive <atom-id>
+kgraph knowledge supersede <old-id> <new-id>
+```
+
+Archive and supersede update lifecycle metadata; they do not delete history.
+
+## `kgraph stale` and `kgraph blame`
+
+Refresh atom lifecycle status against the current scan and inspect provenance.
+
+```bash
+kgraph stale
+kgraph stale --json
+kgraph blame <atom-id>
+kgraph blame <atom-id> --json
+```
+
+Changed file hashes move atoms to `needs-review`; deleted files or missing symbols move atoms to `stale`.
+
+## `kgraph pack`
+
+Builds a budget-aware context pack for agents and scripts.
+
+```bash
+kgraph pack "auth token refresh" --budget 8000
+kgraph pack "auth token refresh" --budget 8000 --json
+```
+
+JSON output is the stable machine-readable context-pack contract.
+
+## `kgraph compact` and `kgraph repair`
+
+Keeps durable memory low-noise.
+
+```bash
+kgraph compact --dry-run
+kgraph compact
+kgraph repair --dry-run
+kgraph repair
+```
+
+`compact` merges duplicate atoms and archives low-confidence stale atoms. `repair` cleans noisy atom references, such as framework names recorded as files or local variables recorded as symbols.
 
 ## `kgraph session`
 
@@ -72,3 +123,5 @@ kgraph visualize
 kgraph visualize --port 3000
 kgraph visualize --no-open
 ```
+
+The graph shows files, imports, relationship edges, and canonical knowledge atoms. Symbols are shown in the file detail panel for performance.

@@ -8,8 +8,8 @@ import { printQualityReport } from './doctor.js';
 export function registerRepairCommand(program: Command): void {
   program
     .command('repair')
-    .description('Clean noisy stale references from KGraph cognition')
-    .option('--dry-run', 'Show proposed cognition cleanup without writing files')
+    .description('Clean noisy stale references from KGraph knowledge atoms')
+    .option('--dry-run', 'Show proposed atom cleanup without writing files')
     .action((options: { dryRun?: boolean }) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
@@ -30,7 +30,7 @@ export function registerRepairCommand(program: Command): void {
         console.log('');
         printQualityReport(report);
         if (report.changes.length === 0) {
-          console.log('No noisy cognition references found.');
+          console.log('No noisy atom references found.');
         } else if (options.dryRun) {
           console.log('');
           console.log('Run `kgraph repair` to apply these changes.');

@@ -20,6 +20,8 @@ kgraph integrate list
 
 New integrations default to `smart` mode. Use `--mode always` to force KGraph on every chat, or `--mode manual` to run only when explicitly asked.
 
+Generated instructions teach agents to use the atom-native workflow: `context`, `pack`, `knowledge`, `stale`, `blame`, `conclude`, `compact`, `repair`, `impact`, `history`, and `session` where supported.
+
 ## Managed Files
 
 | Tool           | Files KGraph manages                                   |

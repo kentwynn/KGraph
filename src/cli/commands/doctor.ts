@@ -142,7 +142,10 @@ export function registerDoctorCommand(program: Command): void {
         });
 
         let qualityReport: CognitionQualityReport | undefined;
-        if (maps) {
+        const knowledgeReadable = !knowledgeIssues.some(
+          (issue) => issue.code === 'invalid-jsonl' || issue.code === 'missing-schema',
+        );
+        if (maps && knowledgeReadable) {
           qualityReport = await analyzeCognitionQuality(workspace, maps);
           const qualityFindings = summarizeQualityFindings(qualityReport);
           const coverageNotes = summarizeCoverageNotes(qualityReport);
@@ -157,10 +160,16 @@ export function registerDoctorCommand(program: Command): void {
                   ].join('; ')
                 : qualityFindings.join('; '),
           });
+        } else if (maps) {
+          checks.push({
+            label: 'quality gate',
+            ok: false,
+            detail: 'knowledge storage is invalid; fix knowledge check first',
+          });
         }
 
         printChecks(checks);
-        if (options.quality && maps) {
+        if (options.quality && maps && knowledgeReadable) {
           console.log('');
           console.log('KGraph Cognition Quality');
           console.log('');
@@ -196,14 +205,19 @@ function printChecks(
 }
 
 export function printQualityReport(report: CognitionQualityReport): void {
-  console.log(`Notes: ${report.noteCount}`);
-  console.log(`Mixed/stale/unresolved notes: ${report.mixedOrStaleCount}`);
-  console.log(`Orphaned notes (all refs dead): ${report.orphanedNoteCount}`);
+  console.log(`Atoms: ${report.atomCount}`);
+  console.log(`Needs-review atoms: ${report.needsReviewAtomCount}`);
+  console.log(`Stale atoms: ${report.staleAtomCount}`);
+  console.log(`Archived atoms: ${report.archivedAtomCount}`);
+  console.log(`Duplicate atom topics: ${report.duplicateAtomTopicCount}`);
+  console.log(`Compatibility notes: ${report.noteCount}`);
+  console.log(`Mixed/stale/unresolved compatibility notes: ${report.mixedOrStaleCount}`);
+  console.log(`Orphaned atoms (all refs dead): ${report.orphanedNoteCount}`);
   console.log(`Noisy file refs: ${report.noisyFileRefCount}`);
   console.log(`Noisy symbol refs: ${report.noisySymbolRefCount}`);
   console.log(`Unresolved local imports: ${report.unresolvedLocalImportCount}`);
   console.log(`Unresolved call edges: ${report.unresolvedCallCount}`);
-  console.log(`Duplicate cognition titles: ${report.duplicateTitleCount}`);
+  console.log(`Duplicate compatibility note titles: ${report.duplicateTitleCount}`);
   console.log(`Generated files scanned: ${report.generatedFileScanCount}`);
   console.log(`Expensive files: ${report.expensiveFileCount}`);
   console.log(`Session repeated reads: ${report.sessionRepeatedReadCount}`);
@@ -233,19 +247,21 @@ function summarizeQualityFindings(report: CognitionQualityReport): string[] {
   const findings: string[] = [];
   if (report.orphanedNoteCount > 0) {
     findings.push(
-      `${report.orphanedNoteCount} orphaned cognition note(s) (all refs dead); run \`kgraph repair\` to archive`,
+      `${report.orphanedNoteCount} orphaned atom(s) (all refs dead); run \`kgraph repair\` to archive`,
     );
   }
-  if (report.mixedOrStaleCount > 0) {
-    findings.push(`${report.mixedOrStaleCount} stale/mixed/unresolved note(s)`);
+  if (report.staleAtomCount > 0 || report.needsReviewAtomCount > 0) {
+    findings.push(
+      `${report.staleAtomCount} stale atom(s), ${report.needsReviewAtomCount} needs-review atom(s)`,
+    );
   }
   if (report.noisyFileRefCount > 0 || report.noisySymbolRefCount > 0) {
     findings.push(
-      `${report.noisyFileRefCount + report.noisySymbolRefCount} noisy cognition ref(s); run \`kgraph repair --dry-run\``,
+      `${report.noisyFileRefCount + report.noisySymbolRefCount} noisy atom ref(s); run \`kgraph repair --dry-run\``,
     );
   }
-  if (report.duplicateTitleCount > 0) {
-    findings.push(`${report.duplicateTitleCount} duplicate cognition title(s)`);
+  if (report.duplicateAtomTopicCount > 0) {
+    findings.push(`${report.duplicateAtomTopicCount} duplicate atom topic(s)`);
   }
   if (report.generatedFileScanCount > 0) {
     findings.push(

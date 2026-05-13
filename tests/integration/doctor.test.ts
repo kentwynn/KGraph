@@ -21,10 +21,12 @@ describe('kgraph doctor', () => {
       const quality = await runCli(repo, ['doctor', '--quality']);
       expect(quality.code).toBe(0);
       expect(quality.stdout).toContain('KGraph Cognition Quality');
-      expect(quality.stdout).toContain('Notes:');
+      expect(quality.stdout).toContain('Atoms:');
+      expect(quality.stdout).toContain('Needs-review atoms:');
+      expect(quality.stdout).toContain('Stale atoms:');
       expect(quality.stdout).toContain('Unresolved local imports:');
       expect(quality.stdout).toContain('Unresolved call edges:');
-      expect(quality.stdout).toContain('Duplicate cognition titles:');
+      expect(quality.stdout).toContain('Duplicate atom topics:');
       expect(quality.stdout).toContain('Generated files scanned:');
       expect(quality.stdout).toContain('Expensive files:');
       expect(quality.stdout).toContain('Session repeated reads:');
