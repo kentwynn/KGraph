@@ -19,7 +19,10 @@
     "kgraph": "tsx src/cli/index.ts",
     "check:artifacts": "node scripts/check-clean-artifacts.mjs",
     "pack:dry": "npm pack --dry-run",
-    "release:pack": "npm run build && npm test && npm run check:artifacts && npm pack"
+    "release:pack": "npm run build && npm test && npm run check:artifacts && npm pack",
+    "release": "release-it",
+    "release:minor": "release-it minor",
+    "release:major": "release-it major"
   },
   "keywords": [
     "ai",
@@ -57,7 +60,9 @@
     "yaml": "^2.5.1"
   },
   "devDependencies": {
+    "@release-it/conventional-changelog": "^11.0.0",
     "@types/node": "^20.17.10",
+    "release-it": "^20.0.1",
     "tsx": "^4.19.2",
     "vitest": "^3.2.4"
   },
