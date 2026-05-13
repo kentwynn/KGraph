@@ -4,6 +4,7 @@ import { queryContext } from '../../context/context-query.js';
 import { loadConfig } from '../../config/config.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { mapsExist, readMaps } from '../../storage/map-store.js';
+import type { ContextPack, ContextPackItem } from '../../types/knowledge.js';
 import { KGraphError, runCommand } from '../errors.js';
 
 interface PackOptions {
@@ -38,20 +39,70 @@ export function registerPackCommand(program: Command): void {
           console.log(JSON.stringify(pack, null, 2));
           return;
         }
-        console.log(`# KGraph Context Pack`);
-        console.log('');
-        console.log(`Task: ${pack.task}`);
-        console.log(`Budget: ${pack.budget}`);
-        console.log(`Used: ${pack.usedTokens}`);
-        console.log('');
-        for (const item of pack.items) {
-          console.log(`- [${item.kind}] ${item.title} (~${item.tokenEstimate} tokens)`);
-          console.log(`  because ${item.reasons.slice(0, 3).join('; ')}`);
-        }
-        if (pack.omitted.length > 0) {
-          console.log('');
-          console.log(`Omitted: ${pack.omitted.length} item(s) over budget`);
-        }
+        console.log(renderPackText(pack));
       }),
     );
+}
+
+export function renderPackText(pack: ContextPack): string {
+  const lines = [
+    `KGraph Pack · ${pack.task}`,
+    `local-first · budget-aware · machine contract: --json`,
+    ``,
+    `● Budget`,
+    `  used        ${pack.usedTokens} / ${pack.budget}`,
+    `  included    ${pack.items.length}`,
+    `  omitted     ${pack.omitted.length}`,
+    ``,
+  ];
+
+  appendGroup(lines, 'Atoms', pack.items.filter((item) => item.kind === 'atom'));
+  appendGroup(lines, 'Git Changes', pack.items.filter((item) => item.kind === 'git-change'));
+  appendGroup(lines, 'Source Ranges', pack.items.filter((item) => item.kind === 'file-range'));
+  appendGroup(lines, 'Symbols', pack.items.filter((item) => item.kind === 'symbol'));
+  appendGroup(lines, 'Files', pack.items.filter((item) => item.kind === 'file'));
+  appendGroup(lines, 'Graph', pack.items.filter((item) => item.kind === 'relationship'));
+
+  lines.push(`● Omitted`);
+  const omitted = pack.omitted.slice(0, 8);
+  if (omitted.length === 0) {
+    lines.push('- None');
+  } else {
+    for (const item of omitted) {
+      lines.push(`  ◌ ${item.kind} ${item.title} (~${item.tokenEstimate} tokens)`);
+    }
+    if (pack.omitted.length > omitted.length) {
+      lines.push(`  ◌ ${pack.omitted.length - omitted.length} more omitted items`);
+    }
+  }
+
+  lines.push('', '● Next', '  agents should consume this command with --json for the full ContextPack contract');
+  return lines.join('\n');
+}
+
+function appendGroup(lines: string[], title: string, items: ContextPackItem[]): void {
+  lines.push(`● ${title}`);
+  if (items.length === 0) {
+    lines.push('- None', '');
+    return;
+  }
+  for (const item of items.slice(0, 6)) {
+    lines.push(`  ● ${item.title} (~${item.tokenEstimate} tokens)`);
+    lines.push(`    because ${formatReasons(item.reasons)}`);
+    if (item.kind === 'file-range') {
+      const data = item.data as { path?: string; startLine?: number; endLine?: number };
+      if (data.path && data.startLine != null && data.endLine != null) {
+        lines.push(`    range ${data.path}:${data.startLine}-${data.endLine}`);
+      }
+    }
+  }
+  if (items.length > 6) lines.push(`  ◌ ${items.length - 6} more ${title.toLowerCase()} omitted from display`);
+  lines.push('');
+}
+
+function formatReasons(reasons: string[]): string {
+  if (reasons.length === 0) return 'included by pack ranking';
+  const shown = reasons.slice(0, 3);
+  const remaining = reasons.length - shown.length;
+  return remaining > 0 ? `${shown.join('; ')}; and ${remaining} more` : shown.join('; ');
 }

@@ -68,10 +68,15 @@ export function buildContextPack(
   ];
 
   const orderedCandidates = candidates.sort(comparePackCandidates);
+  const strongPaths = strongPackPaths(candidates);
   const items: ContextPackItem[] = [];
   const omitted: ContextPackItem[] = [];
   let usedTokens = 0;
   for (const candidate of orderedCandidates) {
+    if (isLowSignalCandidate(candidate, strongPaths)) {
+      omitted.push(candidate);
+      continue;
+    }
     if (usedTokens + candidate.tokenEstimate <= budget) {
       items.push(candidate);
       usedTokens += candidate.tokenEstimate;
@@ -108,6 +113,69 @@ function packPriority(item: ContextPackItem): number {
   if (item.reasons.some((reason) => reason.includes('generic path-only match penalty'))) score -= 20;
   score -= Math.floor(item.tokenEstimate / 2000);
   return score;
+}
+
+function strongPackPaths(candidates: ContextPackItem[]): Set<string> {
+  const paths = new Set<string>();
+  for (const candidate of candidates) {
+    if (candidate.kind === 'file-range' || candidate.kind === 'git-change') {
+      const pathValue = candidatePath(candidate);
+      if (pathValue) paths.add(pathValue);
+    }
+    if (candidate.kind === 'file' && hasStrongReason(candidate)) {
+      const pathValue = candidatePath(candidate);
+      if (pathValue) paths.add(pathValue);
+    }
+    if (candidate.kind === 'atom') {
+      const atom = candidate.data as { relatedFiles?: string[] } | undefined;
+      for (const file of atom?.relatedFiles ?? []) paths.add(file);
+    }
+  }
+  return paths;
+}
+
+function isLowSignalCandidate(
+  candidate: ContextPackItem,
+  strongPaths: Set<string>,
+): boolean {
+  if (strongPaths.size === 0) return false;
+  if (candidate.kind === 'atom' || candidate.kind === 'git-change' || candidate.kind === 'file-range') {
+    return false;
+  }
+  if (hasStrongReason(candidate)) return false;
+  if (candidateTouchesStrongPath(candidate, strongPaths)) return false;
+  return candidate.kind === 'file' || candidate.kind === 'symbol' || candidate.kind === 'relationship';
+}
+
+function hasStrongReason(candidate: ContextPackItem): boolean {
+  return candidate.reasons.some(
+    (reason) =>
+      reason.includes('matched atom') ||
+      reason.includes('current git change') ||
+      reason.includes('changed in recent commits') ||
+      reason.includes('unstaged change') ||
+      reason.includes('staged change'),
+  );
+}
+
+function candidateTouchesStrongPath(
+  candidate: ContextPackItem,
+  strongPaths: Set<string>,
+): boolean {
+  const pathValue = candidatePath(candidate);
+  if (pathValue && strongPaths.has(pathValue)) return true;
+  if (candidate.kind !== 'relationship') return false;
+  const relationship = candidate.data as { sourceId?: string; targetId?: string };
+  return [...strongPaths].some(
+    (strongPath) =>
+      relationship.sourceId?.includes(strongPath) ||
+      relationship.targetId?.includes(strongPath),
+  );
+}
+
+function candidatePath(candidate: ContextPackItem): string | undefined {
+  const data = candidate.data as { path?: string; filePath?: string } | undefined;
+  return data?.path ?? data?.filePath;
 }
 
 interface LineRange {

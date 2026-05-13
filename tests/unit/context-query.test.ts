@@ -295,12 +295,11 @@ describe('context query', () => {
       2000,
     );
 
-    expect(pack.items.map((item) => item.kind)).toEqual([
-      'atom',
-      'git-change',
-      'file',
-    ]);
+    expect(pack.items.map((item) => item.kind)).toEqual(['atom', 'git-change']);
     expect(pack.items[0].id).toBe('atom-1');
+    expect(pack.omitted.map((item) => item.id)).toContain(
+      'openquery/app/workflow/page.tsx',
+    );
     expect(pack.omitted.map((item) => item.id)).toContain(
       'www/app/(pages)/about/page.tsx',
     );

@@ -238,6 +238,12 @@ describe('kgraph knowledge', () => {
         true,
       );
       expect(pack.items[0].reasons.length).toBeGreaterThan(0);
+
+      const text = await runCli(repo, ['pack', 'auth pack atom', '--budget', '800']);
+      expect(text.stdout).toContain('KGraph Pack · auth pack atom');
+      expect(text.stdout).toContain('● Budget');
+      expect(text.stdout).toContain('● Atoms');
+      expect(text.stdout).toContain('machine contract: --json');
     } finally {
       await cleanupTempRepo(repo);
     }

@@ -64,17 +64,17 @@ export function applyContextPolicy(
 
 export function renderContextPolicy(mode: IntegrationMode): string {
   const useResultBoundary =
-    'Use the returned KGraph candidate files as the first-pass source of truth. Do not rerun the same KGraph query just to tail or reformat output, do not continue broad repository search after the target file is identified, do not retry malformed shell commands with broader variants, and do not run broad `find`, recursive `grep`, or repeated full-file dumps after KGraph has narrowed the target.';
+    'Use the returned KGraph ContextPack items as the first-pass source of truth. Prefer source ranges, atoms, git changes, and inclusion reasons from the pack before broad repository search. Do not rerun the same KGraph query just to tail or reformat output, do not continue broad repository search after the target file or range is identified, do not retry malformed shell commands with broader variants, and do not run broad `find`, recursive `grep`, or repeated full-file dumps after KGraph has narrowed the target.';
   switch (mode) {
     case 'always':
-      return `Every chat in this repository must start by running \`kgraph "<topic>"\` before answering or exploring files. Infer the topic from the user's message; no exceptions, including simple or conversational requests. ${useResultBoundary}`;
+      return `Every chat in this repository must start by running \`kgraph pack "<topic>" --budget 8000 --json\` before answering or exploring files. Infer the topic from the user's message; no exceptions, including simple or conversational requests. Use \`kgraph "<topic>"\` only when a human-readable briefing is explicitly needed. ${useResultBoundary}`;
     case 'manual':
-      return 'Do not run KGraph automatically. Run `kgraph "<topic>"` only when the user explicitly asks for KGraph context or invokes the KGraph command.';
+      return 'Do not run KGraph automatically. Run `kgraph pack "<topic>" --budget 8000 --json` only when the user explicitly asks for KGraph context, invokes KGraph, or needs a machine-readable repo-memory pack.';
     case 'off':
       return 'KGraph is disabled for this integration.';
     case 'smart':
     default:
-      return `For repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests, run \`kgraph "<topic>"\` before broad repository exploration. Infer the topic from the user's message. Skip KGraph for simple conversational requests that do not depend on repo knowledge. ${useResultBoundary}`;
+      return `For repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests, run \`kgraph pack "<topic>" --budget 8000 --json\` before broad repository exploration. Infer the topic from the user's message. Skip KGraph for simple conversational requests that do not depend on repo knowledge. Use \`kgraph "<topic>"\` only when a human-readable briefing is explicitly needed. ${useResultBoundary}`;
   }
 }
 
@@ -85,7 +85,7 @@ export function renderCapturePolicy(): string {
 - Use \`.kgraph/inbox/<slug>.md\` only when a longer structured note is clearer than a single \`kgraph conclude\` command.
 - A \`.kgraph/inbox/*.md\` note is KGraph runtime capture, not project documentation. It is allowed by this workflow unless the user explicitly says not to capture to KGraph.
 - Do not skip capture for meaningful UI text, button, link, route, styling, or small file edits. Skip capture only when no reusable repository knowledge was created.
-- Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write the inbox note first, then run \`kgraph\` once at the end.
+- Do not run KGraph repeatedly. Run it once at the start with \`kgraph pack "<topic>" --budget 8000 --json\` for agent-readable context. If repo files changed, write the inbox note first, then run \`kgraph\` once at the end.
 - After the final \`kgraph\` run, mention whether durable cognition was stored or processed.
 
 When using an inbox note, use this structure:

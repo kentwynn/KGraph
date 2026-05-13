@@ -121,11 +121,13 @@ After useful AI work, assistants save durable runtime-capture notes into `.kgrap
 Normal agent flow is intentionally small:
 
 ```bash
-kgraph "topic"
+kgraph pack "topic" --budget 8000 --json
 # work normally
 # if repo files changed, write an inbox note before the final refresh
 kgraph
 ```
+
+`kgraph "<topic>"` remains the human-readable briefing. Agents should prefer `kgraph pack "<topic>" --budget 8000 --json` because it returns the stable `ContextPack` contract with atoms, source ranges, git changes, omitted items, token estimates, and inclusion reasons.
 
 Use `kgraph doctor` after setup and before trusting a repo's saved intelligence. It checks initialization, maps, pending inbox notes, integration targets, and actionable quality problems. Use `kgraph doctor --quality` and `kgraph repair --dry-run` when stale or noisy atom references start making context harder to trust.
 
@@ -249,7 +251,7 @@ kgraph pack "auth token refresh" --budget 8000
 kgraph pack "auth token refresh" --budget 8000 --json
 ```
 
-Build a budget-aware context pack from files, symbols, relationships, git changes, session history, and knowledge atoms. JSON output is the stable machine-readable contract for agents.
+Build a budget-aware context pack from files, source ranges, symbols, relationships, git changes, session history, and knowledge atoms. JSON output is the stable machine-readable contract for agents; text output is an Atom Core briefing for humans.
 
 ```bash
 kgraph compact --dry-run
