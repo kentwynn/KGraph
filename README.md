@@ -235,6 +235,14 @@ kgraph knowledge supersede <old-id> <new-id>
 Inspect and manage canonical knowledge atoms. Archive and supersede update lifecycle metadata; they do not delete history.
 
 ```bash
+kgraph stale
+kgraph stale --json
+kgraph blame <atom-id>
+```
+
+Refresh atom lifecycle status against the current scan and inspect atom provenance. Changed file hashes move atoms to `needs-review`; deleted files or missing symbols move atoms to `stale`; `blame` shows the source command, agent/session/commit, evidence refs, and lifecycle links.
+
+```bash
 kgraph pack "auth token refresh" --budget 8000
 kgraph pack "auth token refresh" --budget 8000 --json
 ```
@@ -246,7 +254,7 @@ kgraph compact --dry-run
 kgraph compact
 ```
 
-Merge duplicate cognition records and archive low-confidence stale entries. Compaction keeps memory inspectable under `.kgraph/cognition/` while reducing low-value noise in future context responses.
+Merge duplicate knowledge atoms and archive low-confidence stale entries. Compaction operates on `.kgraph/knowledge/atoms.jsonl` first, then regenerates indexes and compatibility domain records so future context responses use the atom lifecycle as the source of truth.
 
 ## Optional Step Commands
 

@@ -55,6 +55,8 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('compact', 'Merge duplicate cognition and archive stale noise'),
     command('knowledge list', 'Inspect canonical knowledge atoms'),
     command('pack "auth task" --budget 8000', 'Build a budget-aware context pack'),
+    command('stale', 'Show atoms invalidated by changed or missing refs'),
+    command('blame <atom-id>', 'Show atom provenance and evidence'),
     command(
       'context "auth token refresh"',
       'Optional: return context without scanning or updating',
