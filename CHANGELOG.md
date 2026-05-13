@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.12](https://github.com/kentwynn/KGraph/compare/v0.2.11...v0.2.12) (2026-05-13)
+
+### ### Added
+
+* expand cognition quality, doctor and repair command improvements ([dff1a76](https://github.com/kentwynn/KGraph/commit/dff1a769ba9abb48fbc01c2337f66446f8f3b5b3))
+* improve visualization - graph builder and HTML template enhancements ([5a18e22](https://github.com/kentwynn/KGraph/commit/5a18e22d77e88cc981af5ebf2d0a60b779cdd41a))
+* update documentation to reflect knowledge atom terminology and improve clarity ([bf1a9c8](https://github.com/kentwynn/KGraph/commit/bf1a9c8fb146958ff4a3d80bab0a50d8428b4457))
+
 ## [0.2.11](https://github.com/kentwynn/KGraph/compare/v0.2.10...v0.2.11) (2026-05-13)
 
 ### ### Added
