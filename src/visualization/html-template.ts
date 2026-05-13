@@ -57,10 +57,10 @@ select:hover,button:hover{background:#475569}
 <body>
 <div id="toolbar">
   <span id="t-title">\u29e1 KGraph \u00b7 ${repoName}</span>
-  <span id="t-stats">${meta.fileCount} files &middot; ${meta.symbolCount} symbols &middot; ${meta.cognitionCount} notes &middot; ~${meta.tokenEstimate} tokens</span>
+  <span id="t-stats">${meta.fileCount} files &middot; ${meta.symbolCount} symbols &middot; ${meta.atomCount} atoms${meta.hiddenAtomCount ? ' (' + meta.hiddenAtomCount + ' hidden)' : ''} &middot; ~${meta.tokenEstimate} tokens</span>
   <div id="t-controls">
     <label class="clabel"><input type="checkbox" id="tog-lbl" checked> Labels</label>
-    <label class="clabel"><input type="checkbox" id="tog-cog" checked> Cognition</label>
+    <label class="clabel"><input type="checkbox" id="tog-cog" checked> Memory</label>
     <select id="sel-layout" title="Graph layout algorithm">
       <option value="dagre">Hierarchical</option>
       <option value="cose">Force-directed</option>
@@ -91,9 +91,9 @@ select:hover,button:hover{background:#475569}
   <span class="li"><span class="li-dot" style="background:#475569"></span>200+ tok</span>
   <span class="li"><span class="li-dot" style="background:#ef4444"></span>1000+ tok</span>
   <span class="li-sep"></span>
-  <span class="li-head">Cognition</span>
-  <span class="li"><span class="li-dia" style="background:#10b981"></span>Current</span>
-  <span class="li"><span class="li-dia" style="background:#f59e0b"></span>Mixed</span>
+  <span class="li-head">Atoms</span>
+  <span class="li"><span class="li-dia" style="background:#10b981"></span>Active</span>
+  <span class="li"><span class="li-dia" style="background:#f59e0b"></span>Review</span>
   <span class="li"><span class="li-dia" style="background:#ef4444"></span>Stale</span>
   <span class="li-sep"></span>
   <span class="li" style="margin-left:auto;color:#334155;font-size:10px">KGraph v${meta.generatedAt.slice(0, 10)}</span>
@@ -172,7 +172,7 @@ select:hover,button:hover{background:#475569}
         }
       },
       {
-        selector: 'node.cognition',
+        selector: 'node.atom',
         style: {
           shape: 'diamond',
           width: 40,
@@ -218,7 +218,7 @@ select:hover,button:hover{background:#475569}
         }
       },
       {
-        selector: 'edge.cognition-ref',
+        selector: 'edge.atom-ref',
         style: {
           width: 1.5,
           'line-color': '#7dd3fc',
@@ -273,25 +273,32 @@ select:hover,button:hover{background:#475569}
       symHtml;
   }
 
-  function renderCognitionPanel(d) {
-    var sc = { current: '#10b981', mixed: '#f59e0b', stale: '#ef4444', unresolved: '#6b7280' }[d.referencesStatus] || '#6b7280';
+  function renderAtomPanel(d) {
+    var sc = { active: '#10b981', 'needs-review': '#f59e0b', stale: '#ef4444', archived: '#6b7280' }[d.status] || '#6b7280';
     var files = d.relatedFiles && d.relatedFiles.length
       ? '<ul class="sb-list">' + d.relatedFiles.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>'
       : '<span class="sb-val">none</span>';
     var syms = d.relatedSymbols && d.relatedSymbols.length
       ? d.relatedSymbols.slice(0, 15).map(function (s) { return '<span class="sb-code">' + esc(s) + '</span>'; }).join(' ')
       : '<span class="sb-val">none</span>';
-    return '<div class="sb-badge" style="background:' + sc + '22;color:' + sc + ';border:1px solid ' + sc + '44">' + esc(d.referencesStatus) + '</div>' +
+    var invalidated = d.invalidatedBy && d.invalidatedBy.length
+      ? '<div class="sb-sect"><div class="sb-lbl">Invalidated By</div><ul class="sb-list">' + d.invalidatedBy.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>'
+      : '';
+    return '<div class="sb-badge" style="background:' + sc + '22;color:' + sc + ';border:1px solid ' + sc + '44">' + esc(d.status) + '</div>' +
       '<div class="sb-title">' + esc(d.label) + '</div>' +
+      '<div class="sb-sect"><div class="sb-lbl">Atom</div><div class="sb-val"><span class="sb-code">' + esc(d.atomId) + '</span></div></div>' +
+      '<div class="sb-sect"><div class="sb-lbl">Type / Confidence</div><div class="sb-val">' + esc(d.atomType) + ' / ' + esc(d.confidence) + '</div></div>' +
+      '<div class="sb-sect"><div class="sb-lbl">Source</div><div class="sb-val">' + esc(d.sourceCommand) + '</div></div>' +
       (d.domain ? '<div class="sb-sect"><div class="sb-lbl">Domain</div><div class="sb-val">' + esc(d.domain) + '</div></div>' : '') +
       '<div class="sb-sect"><div class="sb-lbl">Related Files</div>' + files + '</div>' +
-      '<div class="sb-sect"><div class="sb-lbl">Symbols</div><div class="sb-val">' + syms + '</div></div>';
+      '<div class="sb-sect"><div class="sb-lbl">Symbols</div><div class="sb-val">' + syms + '</div></div>' +
+      invalidated;
   }
 
   cy.on('tap', 'node', function (evt) {
     var d = evt.target.data();
-    document.getElementById('sb-type').textContent = d.type === 'cognition' ? 'Cognition Note' : 'File';
-    document.getElementById('sb-body').innerHTML = d.type === 'cognition' ? renderCognitionPanel(d) : renderFilePanel(d);
+    document.getElementById('sb-type').textContent = d.type === 'atom' ? 'Knowledge Atom' : 'File';
+    document.getElementById('sb-body').innerHTML = d.type === 'atom' ? renderAtomPanel(d) : renderFilePanel(d);
     document.getElementById('sidebar').classList.add('open');
   });
 
@@ -311,11 +318,11 @@ select:hover,button:hover{background:#475569}
 
   document.getElementById('tog-cog').addEventListener('change', function (e) {
     if (e.target.checked) {
-      cy.nodes('.cognition').removeClass('hidden');
-      cy.edges('.cognition-ref').removeClass('hidden');
+      cy.nodes('.atom').removeClass('hidden');
+      cy.edges('.atom-ref').removeClass('hidden');
     } else {
-      cy.nodes('.cognition').addClass('hidden');
-      cy.edges('.cognition-ref').addClass('hidden');
+      cy.nodes('.atom').addClass('hidden');
+      cy.edges('.atom-ref').addClass('hidden');
     }
   });
 
