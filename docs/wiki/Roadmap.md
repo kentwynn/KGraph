@@ -4,6 +4,8 @@ KGraph's roadmap stays focused on practical repo intelligence for AI coding work
 
 ## Near-Term
 
+- `kgraph explain "<topic>"` with cited files, symbols, atoms, and confidence
+- `kgraph diff` to show how repo understanding changed since the last scan
 - Better Git-aware token saving and diff context
 - Smarter cross-file symbol and call relationship inference
 - Stronger TypeScript path alias and package export resolution
@@ -17,7 +19,7 @@ KGraph's roadmap stays focused on practical repo intelligence for AI coding work
 
 ## Team Workflows
 
-- Team-friendly shared cognition workflows
+- Team-friendly shared knowledge workflows
 - CI-friendly quality checks
 - Local-first policy/reporting helpers
 

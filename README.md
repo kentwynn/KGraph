@@ -2,7 +2,7 @@
 
 Persistent repository intelligence for AI coding tools.
 
-KGraph gives Codex, GitHub Copilot, Cursor, Claude Code, Gemini CLI, Windsurf, and Cline a local knowledge layer for your repo: file maps, symbols, imports, relationships, and durable notes from previous AI sessions. The goal is simple: your assistant should not spend every session re-learning the same codebase.
+KGraph gives Codex, GitHub Copilot, Cursor, Claude Code, Gemini CLI, Windsurf, and Cline a local knowledge layer for your repo: file maps, symbols, imports, relationships, and durable knowledge atoms from previous AI sessions. The goal is simple: your assistant should not spend every session re-learning the same codebase.
 
 ## The Workflow
 
@@ -20,7 +20,7 @@ That second command runs the full practical workflow:
 
 1. Refreshes the repository scan.
 2. Updates file, symbol, import, and relationship maps.
-3. Processes any Markdown notes waiting in `.kgraph/inbox/`.
+3. Processes any Markdown capture notes waiting in `.kgraph/inbox/` into knowledge atoms.
 4. Returns compact context for the topic you asked about.
 
 You can also run just:
@@ -29,7 +29,7 @@ You can also run just:
 kgraph
 ```
 
-That refreshes maps and cognition without printing topic-specific context.
+That refreshes maps and durable memory without printing topic-specific context.
 
 The smaller commands, such as `kgraph scan`, `kgraph update`, and `kgraph context`, still exist. They are useful when you want one specific step, but they are not the main workflow.
 
@@ -52,8 +52,8 @@ KGraph stores the reusable parts locally:
 - What symbols each source file defines.
 - Which files import each other.
 - Which TypeScript/JavaScript functions and methods directly call each other when KGraph can infer it cheaply.
-- Which notes, decisions, debugging findings, and gotchas were captured from prior sessions.
-- Which cognition references are current, mixed, stale, or unresolved after code moves.
+- Which decisions, debugging findings, gotchas, summaries, and relationships were captured as knowledge atoms.
+- Which atoms are active, need review, stale, archived, or superseded after code moves.
 
 Then an AI assistant can ask for focused context before broad exploration:
 
@@ -61,8 +61,8 @@ Then an AI assistant can ask for focused context before broad exploration:
 kgraph "blog admin token usage"
 ```
 
-Instead of reading the whole repo, it gets a compact starting point: relevant files, symbols, relationships, domains, prior notes, and stale references to watch.
-Each context item explains why it was returned, such as a path/name match, a matched cognition reference, a domain match, or a nearby import relationship.
+Instead of reading the whole repo, it gets a compact starting point: relevant files, symbols, relationships, domains, knowledge atoms, and stale references to watch.
+Each context item explains why it was returned, such as a path/name match, a matched atom reference, a domain match, or a nearby import relationship.
 
 When you need change impact instead of broad context:
 
@@ -70,7 +70,7 @@ When you need change impact instead of broad context:
 kgraph impact Button
 ```
 
-That shows matched files/symbols, files importing the target, known callers/callees, related cognition, and simple risk signals.
+That shows matched files/symbols, files importing the target, known callers/callees, related knowledge atoms, and simple risk signals.
 
 ## Install
 
@@ -157,22 +157,22 @@ Initializes KGraph and writes local instruction files for supported AI tools.
 kgraph "some topic"
 ```
 
-The normal command. Scans the repo, updates cognition, and returns focused context for the topic.
+The normal command. Scans the repo, updates durable memory, and returns focused context for the topic.
 
 ```bash
 kgraph
 ```
 
-Refreshes maps and cognition without returning topic-specific context.
+Refreshes maps and durable memory without returning topic-specific context.
 
 ```bash
 kgraph doctor
 kgraph doctor --quality
 ```
 
-Checks whether the workspace is initialized, maps exist, inbox notes are pending, and configured integrations point to real files. Use `--quality` when context shows stale/noisy cognition references, unresolved local imports, unresolved call edges, duplicate cognition titles, or generated files in the scan.
+Checks whether the workspace is initialized, maps exist, inbox notes are pending, knowledge storage is valid, and configured integrations point to real files. Use `--quality` when context shows stale/noisy atom references, unresolved local imports, unresolved call edges, duplicate atom topics, or generated files in the scan.
 
-The default doctor result is the main quality gate. It fails on actionable hygiene issues such as stale/noisy cognition, duplicate cognition titles, generated integration files leaking into scans, missing maps, or broken integration targets. Scanner coverage counts such as unresolved local imports or unresolved call edges remain visible in `--quality`, but they do not fail the gate by themselves because they often reflect current parser limits.
+The default doctor result is the main quality gate. It fails on actionable hygiene issues such as stale/noisy atoms, duplicate atom topics, generated integration files leaking into scans, missing maps, invalid knowledge storage, or broken integration targets. Scanner coverage counts such as unresolved local imports or unresolved call edges remain visible in `--quality`, but they do not fail the gate by themselves because they often reflect current parser limits.
 
 ```bash
 kgraph repair --dry-run
@@ -208,7 +208,7 @@ kgraph session end --agent codex --conclude --topic "auth token refresh"
 ```
 
 Track agent-reported read/write activity, repeated reads, and estimated token cost. Supported agents are `codex`, `claude-code`, `copilot`, `cursor`, `gemini`, `windsurf`, and `cline`.
-The text report now includes next actions, such as using `kgraph context "<topic>"` before repeated broad file inspection. Add `--conclude` to store a durable session summary with touched files attached as related cognition.
+The text report includes next actions, such as using `kgraph context "<topic>"` before repeated broad file inspection. Add `--conclude` to store a durable session summary with touched files attached as atom evidence.
 
 ```bash
 kgraph conclude "auth refresh requires rotating the session cookie" \
@@ -220,7 +220,7 @@ kgraph conclude "auth refresh requires rotating the session cookie" \
   --note "The refresh path must update both the access token and cookie expiry."
 ```
 
-Store durable engineering memory directly. Cognition is typed as `finding`, `decision`, `gotcha`, `summary`, or `relationship`, and confidence is `high`, `medium`, or `low`. Keep conclusions concise: preserve expensive-to-rediscover knowledge, not raw chain-of-thought, speculative exploration, or temporary reasoning.
+Store durable engineering memory directly. Knowledge atoms are typed as `finding`, `decision`, `gotcha`, `summary`, or `relationship`, and confidence is `high`, `medium`, or `low`. Keep conclusions concise: preserve expensive-to-rediscover knowledge, not raw chain-of-thought, speculative exploration, or temporary reasoning.
 
 KGraph stores these conclusions as canonical knowledge atoms under `.kgraph/knowledge/` while keeping existing Markdown cognition files readable for compatibility.
 
@@ -273,8 +273,8 @@ kgraph context "auth token refresh"
 kgraph context "auth token refresh" --json
 ```
 
-Return context from existing maps and cognition without scanning or updating first.
-Markdown output includes the reason each file, symbol, cognition note, nearby symbol, or relationship was selected. Use `--json` when an agent or script needs the same explanation data programmatically.
+Return context from existing maps and knowledge atoms without scanning or updating first.
+Markdown output includes the reason each file, symbol, knowledge atom, nearby symbol, or relationship was selected. Use `--json` when an agent or script needs the same explanation data programmatically.
 
 Context output includes a **Recent Git Changes** section that surfaces files with staged edits, unstaged edits, or changes in recent commits. This lets AI agents know which files are actively in flux without running a separate `git status` or `git log`.
 
@@ -283,7 +283,7 @@ kgraph update
 kgraph update --dry-run
 ```
 
-Process Markdown notes from `.kgraph/inbox/` into durable cognition records.
+Process Markdown capture notes from `.kgraph/inbox/` into durable knowledge atoms and compatibility Markdown.
 
 ```bash
 kgraph visualize
@@ -300,7 +300,7 @@ kgraph history "blog button"
 kgraph history --json
 ```
 
-Show processed cognition sessions. Add a query to find historical work by title, summary, file, symbol, or note body.
+Show processed capture history. Add a query to find historical work by title, summary, file, symbol, or note body.
 
 ## AI Tool Integrations
 
@@ -464,4 +464,4 @@ The release workflow builds, tests, packs, publishes the npm package on version 
 - Stronger TypeScript path alias and package export resolution.
 - Richer graph filtering for large repositories.
 - Optional MCP and editor integration.
-- Team-friendly shared cognition workflows that stay local-first.
+- Team-friendly shared knowledge workflows that stay local-first.
