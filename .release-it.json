@@ -13,8 +13,7 @@
   },
   "github": {
     "release": true,
-    "releaseName": "v${version}",
-    "releaseNotes": null
+    "releaseName": "v${version}"
   },
   "plugins": {
     "@release-it/conventional-changelog": {
