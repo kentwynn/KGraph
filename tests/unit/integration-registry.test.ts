@@ -82,7 +82,7 @@ describe('integration registry', () => {
           applyContextPolicy(file.content, 'smart'),
         ),
       ].join('\n');
-      expect(content).toContain('kgraph "<topic>"');
+      expect(content).toContain('kgraph pack "<topic>" --budget 8000 --json');
       expect(content).toContain('kgraph doctor');
       expect(content).toContain('kgraph pack');
       expect(content).toContain('kgraph knowledge list');
@@ -93,7 +93,7 @@ describe('integration registry', () => {
       expect(content).toContain('kgraph compact --dry-run');
       expect(content).toContain('kgraph conclude');
       expect(content).toContain(
-        'Use the returned KGraph candidate files as the first-pass source of truth',
+        'Use the returned KGraph ContextPack items as the first-pass source of truth',
       );
       expect(content).toContain('do not run broad `find`');
       expect(content).toContain('do not retry malformed shell commands');
