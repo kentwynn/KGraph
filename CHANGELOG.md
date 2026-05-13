@@ -1,10 +1,19 @@
-s# Changelog
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.2.7](https://github.com/kentwynn/KGraph/compare/v0.2.6...v0.2.7) (2026-05-13)
+
+### ### Added
+
+* add release-it with conventional changelog automation ([495d40e](https://github.com/kentwynn/KGraph/commit/495d40edfee08fbe05a40c45a88d0523ab13026c))
+* enable GitHub Releases in release-it config ([8746832](https://github.com/kentwynn/KGraph/commit/8746832e14853fb9a6f589ecf60f306ff2dd6aef))
+
+s
 ---
 
 ## [0.2.6] - 2026-05-13
