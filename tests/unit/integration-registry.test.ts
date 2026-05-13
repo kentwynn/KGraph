@@ -93,7 +93,15 @@ describe('integration registry', () => {
       expect(content).toContain('kgraph compact --dry-run');
       expect(content).toContain('kgraph conclude');
       expect(content).toContain(
-        'At the end of any session that changed repository files',
+        'Use the returned KGraph candidate files as the first-pass source of truth',
+      );
+      expect(content).toContain('do not run broad `find`');
+      expect(content).toContain('do not retry malformed shell commands');
+      expect(content).toContain('Do not rerun the same KGraph query');
+      expect(content).toMatch(/[Vv]erify the change actually landed/);
+      expect(content).toContain('git diff -- <path>');
+      expect(content).toMatch(
+        /At the end .*repository-file changes|At the end of any session that changed repository files/,
       );
       expect(content).toContain('store durable engineering memory');
       expect(content).toContain(
@@ -108,6 +116,31 @@ describe('integration registry', () => {
     expect(getIntegrationAdapter('copilot').obsoleteCommandFiles).toContain(
       '.github/prompts/kgraph.prompt.md',
     );
+  });
+
+  it('does not generate a Copilot custom agent', () => {
+    expect(
+      getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
+    ).not.toContain('.github/agents/kgraph.agent.md');
+    expect(getIntegrationAdapter('copilot').obsoleteCommandFiles).not.toContain(
+      '.github/agents/kgraph.agent.md',
+    );
+  });
+
+  it('keeps the Claude generic kgraph command focused on the single normal entry point', () => {
+    const command = getIntegrationAdapter('claude-code').commandFiles?.find(
+      (file) => file.path === '.claude/commands/kgraph.md',
+    );
+    expect(command?.content).toContain(
+      'single normal `kgraph "<topic>"` entry point',
+    );
+    expect(command?.content).toContain('Run exactly one command');
+    expect(command?.content).toContain('`kgraph "<topic>"`');
+    expect(command?.content).toContain('Verify the change actually landed');
+    expect(command?.content).toContain('Do not run `kgraph` again');
+    expect(command?.content).not.toContain('Run `kgraph pack');
+    expect(command?.content).not.toContain('Run `kgraph doctor');
+    expect(command?.content).not.toContain('{{KGRAPH_CONTEXT_POLICY}}');
   });
 
   it('adds Claude Code hook files for automatic session capture', () => {

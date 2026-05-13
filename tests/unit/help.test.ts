@@ -11,7 +11,7 @@ describe('root help', () => {
     expect(help).toContain('context "auth token refresh"');
     expect(help).toContain('session read src/auth.ts --agent codex');
     expect(help).toContain('integrate add gemini windsurf cline');
-    expect(help).toContain('integrate add copilot --mode always');
+    expect(help).toContain('integrate add copilot --mode smart');
     expect(help).toContain('integrate set copilot --mode manual');
     expect(help).toContain('uninstall --yes');
     expect(help).toContain('--mode smart|always|manual|off');

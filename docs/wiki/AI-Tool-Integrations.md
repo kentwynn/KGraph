@@ -6,6 +6,7 @@ KGraph integrations are local instruction files. They do not start background ag
 
 ```bash
 kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
+kgraph integrate add copilot --mode smart
 kgraph integrate list
 ```
 
@@ -18,7 +19,7 @@ kgraph integrate list
 | `manual` | Exposes KGraph instructions, but the agent runs KGraph only when explicitly requested.                         |
 | `off`    | Disables that integration and removes KGraph-managed instruction blocks or files.                              |
 
-New integrations default to `smart` mode. Use `--mode always` to force KGraph on every chat, or `--mode manual` to run only when explicitly asked.
+New integrations default to `always` mode, so every chat in the repository starts with `kgraph "<topic>"`. Use `--mode smart` to run KGraph only for repo-specific work, or `--mode manual` to run only when explicitly asked.
 
 Generated instructions teach agents to use the atom-native workflow: `context`, `pack`, `knowledge`, `stale`, `blame`, `conclude`, `compact`, `repair`, `impact`, `history`, and `session` where supported.
 

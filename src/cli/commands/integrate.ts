@@ -39,7 +39,7 @@ export function registerIntegrateCommand(program: Command): void {
     .command('add')
     .description('Add AI tool integrations')
     .argument('<names...>')
-    .option('--mode <mode>', 'always, smart, manual, or off', 'smart')
+    .option('--mode <mode>', 'always, smart, manual, or off', 'always')
     .action((names: string[], options: { mode: string }) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());

@@ -76,12 +76,13 @@ describe('kgraph init', () => {
 
       const result = await runCli(repo, ['init', '--integration', 'copilot']);
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain('Configured integrations: copilot:smart');
+      expect(result.stdout).toContain('Configured integrations: copilot:always');
       expect(result.stdout).toContain('AI integrations');
-      expect(result.stdout).toContain('copilot: smart');
+      expect(result.stdout).toContain('copilot: always');
       expect(result.stdout).not.toContain('none configured');
     } finally {
       await cleanupTempRepo(repo);
     }
   });
+
 });

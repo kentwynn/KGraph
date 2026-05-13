@@ -63,16 +63,18 @@ export function applyContextPolicy(
 }
 
 export function renderContextPolicy(mode: IntegrationMode): string {
+  const useResultBoundary =
+    'Use the returned KGraph candidate files as the first-pass source of truth. Do not rerun the same KGraph query just to tail or reformat output, do not continue broad repository search after the target file is identified, do not retry malformed shell commands with broader variants, and do not run broad `find`, recursive `grep`, or repeated full-file dumps after KGraph has narrowed the target.';
   switch (mode) {
     case 'always':
-      return 'Every chat in this repository must start by running `kgraph "<topic>"` before answering or exploring files. Infer the topic from the user\'s message; no exceptions, including simple or conversational requests.';
+      return `Every chat in this repository must start by running \`kgraph "<topic>"\` before answering or exploring files. Infer the topic from the user's message; no exceptions, including simple or conversational requests. ${useResultBoundary}`;
     case 'manual':
       return 'Do not run KGraph automatically. Run `kgraph "<topic>"` only when the user explicitly asks for KGraph context or invokes the KGraph command.';
     case 'off':
       return 'KGraph is disabled for this integration.';
     case 'smart':
     default:
-      return 'For repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests, run `kgraph "<topic>"` before broad repository exploration. Infer the topic from the user\'s message. Skip KGraph for simple conversational requests that do not depend on repo knowledge.';
+      return `For repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests, run \`kgraph "<topic>"\` before broad repository exploration. Infer the topic from the user's message. Skip KGraph for simple conversational requests that do not depend on repo knowledge. ${useResultBoundary}`;
   }
 }
 

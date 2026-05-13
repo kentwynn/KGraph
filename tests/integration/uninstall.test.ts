@@ -1,7 +1,12 @@
 import { access, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { cleanupTempRepo, createTempRepo, runCli } from '../fixtures/helpers.js';
+import {
+  cleanupTempRepo,
+  createTempRepo,
+  runCli,
+  writeText,
+} from '../fixtures/helpers.js';
 
 describe('kgraph uninstall', () => {
   it('previews by default and removes workspace plus managed integrations with --yes', async () => {
@@ -58,6 +63,33 @@ describe('kgraph uninstall', () => {
       expect(await readFile(path.join(repo, 'AGENTS.md'), 'utf8')).toContain(
         'BEGIN KGRAPH codex',
       );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('removes legacy generated Copilot agent files during full uninstall', async () => {
+    const repo = await createTempRepo();
+    try {
+      await runCli(repo, ['init', '--integration', 'copilot']);
+      await writeText(
+        repo,
+        '.github/agents/kgraph.agent.md',
+        'old Copilot custom agent\n',
+      );
+
+      const apply = await runCli(repo, ['uninstall', '--yes']);
+      expect(apply.code).toBe(0);
+      await expect(access(path.join(repo, '.kgraph'))).rejects.toThrow();
+      await expect(
+        access(path.join(repo, '.github', 'agents', 'kgraph.agent.md')),
+      ).rejects.toThrow();
+
+      const initAgain = await runCli(repo, ['init']);
+      expect(initAgain.code).toBe(0);
+      await expect(
+        access(path.join(repo, '.github', 'agents', 'kgraph.agent.md')),
+      ).rejects.toThrow();
     } finally {
       await cleanupTempRepo(repo);
     }

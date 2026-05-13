@@ -191,7 +191,7 @@ function normalizeIntegrations(value: unknown): IntegrationConfig[] {
 }
 
 function normalizeIntegrationMode(value: unknown): IntegrationMode {
-  return value === 'always' || value === 'manual' || value === 'off'
+  return value === 'smart' || value === 'manual' || value === 'off'
     ? value
-    : 'smart';
+    : 'always';
 }
