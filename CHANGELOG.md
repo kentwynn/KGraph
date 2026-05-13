@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.16](https://github.com/kentwynn/KGraph/compare/v0.2.15...v0.2.16) (2026-05-13)
+
+### ### Added
+
+* expand context command and help system improvements ([883e4b5](https://github.com/kentwynn/KGraph/commit/883e4b5694835ea28f71e7d8f53143326c0dd622))
+
 ## [0.2.15](https://github.com/kentwynn/KGraph/compare/v0.2.14...v0.2.15) (2026-05-13)
 
 ### ### Added
