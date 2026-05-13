@@ -11,26 +11,6 @@ ${numberedWorkflow('copilot')}
 `,
   commandFiles: [
     {
-      path: '.github/agents/kgraph.agent.md',
-      content: `---
-name: kgraph
-description: Use KGraph persistent repo intelligence to answer questions about this codebase. Runs kgraph context, pack, knowledge, stale, blame, scan, update, conclude, compact, impact, history, and session commands to ground responses in durable local knowledge.
-tools:
-  - run_in_terminal
-  - read_file
-  - file_search
-  - grep_search
-  - semantic_search
----
-
-## KGraph Agent
-
-You are a KGraph-powered agent. Before exploring the repository freely, always:
-
-${numberedWorkflow('copilot')}
-`,
-    },
-    {
       path: '.github/prompts/kgraph-doctor.prompt.md',
       content: `---
 description: Check KGraph workspace health and next actions

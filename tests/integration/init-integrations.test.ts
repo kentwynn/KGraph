@@ -19,7 +19,7 @@ describe('kgraph init integrations', () => {
       ]);
       expect(result.code).toBe(0);
       expect(result.stdout).toContain(
-        'Configured integrations: codex:smart, cursor:smart',
+        'Configured integrations: codex:always, cursor:always',
       );
 
       await access(path.join(repo, 'AGENTS.md'));
@@ -45,7 +45,7 @@ describe('kgraph init integrations', () => {
       ).toEqual(['codex', 'cursor']);
       expect(
         config.integrations.map((item: { mode: string }) => item.mode),
-      ).toEqual(['smart', 'smart']);
+      ).toEqual(['always', 'always']);
     } finally {
       await cleanupTempRepo(repo);
     }

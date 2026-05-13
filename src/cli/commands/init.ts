@@ -41,7 +41,7 @@ export function registerInitCommand(program: Command): void {
     .option(
       '--mode <mode>',
       'Integration mode: always, smart, manual, or off',
-      'smart',
+      'always',
     )
     .action((options: InitOptions) =>
       runCommand(async () => {
@@ -98,7 +98,11 @@ export function registerInitCommand(program: Command): void {
             recommendedIntegrations,
           );
           if (selected.length > 0) {
-            const changed = await addIntegrations(workspace, selected, 'smart');
+            const changed = await addIntegrations(
+              workspace,
+              selected,
+              'always',
+            );
             console.log(
               `Configured integrations: ${changed.map((item) => `${item.name}:${item.mode}`).join(', ')}`,
             );

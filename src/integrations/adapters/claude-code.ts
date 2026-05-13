@@ -1,6 +1,4 @@
 import type { IntegrationAdapter } from '../integration-registry.js';
-import { numberedWorkflow } from '../workflow-steps.js';
-
 export const claudeCodeAdapter: IntegrationAdapter = {
   name: 'claude-code',
   label: 'Claude Code',
@@ -8,13 +6,22 @@ export const claudeCodeAdapter: IntegrationAdapter = {
   instructions: `## KGraph Workflow
 
 {{KGRAPH_CONTEXT_POLICY}} Use /kgraph for the full automated workflow. Run \`kgraph pack "<task>" --budget 8000 --json\` for a machine-readable token-budgeted context pack, \`kgraph knowledge list\` or \`kgraph knowledge get <atom-id>\` to inspect durable atoms, \`kgraph stale\` and \`kgraph blame <atom-id>\` when lifecycle/provenance matters, \`kgraph conclude\` for durable typed engineering memory, and \`kgraph compact --dry-run\` when cognition looks duplicated or stale. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
+
+{{KGRAPH_CAPTURE_POLICY}}
 `,
   commandFiles: [
     {
       path: '.claude/commands/kgraph.md',
-      content: `Use KGraph persistent repo intelligence for the current request.
+      content: `Use KGraph persistent repo intelligence through the single normal \`kgraph "<topic>"\` entry point.
 
-${numberedWorkflow('claude-code', { sessionQualifier: 'when native hooks are unavailable' })}
+1. Infer a concise topic from the user's request.
+2. Run exactly one command from the repository root: \`kgraph "<topic>"\`.
+3. Treat the returned files, symbols, relationships, atoms, and warnings as the first-pass source of truth.
+4. If the user asked for an edit, inspect only the returned candidate file or the smallest necessary range, then make the edit.
+5. Verify the change actually landed before claiming completion. Prefer a narrow read of the changed range or \`git diff -- <path>\`; if there is no diff or the expected text is missing, say the edit did not apply and fix it before summarizing.
+6. Do not run \`kgraph\` again, \`kgraph context\`, \`kgraph pack\`, \`kgraph knowledge\`, \`kgraph stale\`, \`kgraph blame\`, \`kgraph scan\`, \`kgraph update\`, \`kgraph compact\`, or \`kgraph repair\` unless the user explicitly asks for that lower-level command.
+7. Do not continue broad repository search after the target file is identified. If a path must be located, prefer \`rg --files\` and quote paths containing spaces or parentheses.
+8. At the end of repository-file changes, store durable engineering memory with \`kgraph conclude "<topic>" --type <finding|decision|gotcha|summary|relationship> --confidence <high|medium|low>\` only when the work created reusable engineering knowledge.
 `,
     },
     {

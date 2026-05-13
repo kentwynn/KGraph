@@ -308,13 +308,13 @@ KGraph integrations are local files. They do not start background agents, call A
 
 ```bash
 kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
-kgraph integrate add copilot --mode always
+kgraph integrate add copilot --mode smart
 kgraph integrate set copilot --mode manual
 kgraph integrate list
 kgraph integrate remove cursor
 ```
 
-New integrations default to `smart` mode. Use `--mode always` to force KGraph on every chat, or `--mode manual` to run only when explicitly asked.
+New integrations default to `always` mode, so every chat in the repository starts with `kgraph "<topic>"`. Use `--mode smart` to run KGraph only for repo-specific work, or `--mode manual` to run only when explicitly asked.
 
 | Mode     | Behavior                                                                                                                                                                                                |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

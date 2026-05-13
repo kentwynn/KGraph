@@ -10,6 +10,20 @@ describe('config', () => {
     expect(normalizeConfig({ maxContextItems: 3 }).maxContextItems).toBe(3);
   });
 
+  it('defaults missing integration modes to always', () => {
+    const config = normalizeConfig({
+      integrations: [
+        {
+          name: 'copilot',
+          enabled: true,
+          targetPath: '.github/copilot-instructions.md',
+        } as never,
+      ],
+    });
+
+    expect(config.integrations[0]?.mode).toBe('always');
+  });
+
   it('keeps built-in project hygiene excludes when custom excludes are configured', () => {
     const config = normalizeConfig({ exclude: ['custom-generated'] });
 

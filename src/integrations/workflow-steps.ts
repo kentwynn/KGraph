@@ -11,6 +11,8 @@ const HISTORY_STEP = `Run \`kgraph history\` or \`kgraph history "<topic>"\` to 
 const KNOWLEDGE_STEP = `Run \`kgraph knowledge list --topic "<topic>"\` or \`kgraph knowledge get <atom-id>\` when the user asks what KGraph remembers or atom provenance/lifecycle matters.`;
 const PACK_STEP = `Run \`kgraph pack "<task>" --budget 8000 --json\` when an agent needs a machine-readable, token-budgeted context pack instead of human Markdown context.`;
 const STALE_STEP = `Run \`kgraph stale\` when changed or deleted code may have invalidated durable knowledge. Run \`kgraph blame <atom-id>\` when provenance or evidence for a memory matters.`;
+const EXPLORATION_BOUNDARY_STEP = `Keep exploration bounded by the task. For simple edits, use KGraph to identify the likely file, then read only that file or a narrow range and make the edit. Do not keep searching after the target file is found, do not retry malformed shell commands with broader variants, and do not run broad \`find\`, recursive \`grep\`, or repeated full-file dumps after KGraph already returned candidate files. Use \`rg --files\` and quoted paths when a path must be located.`;
+const VERIFY_EDIT_STEP = `After editing, verify the change actually landed before claiming completion. Prefer a narrow read of the changed range or \`git diff -- <path>\`; if there is no diff or the expected text is missing, say the edit did not apply and fix it before summarizing.`;
 
 function sessionStep(agentName: string, qualifier?: string): string {
   const base = `Track meaningful session activity with \`kgraph session start --agent ${agentName}\`, \`kgraph session read <path> --agent ${agentName}\`, \`kgraph session write <path> --agent ${agentName}\`, and \`kgraph session end --agent ${agentName} --conclude --topic "<topic>"\` when durable session memory is useful`;
@@ -33,19 +35,21 @@ export function numberedWorkflow(
   return `1. Infer the topic from the user's request.
 2. {{KGRAPH_CONTEXT_POLICY}}
 3. Use the returned files, symbols, relationships, and cognition before broad exploration.
-4. ${PACK_STEP}
-5. ${KNOWLEDGE_STEP}
-6. ${DOCTOR_STEP}
-7. ${STALE_STEP}
-8. ${sessionStep(agentName, options.sessionQualifier)}
-9. ${IMPACT_STEP}
+4. ${EXPLORATION_BOUNDARY_STEP}
+5. ${VERIFY_EDIT_STEP}
+6. ${PACK_STEP}
+7. ${KNOWLEDGE_STEP}
+8. ${DOCTOR_STEP}
+9. ${STALE_STEP}
+10. ${sessionStep(agentName, options.sessionQualifier)}
+11. ${IMPACT_STEP}
 
 {{KGRAPH_CAPTURE_POLICY}}
 
-10. ${REPAIR_STEP}
-11. ${COMPACT_STEP}
-12. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-13. ${HISTORY_STEP}`;
+12. ${REPAIR_STEP}
+13. ${COMPACT_STEP}
+14. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+15. ${HISTORY_STEP}`;
 }
 
 /**
@@ -57,6 +61,8 @@ export function bulletWorkflow(
   options: WorkflowOptions = {},
 ): string {
   return `- {{KGRAPH_CONTEXT_POLICY}}
+- ${EXPLORATION_BOUNDARY_STEP}
+- ${VERIFY_EDIT_STEP}
 - ${PACK_STEP}
 - ${KNOWLEDGE_STEP}
 - ${DOCTOR_STEP}
