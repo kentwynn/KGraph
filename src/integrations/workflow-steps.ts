@@ -6,10 +6,11 @@
 const DOCTOR_STEP = `Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.`;
 const IMPACT_STEP = `Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when prior work or decisions matter.`;
 const REPAIR_STEP = `Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.`;
+const COMPACT_STEP = `Run \`kgraph compact --dry-run\` when cognition looks duplicated, noisy, or stale. Run \`kgraph compact\` only when the user asks to merge/archive cognition.`;
 const HISTORY_STEP = `Run \`kgraph history\` or \`kgraph history "<topic>"\` to review past cognition sessions with git author attribution.`;
 
 function sessionStep(agentName: string, qualifier?: string): string {
-  const base = `Track meaningful session activity with \`kgraph session start --agent ${agentName}\`, \`kgraph session read <path> --agent ${agentName}\`, \`kgraph session write <path> --agent ${agentName}\`, and \`kgraph session end --agent ${agentName}\``;
+  const base = `Track meaningful session activity with \`kgraph session start --agent ${agentName}\`, \`kgraph session read <path> --agent ${agentName}\`, \`kgraph session write <path> --agent ${agentName}\`, and \`kgraph session end --agent ${agentName} --conclude --topic "<topic>"\` when durable session memory is useful`;
   return qualifier ? `${base} ${qualifier}.` : `${base}.`;
 }
 
@@ -36,8 +37,9 @@ export function numberedWorkflow(
 {{KGRAPH_CAPTURE_POLICY}}
 
 7. ${REPAIR_STEP}
-8. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-9. ${HISTORY_STEP}`;
+8. ${COMPACT_STEP}
+9. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+10. ${HISTORY_STEP}`;
 }
 
 /**
@@ -54,6 +56,7 @@ export function bulletWorkflow(
 - ${IMPACT_STEP}
 {{KGRAPH_CAPTURE_POLICY}}
 - ${REPAIR_STEP}
+- ${COMPACT_STEP}
 - Run \`kgraph visualize\` to open the interactive dependency graph at http://localhost:4242 with PNG export.
 - ${HISTORY_STEP}`;
 }

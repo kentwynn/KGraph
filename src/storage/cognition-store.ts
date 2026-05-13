@@ -65,9 +65,9 @@ export async function readCognitionNotes(workspace: KGraphWorkspace): Promise<Co
     }
     const filePath = path.join(workspace.cognitionPath, entry.name);
     const raw = await readFile(filePath, "utf8");
-    const encoded = parseEmbeddedJson<CognitionNote>(raw);
+    const encoded = parseEmbeddedJson<Partial<CognitionNote>>(raw);
     if (encoded) {
-      notes.push(encoded);
+      notes.push(normalizeCognitionNote(encoded));
     }
   }
   return notes;
@@ -96,6 +96,31 @@ export async function readDomainRecords(workspace: KGraphWorkspace): Promise<Dom
 function parseEmbeddedJson<T>(raw: string): T | undefined {
   const encoded = raw.match(/```json\n([\s\S]*?)\n```/);
   return encoded ? (JSON.parse(encoded[1]) as T) : undefined;
+}
+
+function normalizeCognitionNote(note: Partial<CognitionNote>): CognitionNote {
+  const title = note.title ?? 'Untitled Cognition Note';
+  return {
+    title,
+    kind: note.kind ?? 'summary',
+    confidence: note.confidence ?? 'medium',
+    domain: note.domain,
+    tags: note.tags ?? [],
+    summary: note.summary,
+    sections: note.sections ?? {},
+    relatedFiles: note.relatedFiles ?? [],
+    relatedSymbols: note.relatedSymbols ?? [],
+    warnings: note.warnings ?? [],
+    id: (note.id ?? slugify(title)) || 'cognition-note',
+    sourceInboxPath: note.sourceInboxPath ?? '',
+    processedPath: note.processedPath ?? '',
+    createdAt: note.createdAt ?? '',
+    updatedAt: note.updatedAt,
+    source: note.source ?? 'inbox',
+    supersedes: note.supersedes,
+    supersededBy: note.supersededBy,
+    referencesStatus: note.referencesStatus ?? 'unresolved',
+  };
 }
 
 function mergeDomainRecords(existing: DomainRecord, next: DomainRecord): DomainRecord {
@@ -130,7 +155,7 @@ function renderCognitionNote(note: CognitionNote): string {
   const sectionText = Object.entries(note.sections)
     .map(([heading, content]) => `## ${heading}\n\n${content.trim()}`)
     .join("\n\n");
-  return `# ${note.title}\n\nStatus: ${note.referencesStatus}\n\n${sectionText}\n\n## KGraph Metadata\n\n\`\`\`json\n${JSON.stringify(note, null, 2)}\n\`\`\`\n`;
+  return `# ${note.title}\n\nType: ${note.kind ?? 'summary'}\nConfidence: ${note.confidence ?? 'medium'}\nStatus: ${note.referencesStatus}\nSource: ${note.source ?? 'inbox'}\n\n${sectionText}\n\n## KGraph Metadata\n\n\`\`\`json\n${JSON.stringify(note, null, 2)}\n\`\`\`\n`;
 }
 
 function renderDomainRecord(domain: DomainRecord): string {

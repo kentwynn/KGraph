@@ -166,6 +166,8 @@ describe('graph-builder', () => {
     const note: CognitionNote = {
       id: 'n1',
       title: 'Auth Notes',
+      kind: 'summary',
+      confidence: 'medium',
       domain: 'auth',
       tags: [],
       sections: {},
@@ -175,6 +177,7 @@ describe('graph-builder', () => {
       sourceInboxPath: '',
       processedPath: '',
       createdAt: '',
+      source: 'inbox',
       warnings: [],
     };
     const result = buildGraph(
@@ -200,6 +203,8 @@ describe('graph-builder', () => {
     const note: CognitionNote = {
       id: 'n1',
       title: 'Notes',
+      kind: 'summary',
+      confidence: 'medium',
       domain: undefined,
       tags: [],
       sections: {},
@@ -209,6 +214,7 @@ describe('graph-builder', () => {
       sourceInboxPath: '',
       processedPath: '',
       createdAt: '',
+      source: 'inbox',
       warnings: [],
     };
     const result = buildGraph(
@@ -247,6 +253,8 @@ describe('graph-builder', () => {
     const note: CognitionNote = {
       id: 'n1',
       title: 'N',
+      kind: 'summary',
+      confidence: 'medium',
       domain: undefined,
       tags: [],
       sections: {},
@@ -256,6 +264,7 @@ describe('graph-builder', () => {
       sourceInboxPath: '',
       processedPath: '',
       createdAt: '',
+      source: 'inbox',
       warnings: [],
     };
     const result = buildGraph(

@@ -1,9 +1,19 @@
 import type { CodeSymbol, Relationship, RepositoryFile } from './maps.js';
 
 export type ReferenceStatus = 'current' | 'stale' | 'unresolved' | 'mixed';
+export type CognitionKind =
+  | 'finding'
+  | 'decision'
+  | 'gotcha'
+  | 'summary'
+  | 'relationship';
+export type CognitionConfidence = 'high' | 'medium' | 'low';
+export type CognitionSource = 'inbox' | 'conclude' | 'session-conclude' | 'compact';
 
 export interface ParsedCognitionNote {
   title: string;
+  kind: CognitionKind;
+  confidence: CognitionConfidence;
   domain?: string;
   tags: string[];
   summary?: string;
@@ -18,6 +28,10 @@ export interface CognitionNote extends ParsedCognitionNote {
   sourceInboxPath: string;
   processedPath: string;
   createdAt: string;
+  updatedAt?: string;
+  source: CognitionSource;
+  supersedes?: string[];
+  supersededBy?: string;
   referencesStatus: ReferenceStatus;
 }
 

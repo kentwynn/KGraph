@@ -41,6 +41,8 @@ describe('integration registry', () => {
         '.github/prompts/kgraph-impact.prompt.md',
         '.github/prompts/kgraph-session.prompt.md',
         '.github/prompts/kgraph-repair.prompt.md',
+        '.github/prompts/kgraph-compact.prompt.md',
+        '.github/prompts/kgraph-conclude.prompt.md',
         '.github/prompts/kgraph-scan.prompt.md',
       ]),
     );
@@ -58,6 +60,8 @@ describe('integration registry', () => {
         '.claude/commands/kgraph-impact.md',
         '.claude/commands/kgraph-session.md',
         '.claude/commands/kgraph-repair.md',
+        '.claude/commands/kgraph-compact.md',
+        '.claude/commands/kgraph-conclude.md',
       ]),
     );
   });
@@ -74,14 +78,16 @@ describe('integration registry', () => {
       expect(content).toContain('kgraph doctor');
       expect(content).toContain('kgraph session');
       expect(content).toContain('kgraph repair --dry-run');
+      expect(content).toContain('kgraph compact --dry-run');
+      expect(content).toContain('kgraph conclude');
       expect(content).toContain(
         'At the end of any session that changed repository files',
       );
-      expect(content).toContain('write one concise Markdown note');
+      expect(content).toContain('store durable engineering memory');
       expect(content).toContain(
         'KGraph runtime capture, not project documentation',
       );
-      expect(content).toContain('Do not skip capture for UI text');
+      expect(content).toContain('Do not skip capture for meaningful UI text');
       expect(content).toContain('If repo files changed');
     }
     expect(

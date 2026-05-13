@@ -14,7 +14,7 @@ ${numberedWorkflow('copilot')}
       path: '.github/agents/kgraph.agent.md',
       content: `---
 name: kgraph
-description: Use KGraph persistent repo intelligence to answer questions about this codebase. Runs kgraph context, scan, update, impact, history, and session commands to ground responses in durable local knowledge.
+description: Use KGraph persistent repo intelligence to answer questions about this codebase. Runs kgraph context, scan, update, conclude, compact, impact, history, and session commands to ground responses in durable local knowledge.
 tools:
   - run_in_terminal
   - read_file
@@ -49,6 +49,17 @@ argument-hint: "--dry-run or apply"
 ---
 
 Run \`kgraph repair --dry-run\` first and summarize the proposed cognition cleanup. Run \`kgraph repair\` only when the user asks to apply the cleanup.
+`,
+    },
+    {
+      path: '.github/prompts/kgraph-compact.prompt.md',
+      content: `---
+description: Merge duplicate KGraph cognition and archive stale low-value entries
+agent: agent
+argument-hint: "--dry-run or apply"
+---
+
+Run \`kgraph compact --dry-run\` first and summarize duplicate cognition groups and stale low-confidence notes. Run \`kgraph compact\` only when the user asks to apply compaction.
 `,
     },
     {
@@ -95,6 +106,17 @@ Capture this session into KGraph cognition.
 `,
     },
     {
+      path: '.github/prompts/kgraph-conclude.prompt.md',
+      content: `---
+description: Store a typed durable KGraph engineering conclusion
+agent: agent
+argument-hint: "Topic plus optional type, confidence, files, and symbols"
+---
+
+Use \`kgraph conclude "$ARGUMENTS"\` when the session produced reusable engineering knowledge. Choose one type from finding, decision, gotcha, summary, relationship, and one confidence from high, medium, low. Store only durable conclusions, not raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
+`,
+    },
+    {
       path: '.github/prompts/kgraph-impact.prompt.md',
       content: `---
 description: Show KGraph change impact for a file, symbol, or topic
@@ -113,7 +135,7 @@ agent: agent
 argument-hint: "start, read <path>, write <path>, end, or status"
 ---
 
-Use \`kgraph session\` to inspect current session activity. Record meaningful events with \`kgraph session start --agent copilot\`, \`kgraph session read <path> --agent copilot\`, \`kgraph session write <path> --agent copilot\`, and \`kgraph session end --agent copilot\`.
+Use \`kgraph session\` to inspect current session activity. Record meaningful events with \`kgraph session start --agent copilot\`, \`kgraph session read <path> --agent copilot\`, \`kgraph session write <path> --agent copilot\`, and \`kgraph session end --agent copilot --conclude --topic "<topic>"\` when durable session memory is useful.
 `,
     },
     {

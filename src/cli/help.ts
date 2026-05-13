@@ -45,6 +45,15 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'Record an agent file read',
     ),
     command(
+      'session end --agent codex --conclude',
+      'End tracking and store a durable session summary',
+    ),
+    command(
+      'conclude "auth refresh gotcha"',
+      'Store typed engineering cognition',
+    ),
+    command('compact', 'Merge duplicate cognition and archive stale noise'),
+    command(
       'context "auth token refresh"',
       'Optional: return context without scanning or updating',
     ),

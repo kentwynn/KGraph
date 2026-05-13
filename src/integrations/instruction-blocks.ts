@@ -78,14 +78,20 @@ export function renderContextPolicy(mode: IntegrationMode): string {
 
 export function renderCapturePolicy(): string {
   return `Capture policy:
-- At the end of any session that changed repository files, write one concise Markdown note to \`.kgraph/inbox/<slug>.md\` before finishing.
-- A \`.kgraph/inbox/*.md\` note is KGraph runtime capture, not project documentation. It is allowed and required by this workflow unless the user explicitly says not to capture to KGraph.
-- Do not skip capture for UI text, button, link, route, styling, or small file edits. Skip capture only when no repository files changed.
+- At the end of any session that changed repository files, store durable engineering memory with \`kgraph conclude "<topic>" --type <finding|decision|gotcha|summary|relationship> --confidence <high|medium|low>\` or \`kgraph session end --agent <agent> --conclude --topic "<topic>"\`.
+- Preserve only expensive-to-rediscover findings, decisions, gotchas, summaries, and relationships. Do not store raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
+- Use \`.kgraph/inbox/<slug>.md\` only when a longer structured note is clearer than a single \`kgraph conclude\` command.
+- A \`.kgraph/inbox/*.md\` note is KGraph runtime capture, not project documentation. It is allowed by this workflow unless the user explicitly says not to capture to KGraph.
+- Do not skip capture for meaningful UI text, button, link, route, styling, or small file edits. Skip capture only when no reusable repository knowledge was created.
 - Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\`. If repo files changed, write the inbox note first, then run \`kgraph\` once at the end.
-- After the final \`kgraph\` run, mention whether the inbox note was processed.
+- After the final \`kgraph\` run, mention whether durable cognition was stored or processed.
 
-The inbox note must use this structure:
+When using an inbox note, use this structure:
 \`\`\`markdown
+---
+type: finding
+confidence: medium
+---
 # <Short Title>
 
 ## Summary

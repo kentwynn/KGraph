@@ -7,6 +7,7 @@ import {
   readCognitionNotes,
   readDomainRecords,
 } from '../storage/cognition-store.js';
+import { readSessionState } from '../session/session-store.js';
 import type { ContextResponse, GitContextChange } from '../types/cognition.js';
 import type { KGraphConfig, KGraphWorkspace } from '../types/config.js';
 import type {
@@ -32,6 +33,12 @@ export async function queryContext(
 ): Promise<ContextResponse> {
   const cognition = await readCognitionNotes(workspace);
   const domains = await readDomainRecords(workspace);
+  const session = await readSessionState(workspace);
+  const sessionTouchedPaths = new Set(
+    session.events
+      .map((event) => event.path)
+      .filter((path): path is string => Boolean(path)),
+  );
   const max = config.maxContextItems;
   let relevantFiles = rankByFields(query, maps.fileMap.files, [
     { name: 'path', value: (file) => file.path },
@@ -39,7 +46,13 @@ export async function queryContext(
   ])
     .map((ranked) => ({
       ...ranked,
-      score: ranked.score - Math.floor((ranked.item.tokenEstimate ?? 0) / 2000),
+      score:
+        ranked.score -
+        Math.floor((ranked.item.tokenEstimate ?? 0) / 2000) +
+        (sessionTouchedPaths.has(ranked.item.path) ? 3 : 0),
+      reasons: sessionTouchedPaths.has(ranked.item.path)
+        ? [...ranked.reasons, 'touched in current session']
+        : ranked.reasons,
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, max);
@@ -51,12 +64,17 @@ export async function queryContext(
   ]).slice(0, max);
   const relevantCognition = rankByFields(query, cognition, [
     { name: 'title', value: (note) => note.title },
+    { name: 'type', value: (note) => note.kind },
+    { name: 'confidence', value: (note) => note.confidence },
     { name: 'domain', value: (note) => note.domain },
     { name: 'tags', value: (note) => note.tags },
     { name: 'files', value: (note) => note.relatedFiles },
     { name: 'symbols', value: (note) => note.relatedSymbols },
     { name: 'summary', value: (note) => note.summary },
-  ]).slice(0, max);
+  ])
+    .map((ranked) => applyCognitionRankAdjustments(ranked))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max);
   const matchedDomains = rankByFields(query, domains, [
     { name: 'name', value: (domain) => domain.name },
     { name: 'tags', value: (domain) => domain.tags },
@@ -378,6 +396,40 @@ function explainRelationships(
 
     return { relationship, reasons: [...reasons] };
   });
+}
+
+function applyCognitionRankAdjustments<T extends {
+  confidence?: string;
+  referencesStatus?: string;
+  kind?: string;
+}>(ranked: Ranked<T>): Ranked<T> {
+  const reasons = [...ranked.reasons];
+  let score = ranked.score;
+  if (ranked.item.confidence === 'high') {
+    score += 3;
+    reasons.push('high confidence cognition');
+  } else if (ranked.item.confidence === 'low') {
+    score -= 2;
+    reasons.push('low confidence penalty');
+  }
+  if (ranked.item.referencesStatus === 'current') {
+    score += 2;
+    reasons.push('current references');
+  } else if (ranked.item.referencesStatus === 'mixed') {
+    score -= 1;
+    reasons.push('mixed reference penalty');
+  } else if (
+    ranked.item.referencesStatus === 'stale' ||
+    ranked.item.referencesStatus === 'unresolved'
+  ) {
+    score -= 4;
+    reasons.push('stale reference penalty');
+  }
+  if (ranked.item.kind === 'decision' || ranked.item.kind === 'gotcha') {
+    score += 1;
+    reasons.push(`${ranked.item.kind} cognition`);
+  }
+  return { ...ranked, score, reasons };
 }
 
 function dependenciesForImportedSymbol(

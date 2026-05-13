@@ -27,7 +27,8 @@ describe("instruction blocks", () => {
   it("renders shared capture policy", () => {
     const content = applyContextPolicy("Capture: {{KGRAPH_CAPTURE_POLICY}}", "always");
     expect(content).toContain("KGraph runtime capture, not project documentation");
-    expect(content).toContain("Do not skip capture for UI text");
-    expect(content).toContain("The inbox note must use this structure");
+    expect(content).toContain("kgraph conclude");
+    expect(content).toContain("Do not skip capture for meaningful UI text");
+    expect(content).toContain("When using an inbox note, use this structure");
   });
 });

@@ -12,6 +12,8 @@ describe('kgraph repair', () => {
       await runCli(repo, ['scan']);
       const note: CognitionNote = {
         title: 'Auth Cleanup',
+        kind: 'finding',
+        confidence: 'medium',
         tags: [],
         summary: 'Auth note with noisy refs.',
         sections: { Summary: 'Auth note with noisy refs.' },
@@ -22,6 +24,7 @@ describe('kgraph repair', () => {
         sourceInboxPath: '.kgraph/inbox/auth-cleanup.md',
         processedPath: '.kgraph/interactions/processed/auth-cleanup.md',
         createdAt: new Date().toISOString(),
+        source: 'inbox',
         referencesStatus: 'mixed',
       };
       await mkdir(path.join(repo, '.kgraph/cognition'), { recursive: true });
@@ -41,6 +44,9 @@ describe('kgraph repair', () => {
       expect(repair.stdout).toContain('KGraph Repair');
 
       const repaired = await readCognition(repo, 'auth-cleanup.md');
+      expect(repaired.kind).toBe('finding');
+      expect(repaired.confidence).toBe('medium');
+      expect(repaired.source).toBe('inbox');
       expect(repaired.relatedFiles).toEqual(['src/auth.ts']);
       // loginUser exists in the fixture; className is camelCase so it is preserved
       expect(repaired.relatedSymbols).toEqual(['loginUser', 'className']);

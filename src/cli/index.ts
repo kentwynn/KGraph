@@ -3,6 +3,8 @@ import { Command } from 'commander';
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { registerCompactCommand } from './commands/compact.js';
+import { registerConcludeCommand } from './commands/conclude.js';
 import { registerContextCommand } from './commands/context.js';
 import { registerDoctorCommand } from './commands/doctor.js';
 import { registerHistoryCommand } from './commands/history.js';
@@ -47,6 +49,8 @@ export function createProgram(): Command {
   registerInitCommand(program);
   registerScanCommand(program);
   registerSessionCommand(program);
+  registerConcludeCommand(program);
+  registerCompactCommand(program);
   registerUpdateCommand(program);
   registerContextCommand(program);
   registerImpactCommand(program);

@@ -1,5 +1,9 @@
 import YAML from 'yaml';
-import type { ParsedCognitionNote } from '../types/cognition.js';
+import type {
+  CognitionConfidence,
+  CognitionKind,
+  ParsedCognitionNote,
+} from '../types/cognition.js';
 
 const PATH_REF =
   /(?:^|\s|`?)([\w./-]+\.(?:ts|tsx|js|jsx|json|md|yaml|yml))(?:\s|$|[),.;`])/g;
@@ -17,6 +21,8 @@ export function parseMarkdownNote(markdown: string): ParsedCognitionNote {
 
   return {
     title,
+    kind: normalizeKind(frontmatter.type ?? frontmatter.kind, warnings),
+    confidence: normalizeConfidence(frontmatter.confidence, warnings),
     domain:
       typeof frontmatter.domain === 'string' ? frontmatter.domain : undefined,
     tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
@@ -26,6 +32,42 @@ export function parseMarkdownNote(markdown: string): ParsedCognitionNote {
     relatedSymbols: unique(extractSymbolRefs(sections)),
     warnings,
   };
+}
+
+function normalizeKind(
+  value: unknown,
+  warnings: string[],
+): CognitionKind {
+  if (
+    value === 'finding' ||
+    value === 'decision' ||
+    value === 'gotcha' ||
+    value === 'summary' ||
+    value === 'relationship'
+  ) {
+    return value;
+  }
+  if (value !== undefined) {
+    warnings.push(
+      `Unsupported cognition type "${String(value)}"; defaulted to summary.`,
+    );
+  }
+  return 'summary';
+}
+
+function normalizeConfidence(
+  value: unknown,
+  warnings: string[],
+): CognitionConfidence {
+  if (value === 'high' || value === 'medium' || value === 'low') {
+    return value;
+  }
+  if (value !== undefined) {
+    warnings.push(
+      `Unsupported confidence "${String(value)}"; defaulted to medium.`,
+    );
+  }
+  return 'medium';
 }
 
 function splitFrontmatter(
