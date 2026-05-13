@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.17](https://github.com/kentwynn/KGraph/compare/v0.2.16...v0.2.17) (2026-05-13)
+
+### ### Added
+
+* expand pack command, context pack and instruction block updates ([ea32e53](https://github.com/kentwynn/KGraph/commit/ea32e5396de2a6bcafbebd757eb6722b49c1b806))
+
 ## [0.2.16](https://github.com/kentwynn/KGraph/compare/v0.2.15...v0.2.16) (2026-05-13)
 
 ### ### Added
