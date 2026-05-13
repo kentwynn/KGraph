@@ -2,6 +2,10 @@ SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
+# Load .env if it exists (for GITHUB_TOKEN etc.)
+-include .env
+export
+
 .PHONY: help release release-minor release-major clean-branches clean-branches-dry-run
 
 help:

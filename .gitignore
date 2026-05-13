@@ -26,3 +26,4 @@ coverage/
 *.tgz
 .env
 .env.*
+!.env.example
