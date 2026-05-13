@@ -3,11 +3,9 @@ import {
   getWorkingTreeChangesDetailed,
   isGitRepo,
 } from '../scanner/git-utils.js';
-import {
-  readCognitionNotes,
-  readDomainRecords,
-} from '../storage/cognition-store.js';
+import { readDomainRecords } from '../storage/cognition-store.js';
 import { readSessionState } from '../session/session-store.js';
+import { atomToCognitionNote, readKnowledgeAtoms } from '../knowledge/atom-store.js';
 import type { ContextResponse, GitContextChange } from '../types/cognition.js';
 import type { KGraphConfig, KGraphWorkspace } from '../types/config.js';
 import type {
@@ -31,7 +29,10 @@ export async function queryContext(
   },
   query: string,
 ): Promise<ContextResponse> {
-  const cognition = await readCognitionNotes(workspace);
+  const atoms = await readKnowledgeAtoms(workspace);
+  const cognition = atoms
+    .filter((atom) => atom.status !== 'archived')
+    .map(atomToCognitionNote);
   const domains = await readDomainRecords(workspace);
   const session = await readSessionState(workspace);
   const sessionTouchedPaths = new Set(

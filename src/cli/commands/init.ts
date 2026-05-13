@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import { loadConfig, writeDefaultConfig } from '../../config/config.js';
 import { normalizeIntegrationNames } from '../../integrations/integration-registry.js';
 import { addIntegrations } from '../../integrations/integration-store.js';
+import { ensureKnowledgeStore } from '../../knowledge/atom-store.js';
 import { scanRepository } from '../../scanner/repo-scanner.js';
 import { ensureWorkspace } from '../../storage/kgraph-paths.js';
 import { readMaps, writeMaps } from '../../storage/map-store.js';
@@ -45,6 +46,7 @@ export function registerInitCommand(program: Command): void {
     .action((options: InitOptions) =>
       runCommand(async () => {
         const workspace = await ensureWorkspace(process.cwd());
+        await ensureKnowledgeStore(workspace);
         const wroteConfig = await writeDefaultConfig(workspace);
         console.log(
           wroteConfig

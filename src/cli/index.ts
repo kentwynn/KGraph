@@ -11,6 +11,8 @@ import { registerHistoryCommand } from './commands/history.js';
 import { registerImpactCommand } from './commands/impact.js';
 import { registerInitCommand } from './commands/init.js';
 import { registerIntegrateCommand } from './commands/integrate.js';
+import { registerKnowledgeCommand } from './commands/knowledge.js';
+import { registerPackCommand } from './commands/pack.js';
 import { registerRepairCommand } from './commands/repair.js';
 import { registerScanCommand } from './commands/scan.js';
 import { registerSessionCommand } from './commands/session.js';
@@ -53,6 +55,8 @@ export function createProgram(): Command {
   registerCompactCommand(program);
   registerUpdateCommand(program);
   registerContextCommand(program);
+  registerPackCommand(program);
+  registerKnowledgeCommand(program);
   registerImpactCommand(program);
   registerIntegrateCommand(program);
   registerVisualizeCommand(program);

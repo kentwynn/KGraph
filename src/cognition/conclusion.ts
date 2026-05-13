@@ -1,6 +1,7 @@
 import { readMaps } from '../storage/map-store.js';
 import { slugify, writeCognitionNote, writeDomainRecord } from '../storage/cognition-store.js';
 import { KGraphError } from '../cli/errors.js';
+import { createKnowledgeAtom } from '../knowledge/atom-store.js';
 import type {
   CognitionConfidence,
   CognitionKind,
@@ -22,6 +23,8 @@ export interface ConclusionInput {
   relatedFiles?: string[];
   relatedSymbols?: string[];
   source: CognitionSource;
+  agent?: string;
+  sessionId?: string;
 }
 
 export async function concludeTopic(
@@ -65,6 +68,30 @@ export async function concludeTopic(
     files: maps.fileMap.files,
     symbols: maps.symbolMap.symbols,
   }));
+  await createKnowledgeAtom(
+    workspace,
+    {
+      type: note.kind,
+      topic: note.title,
+      claim: note.summary ?? note.title,
+      summary: note.summary,
+      confidence: note.confidence,
+      files: note.relatedFiles,
+      symbols: note.relatedSymbols,
+      domains: note.domain ? [note.domain] : [],
+      sourceCommand:
+        input.source === 'session-conclude'
+          ? 'session-conclude'
+          : input.source === 'compact'
+            ? 'compact'
+            : 'conclude',
+      agent: input.agent,
+      sessionId: input.sessionId,
+      createdAt: note.createdAt,
+      idSeed: note.id,
+    },
+    maps,
+  );
   return note;
 }
 
@@ -124,6 +151,8 @@ export async function buildActiveSessionConclusion(
     body,
     source: 'session-conclude',
     relatedFiles: touchedFiles,
+    agent,
+    sessionId: active.sessionId,
   };
 }
 

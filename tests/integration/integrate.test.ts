@@ -64,6 +64,12 @@ describe('kgraph integrate', () => {
         path.join(repo, '.github', 'prompts', 'kgraph-compact.prompt.md'),
       );
       await access(
+        path.join(repo, '.github', 'prompts', 'kgraph-pack.prompt.md'),
+      );
+      await access(
+        path.join(repo, '.github', 'prompts', 'kgraph-knowledge.prompt.md'),
+      );
+      await access(
         path.join(repo, '.github', 'prompts', 'kgraph-conclude.prompt.md'),
       );
       await access(
@@ -76,6 +82,10 @@ describe('kgraph integrate', () => {
       );
       await access(
         path.join(repo, '.claude', 'commands', 'kgraph-compact.md'),
+      );
+      await access(path.join(repo, '.claude', 'commands', 'kgraph-pack.md'));
+      await access(
+        path.join(repo, '.claude', 'commands', 'kgraph-knowledge.md'),
       );
       await access(
         path.join(repo, '.claude', 'commands', 'kgraph-conclude.md'),
