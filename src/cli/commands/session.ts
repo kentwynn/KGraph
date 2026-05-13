@@ -1,5 +1,10 @@
 import type { Command } from 'commander';
 import {
+  buildActiveSessionConclusion,
+  concludeTopic,
+  type ConclusionInput,
+} from '../../cognition/conclusion.js';
+import {
   assertSessionAgent,
   buildSessionReport,
   recordSessionEvent,
@@ -9,10 +14,16 @@ import type { SessionCaptureSource } from '../../types/session.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { readMaps } from '../../storage/map-store.js';
 import { KGraphError, runCommand } from '../errors.js';
+import { normalizeConfidence, normalizeKind } from './conclude.js';
 
 interface SessionOptions {
   agent?: string;
   source?: SessionCaptureSource;
+  conclude?: boolean;
+  topic?: string;
+  type?: string;
+  confidence?: string;
+  note?: string;
   json?: boolean;
 }
 
@@ -90,15 +101,37 @@ export function registerSessionCommand(program: Command): void {
     .command('end')
     .requiredOption('--agent <name>', 'KGraph integration agent name')
     .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
+    .option('--conclude', 'Store a durable typed summary for this session')
+    .option('--topic <topic>', 'Conclusion topic when using --conclude')
+    .option('--type <type>', 'finding, decision, gotcha, summary, or relationship', 'summary')
+    .option('--confidence <level>', 'high, medium, or low', 'medium')
+    .option('--note <text>', 'Concise durable conclusion text')
     .action((options: SessionOptions) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
+        let pendingConclusion: ConclusionInput | undefined;
+        if (options.conclude) {
+          pendingConclusion = await buildActiveSessionConclusion(
+            workspace,
+            requireAgent(options.agent),
+            {
+              topic: options.topic ?? `${options.agent} session summary`,
+              body: options.note,
+              kind: normalizeKind(options.type),
+              confidence: normalizeConfidence(options.confidence),
+            },
+          );
+        }
         const event = await recordSessionEvent(workspace, {
           agent: requireAgent(options.agent),
           type: 'end',
           captureSource: normalizeSource(options.source),
         });
         console.log(`KGraph session ended for ${event.agent}.`);
+        if (pendingConclusion) {
+          const note = await concludeTopic(workspace, pendingConclusion);
+          console.log(`Stored session cognition: ${note.title}`);
+        }
       }),
     );
 

@@ -78,7 +78,7 @@ export function renderContextMarkdown(response: ContextResponse): string {
     ...formatList(
       response.relevantCognition.map(
         (item) =>
-          `- ${item.item.title} [${item.item.referencesStatus}] because ${formatReasons(item.reasons)}`,
+          `- ${item.item.title} [${item.item.kind ?? 'summary'}, ${item.item.confidence ?? 'medium'}, ${item.item.referencesStatus}] because ${formatReasons(item.reasons)}`,
       ),
     ),
   );

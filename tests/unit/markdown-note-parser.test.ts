@@ -14,6 +14,8 @@ tags: [jwt]
 See src/auth.ts and refreshSession.
 `);
     expect(note.title).toBe('Auth Notes');
+    expect(note.kind).toBe('summary');
+    expect(note.confidence).toBe('medium');
     expect(note.domain).toBe('auth');
     expect(note.tags).toEqual(['jwt']);
     expect(note.relatedFiles).toContain('src/auth.ts');
@@ -43,5 +45,21 @@ Fixed JWT handling, CSRF token, and TODO items. Uses Next.js API.
     expect(note.relatedSymbols).not.toContain('CSRF');
     expect(note.relatedSymbols).not.toContain('TODO');
     expect(note.relatedSymbols).not.toContain('Next');
+  });
+
+  it('extracts typed cognition and confidence from frontmatter', () => {
+    const note = parseMarkdownNote(`---
+type: gotcha
+confidence: high
+domain: auth
+---
+# Refresh Cookie Gotcha
+
+## Summary
+
+The refresh path must rotate the cookie expiry.
+`);
+    expect(note.kind).toBe('gotcha');
+    expect(note.confidence).toBe('high');
   });
 });

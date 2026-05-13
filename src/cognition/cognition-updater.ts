@@ -57,6 +57,7 @@ export async function updateCognition(
           .split(path.sep)
           .join('/'),
         createdAt: new Date().toISOString(),
+        source: 'inbox',
         referencesStatus: evaluateReferenceStatus(
           parsed.relatedFiles,
           parsed.relatedSymbols,
@@ -127,6 +128,7 @@ export async function refreshCognitionReferenceStatuses(
       await writeCognitionNote(workspace, {
         ...note,
         relatedSymbols,
+        updatedAt: new Date().toISOString(),
         referencesStatus: nextStatus,
       });
     }

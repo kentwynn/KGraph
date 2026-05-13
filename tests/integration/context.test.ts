@@ -1,4 +1,4 @@
-import { cp } from 'node:fs/promises';
+import { cp, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { cleanupTempRepo, copyFixture, runCli } from '../fixtures/helpers.js';
@@ -116,6 +116,92 @@ describe('kgraph context', () => {
     }
   });
 
+  it('stores direct conclusions and compacts duplicate cognition', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      const first = await runCli(repo, [
+        'conclude',
+        'auth refresh decision',
+        '--type',
+        'decision',
+        '--confidence',
+        'high',
+        '--domain',
+        'auth',
+        '--file',
+        'src/auth.ts',
+        '--symbol',
+        'refreshSession',
+        '--note',
+        'Refresh handling belongs in src/auth.ts.',
+      ]);
+      expect(first.code).toBe(0);
+      expect(first.stdout).toContain('Stored decision cognition');
+      await runCli(repo, [
+        'conclude',
+        'auth refresh decision',
+        '--type',
+        'decision',
+        '--confidence',
+        'medium',
+        '--domain',
+        'auth',
+        '--file',
+        'src/auth.ts',
+        '--symbol',
+        'refreshSession',
+        '--note',
+        'Refresh handling belongs in src/auth.ts.',
+      ]);
+      await runCli(repo, [
+        'conclude',
+        'auth refresh decision',
+        '--type',
+        'decision',
+        '--confidence',
+        'medium',
+        '--domain',
+        'auth',
+        '--file',
+        'src/auth.ts',
+        '--note',
+        'Token expiry handling is a separate finding under the same topic.',
+      ]);
+
+      const preview = await runCli(repo, ['compact', '--dry-run', '--json']);
+      expect(JSON.parse(preview.stdout).merged).toHaveLength(1);
+      const compact = await runCli(repo, ['compact']);
+      expect(compact.stdout).toContain('Merged duplicate groups: 1');
+
+      const context = await runCli(repo, ['context', 'auth refresh decision']);
+      expect(context.stdout).toContain('auth refresh decision');
+      expect(context.stdout).toContain('decision, high');
+      const contextJson = JSON.parse(
+        (await runCli(repo, ['context', 'auth refresh decision', '--json']))
+          .stdout,
+      );
+      expect(
+        contextJson.relevantCognition.map(
+          (item: { item: { summary?: string } }) => item.item.summary,
+        ),
+      ).toContain(
+        'Token expiry handling is a separate finding under the same topic.',
+      );
+
+      const domain = await readJsonFromMarkdown(
+        path.join(repo, '.kgraph', 'domains', 'auth.md'),
+      );
+      expect(domain.cognitionNotes).toHaveLength(2);
+      expect(domain.cognitionNotes).not.toContain(
+        JSON.parse(preview.stdout).merged[0].sourceIds[0],
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
   it('prints root help for plain kgraph before initialization', async () => {
     const repo = await copyFixture('js-ts-repo');
     try {
@@ -145,3 +231,10 @@ describe('kgraph context', () => {
     }
   });
 });
+
+async function readJsonFromMarkdown(filePath: string): Promise<any> {
+  const raw = await readFile(filePath, 'utf8');
+  const match = raw.match(/```json\n([\s\S]*?)\n```/);
+  if (!match) throw new Error('Missing metadata JSON');
+  return JSON.parse(match[1]);
+}

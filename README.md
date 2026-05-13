@@ -133,7 +133,7 @@ Agents can also report session activity so KGraph can estimate token waste:
 kgraph session start --agent codex
 kgraph session read src/auth.ts --agent codex
 kgraph session write src/auth.ts --agent codex
-kgraph session end --agent codex
+kgraph session end --agent codex --conclude --topic "auth session work"
 kgraph session
 ```
 
@@ -204,10 +204,30 @@ kgraph session start --agent codex
 kgraph session read src/auth.ts --agent codex
 kgraph session write src/auth.ts --agent codex
 kgraph session end --agent codex
+kgraph session end --agent codex --conclude --topic "auth token refresh"
 ```
 
 Track agent-reported read/write activity, repeated reads, and estimated token cost. Supported agents are `codex`, `claude-code`, `copilot`, `cursor`, `gemini`, `windsurf`, and `cline`.
-The text report now includes next actions, such as using `kgraph context "<topic>"` before repeated broad file inspection.
+The text report now includes next actions, such as using `kgraph context "<topic>"` before repeated broad file inspection. Add `--conclude` to store a durable session summary with touched files attached as related cognition.
+
+```bash
+kgraph conclude "auth refresh requires rotating the session cookie" \
+  --type gotcha \
+  --confidence high \
+  --domain auth \
+  --file src/auth.ts \
+  --symbol refreshSession \
+  --note "The refresh path must update both the access token and cookie expiry."
+```
+
+Store durable engineering memory directly. Cognition is typed as `finding`, `decision`, `gotcha`, `summary`, or `relationship`, and confidence is `high`, `medium`, or `low`. Keep conclusions concise: preserve expensive-to-rediscover knowledge, not raw chain-of-thought, speculative exploration, or temporary reasoning.
+
+```bash
+kgraph compact --dry-run
+kgraph compact
+```
+
+Merge duplicate cognition records and archive low-confidence stale entries. Compaction keeps memory inspectable under `.kgraph/cognition/` while reducing low-value noise in future context responses.
 
 ## Optional Step Commands
 

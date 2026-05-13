@@ -7,7 +7,7 @@ export const claudeCodeAdapter: IntegrationAdapter = {
   targetPath: 'CLAUDE.md',
   instructions: `## KGraph Workflow
 
-{{KGRAPH_CONTEXT_POLICY}} Use /kgraph for the full automated workflow. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
+{{KGRAPH_CONTEXT_POLICY}} Use /kgraph for the full automated workflow. Run \`kgraph conclude\` for durable typed engineering memory and \`kgraph compact --dry-run\` when cognition looks duplicated or stale. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
 `,
   commandFiles: [
     {
@@ -25,6 +25,11 @@ ${numberedWorkflow('claude-code', { sessionQualifier: 'when native hooks are una
     {
       path: '.claude/commands/kgraph-repair.md',
       content: `Run \`kgraph repair --dry-run\` first and summarize the proposed cognition cleanup. Run \`kgraph repair\` only when the user asks to apply the cleanup.
+`,
+    },
+    {
+      path: '.claude/commands/kgraph-compact.md',
+      content: `Run \`kgraph compact --dry-run\` first and summarize duplicate cognition groups and stale low-confidence notes. Run \`kgraph compact\` only when the user asks to apply compaction.
 `,
     },
     {
@@ -49,7 +54,12 @@ ${numberedWorkflow('claude-code', { sessionQualifier: 'when native hooks are una
     },
     {
       path: '.claude/commands/kgraph-session.md',
-      content: `Use \`kgraph session\` to inspect session read/write/token estimates. Record meaningful events with \`kgraph session start --agent claude-code\`, \`kgraph session read <path> --agent claude-code\`, \`kgraph session write <path> --agent claude-code\`, and \`kgraph session end --agent claude-code\`.
+      content: `Use \`kgraph session\` to inspect session read/write/token estimates. Record meaningful events with \`kgraph session start --agent claude-code\`, \`kgraph session read <path> --agent claude-code\`, \`kgraph session write <path> --agent claude-code\`, and \`kgraph session end --agent claude-code --conclude --topic "<topic>"\` when durable session memory is useful.
+`,
+    },
+    {
+      path: '.claude/commands/kgraph-conclude.md',
+      content: `Use \`kgraph conclude "$ARGUMENTS"\` when the session produced reusable engineering knowledge. Choose one type from finding, decision, gotcha, summary, relationship, and one confidence from high, medium, low. Store only durable conclusions, not raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
 `,
     },
     {

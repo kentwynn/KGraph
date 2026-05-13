@@ -63,6 +63,10 @@ export async function recordSessionEvent(
   const now = new Date().toISOString();
   const state = await readSessionState(workspace);
 
+  if (input.type === 'end' && !state.active[input.agent]) {
+    throw new KGraphError(`No active session for agent "${input.agent}".`);
+  }
+
   // Auto-close any open session for this agent before starting a new one so
   // the ledger entry is never silently lost on repeated start calls.
   if (input.type === 'start' && state.active[input.agent]) {
