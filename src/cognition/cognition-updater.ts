@@ -16,6 +16,7 @@ import type {
 import type { KGraphWorkspace } from '../types/config.js';
 import type { ScanResult } from '../types/maps.js';
 import { parseMarkdownNote } from './markdown-note-parser.js';
+import { createKnowledgeAtom } from '../knowledge/atom-store.js';
 
 export interface UpdateResult {
   processed: CognitionNote[];
@@ -76,6 +77,19 @@ export async function updateCognition(
         await archiveInboxNote(workspace, inboxPath, timestamp);
         await writeCognitionNote(workspace, note);
         await writeDomainRecord(workspace, toDomainRecord(note, currentMaps));
+        await createKnowledgeAtom(workspace, {
+          type: note.kind,
+          topic: note.title,
+          claim: note.summary ?? note.title,
+          summary: note.summary,
+          confidence: note.confidence,
+          files: note.relatedFiles,
+          symbols: note.relatedSymbols,
+          domains: note.domain ? [note.domain] : [],
+          sourceCommand: 'update',
+          createdAt: note.createdAt,
+          idSeed: note.id,
+        });
       }
     } catch (error) {
       warnings.push(

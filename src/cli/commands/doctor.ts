@@ -7,6 +7,7 @@ import {
 } from '../../cognition/cognition-quality.js';
 import { loadConfig } from '../../config/config.js';
 import { listIntegrations } from '../../integrations/integration-store.js';
+import { validateKnowledgeStore } from '../../knowledge/atom-store.js';
 import { getCurrentCommit, isGitRepo } from '../../scanner/git-utils.js';
 import {
   assertWorkspace,
@@ -92,6 +93,27 @@ export function registerDoctorCommand(program: Command): void {
             detail: missing.join(', '),
           });
         }
+
+        const knowledgeIssues = await validateKnowledgeStore(
+          workspace,
+          maps
+            ? { fileMap: maps.fileMap, symbolMap: maps.symbolMap }
+            : undefined,
+        );
+        checks.push({
+          label: 'knowledge',
+          ok: knowledgeIssues.length === 0,
+          detail:
+            knowledgeIssues.length === 0
+              ? 'knowledge atoms, schema, and refs are valid'
+              : knowledgeIssues
+                  .slice(0, 3)
+                  .map((issue) => issue.message)
+                  .join('; ') +
+                (knowledgeIssues.length > 3
+                  ? `; and ${knowledgeIssues.length - 3} more`
+                  : ''),
+        });
 
         const inboxCount = await countMarkdownFiles(workspace.inboxPath);
         checks.push({

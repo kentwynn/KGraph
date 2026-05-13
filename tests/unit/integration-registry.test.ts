@@ -42,6 +42,8 @@ describe('integration registry', () => {
         '.github/prompts/kgraph-session.prompt.md',
         '.github/prompts/kgraph-repair.prompt.md',
         '.github/prompts/kgraph-compact.prompt.md',
+        '.github/prompts/kgraph-pack.prompt.md',
+        '.github/prompts/kgraph-knowledge.prompt.md',
         '.github/prompts/kgraph-conclude.prompt.md',
         '.github/prompts/kgraph-scan.prompt.md',
       ]),
@@ -61,6 +63,8 @@ describe('integration registry', () => {
         '.claude/commands/kgraph-session.md',
         '.claude/commands/kgraph-repair.md',
         '.claude/commands/kgraph-compact.md',
+        '.claude/commands/kgraph-pack.md',
+        '.claude/commands/kgraph-knowledge.md',
         '.claude/commands/kgraph-conclude.md',
       ]),
     );
@@ -76,6 +80,8 @@ describe('integration registry', () => {
       ].join('\n');
       expect(content).toContain('kgraph "<topic>"');
       expect(content).toContain('kgraph doctor');
+      expect(content).toContain('kgraph pack');
+      expect(content).toContain('kgraph knowledge list');
       expect(content).toContain('kgraph session');
       expect(content).toContain('kgraph repair --dry-run');
       expect(content).toContain('kgraph compact --dry-run');

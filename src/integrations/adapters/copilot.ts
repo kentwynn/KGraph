@@ -14,7 +14,7 @@ ${numberedWorkflow('copilot')}
       path: '.github/agents/kgraph.agent.md',
       content: `---
 name: kgraph
-description: Use KGraph persistent repo intelligence to answer questions about this codebase. Runs kgraph context, scan, update, conclude, compact, impact, history, and session commands to ground responses in durable local knowledge.
+description: Use KGraph persistent repo intelligence to answer questions about this codebase. Runs kgraph context, pack, knowledge, scan, update, conclude, compact, impact, history, and session commands to ground responses in durable local knowledge.
 tools:
   - run_in_terminal
   - read_file
@@ -60,6 +60,28 @@ argument-hint: "--dry-run or apply"
 ---
 
 Run \`kgraph compact --dry-run\` first and summarize duplicate cognition groups and stale low-confidence notes. Run \`kgraph compact\` only when the user asks to apply compaction.
+`,
+    },
+    {
+      path: '.github/prompts/kgraph-pack.prompt.md',
+      content: `---
+description: Build a budget-aware KGraph context pack
+agent: agent
+argument-hint: "Task description"
+---
+
+Run \`kgraph pack "$ARGUMENTS" --budget 8000 --json\` to build a machine-readable context pack. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons.
+`,
+    },
+    {
+      path: '.github/prompts/kgraph-knowledge.prompt.md',
+      content: `---
+description: Inspect or manage KGraph canonical knowledge atoms
+agent: agent
+argument-hint: "list, get <atom-id>, archive <atom-id>, or supersede <old-id> <new-id>"
+---
+
+Use \`kgraph knowledge list\` and \`kgraph knowledge get <atom-id>\` to inspect durable atoms, evidence, provenance, and lifecycle. Run \`kgraph knowledge archive <atom-id>\` or \`kgraph knowledge supersede <old-id> <new-id>\` only when the user explicitly asks to mutate atom lifecycle.
 `,
     },
     {

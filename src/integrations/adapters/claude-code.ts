@@ -7,7 +7,7 @@ export const claudeCodeAdapter: IntegrationAdapter = {
   targetPath: 'CLAUDE.md',
   instructions: `## KGraph Workflow
 
-{{KGRAPH_CONTEXT_POLICY}} Use /kgraph for the full automated workflow. Run \`kgraph conclude\` for durable typed engineering memory and \`kgraph compact --dry-run\` when cognition looks duplicated or stale. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
+{{KGRAPH_CONTEXT_POLICY}} Use /kgraph for the full automated workflow. Run \`kgraph pack "<task>" --budget 8000 --json\` for a machine-readable token-budgeted context pack, \`kgraph knowledge list\` or \`kgraph knowledge get <atom-id>\` to inspect durable atoms, \`kgraph conclude\` for durable typed engineering memory, and \`kgraph compact --dry-run\` when cognition looks duplicated or stale. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
 `,
   commandFiles: [
     {
@@ -30,6 +30,16 @@ ${numberedWorkflow('claude-code', { sessionQualifier: 'when native hooks are una
     {
       path: '.claude/commands/kgraph-compact.md',
       content: `Run \`kgraph compact --dry-run\` first and summarize duplicate cognition groups and stale low-confidence notes. Run \`kgraph compact\` only when the user asks to apply compaction.
+`,
+    },
+    {
+      path: '.claude/commands/kgraph-pack.md',
+      content: `Run \`kgraph pack "$ARGUMENTS" --budget 8000 --json\` to build a machine-readable context pack. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons.
+`,
+    },
+    {
+      path: '.claude/commands/kgraph-knowledge.md',
+      content: `Use \`kgraph knowledge list\` and \`kgraph knowledge get <atom-id>\` to inspect durable atoms, evidence, provenance, and lifecycle. Run \`kgraph knowledge archive <atom-id>\` or \`kgraph knowledge supersede <old-id> <new-id>\` only when the user explicitly asks to mutate atom lifecycle.
 `,
     },
     {

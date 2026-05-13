@@ -53,6 +53,8 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'Store typed engineering cognition',
     ),
     command('compact', 'Merge duplicate cognition and archive stale noise'),
+    command('knowledge list', 'Inspect canonical knowledge atoms'),
+    command('pack "auth task" --budget 8000', 'Build a budget-aware context pack'),
     command(
       'context "auth token refresh"',
       'Optional: return context without scanning or updating',
@@ -171,6 +173,8 @@ export function renderWorkflowBanner(
     ),
     command('kgraph doctor', 'Check workspace health'),
     command('kgraph doctor --quality', 'Check cognition quality'),
+    command('kgraph knowledge list', 'Inspect knowledge atoms'),
+    command('kgraph pack "auth task"', 'Build budget-aware context'),
     command('kgraph session', 'Check session token waste'),
     command('kgraph --help', 'Show all commands'),
   ].join('\n');

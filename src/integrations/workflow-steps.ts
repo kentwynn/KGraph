@@ -8,6 +8,8 @@ const IMPACT_STEP = `Run \`kgraph impact "<file-or-symbol>"\` when the user asks
 const REPAIR_STEP = `Run \`kgraph repair --dry-run\` before cleanup when stale/noisy cognition needs fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.`;
 const COMPACT_STEP = `Run \`kgraph compact --dry-run\` when cognition looks duplicated, noisy, or stale. Run \`kgraph compact\` only when the user asks to merge/archive cognition.`;
 const HISTORY_STEP = `Run \`kgraph history\` or \`kgraph history "<topic>"\` to review past cognition sessions with git author attribution.`;
+const KNOWLEDGE_STEP = `Run \`kgraph knowledge list --topic "<topic>"\` or \`kgraph knowledge get <atom-id>\` when the user asks what KGraph remembers or atom provenance/lifecycle matters.`;
+const PACK_STEP = `Run \`kgraph pack "<task>" --budget 8000 --json\` when an agent needs a machine-readable, token-budgeted context pack instead of human Markdown context.`;
 
 function sessionStep(agentName: string, qualifier?: string): string {
   const base = `Track meaningful session activity with \`kgraph session start --agent ${agentName}\`, \`kgraph session read <path> --agent ${agentName}\`, \`kgraph session write <path> --agent ${agentName}\`, and \`kgraph session end --agent ${agentName} --conclude --topic "<topic>"\` when durable session memory is useful`;
@@ -30,16 +32,18 @@ export function numberedWorkflow(
   return `1. Infer the topic from the user's request.
 2. {{KGRAPH_CONTEXT_POLICY}}
 3. Use the returned files, symbols, relationships, and cognition before broad exploration.
-4. ${DOCTOR_STEP}
-5. ${sessionStep(agentName, options.sessionQualifier)}
-6. ${IMPACT_STEP}
+4. ${PACK_STEP}
+5. ${KNOWLEDGE_STEP}
+6. ${DOCTOR_STEP}
+7. ${sessionStep(agentName, options.sessionQualifier)}
+8. ${IMPACT_STEP}
 
 {{KGRAPH_CAPTURE_POLICY}}
 
-7. ${REPAIR_STEP}
-8. ${COMPACT_STEP}
-9. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-10. ${HISTORY_STEP}`;
+9. ${REPAIR_STEP}
+10. ${COMPACT_STEP}
+11. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+12. ${HISTORY_STEP}`;
 }
 
 /**
@@ -51,6 +55,8 @@ export function bulletWorkflow(
   options: WorkflowOptions = {},
 ): string {
   return `- {{KGRAPH_CONTEXT_POLICY}}
+- ${PACK_STEP}
+- ${KNOWLEDGE_STEP}
 - ${DOCTOR_STEP}
 - ${sessionStep(agentName, options.sessionQualifier)}
 - ${IMPACT_STEP}

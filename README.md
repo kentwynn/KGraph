@@ -222,6 +222,25 @@ kgraph conclude "auth refresh requires rotating the session cookie" \
 
 Store durable engineering memory directly. Cognition is typed as `finding`, `decision`, `gotcha`, `summary`, or `relationship`, and confidence is `high`, `medium`, or `low`. Keep conclusions concise: preserve expensive-to-rediscover knowledge, not raw chain-of-thought, speculative exploration, or temporary reasoning.
 
+KGraph stores these conclusions as canonical knowledge atoms under `.kgraph/knowledge/` while keeping existing Markdown cognition files readable for compatibility.
+
+```bash
+kgraph knowledge list
+kgraph knowledge list --type finding --topic auth --json
+kgraph knowledge get <atom-id>
+kgraph knowledge archive <atom-id>
+kgraph knowledge supersede <old-id> <new-id>
+```
+
+Inspect and manage canonical knowledge atoms. Archive and supersede update lifecycle metadata; they do not delete history.
+
+```bash
+kgraph pack "auth token refresh" --budget 8000
+kgraph pack "auth token refresh" --budget 8000 --json
+```
+
+Build a budget-aware context pack from files, symbols, relationships, git changes, session history, and knowledge atoms. JSON output is the stable machine-readable contract for agents.
+
 ```bash
 kgraph compact --dry-run
 kgraph compact
@@ -327,10 +346,14 @@ All runtime data lives under `.kgraph/`:
 ├── domains/
 ├── interactions/processed/
 ├── sessions/
+├── knowledge/
+│   ├── atoms.jsonl
+│   ├── schema.json
+│   └── indexes/
 └── context/
 ```
 
-The files are local, inspectable, and human-readable. Core KGraph functionality is free. There is no database, telemetry, cloud service, account, API key, embedding service, model provider, or source-code upload.
+The files are local, inspectable, and human-readable. `knowledge/atoms.jsonl` is the canonical durable-memory store; Markdown cognition remains a compatibility and input layer. Core KGraph functionality is free. There is no database, telemetry, cloud service, account, API key, embedding service, model provider, or source-code upload.
 
 ## Language Support
 
