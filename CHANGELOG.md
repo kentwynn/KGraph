@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.15](https://github.com/kentwynn/KGraph/compare/v0.2.14...v0.2.15) (2026-05-13)
+
+### ### Added
+
+* expand context pack with knowledge types and extended test coverage ([5137d9d](https://github.com/kentwynn/KGraph/commit/5137d9d787c7a44390c78e16d097cbd8ab870ee8))
+
 ## [0.2.14](https://github.com/kentwynn/KGraph/compare/v0.2.13...v0.2.14) (2026-05-13)
 
 ### ### Added
