@@ -99,7 +99,7 @@ export interface KnowledgeValidationIssue {
 }
 
 export interface ContextPackItem {
-  kind: 'file' | 'symbol' | 'atom' | 'relationship' | 'git-change';
+  kind: 'file' | 'file-range' | 'symbol' | 'atom' | 'relationship' | 'git-change';
   id: string;
   title: string;
   tokenEstimate: number;

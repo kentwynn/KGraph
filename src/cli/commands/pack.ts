@@ -33,7 +33,7 @@ export function registerPackCommand(program: Command): void {
           readMaps(workspace),
         ]);
         const response = await queryContext(workspace, config, maps, task);
-        const pack = buildContextPack(response, budget);
+        const pack = buildContextPack(response, budget, workspace.rootPath);
         if (options.json) {
           console.log(JSON.stringify(pack, null, 2));
           return;

@@ -4,7 +4,7 @@ import { queryContext } from '../../src/context/context-query.js';
 import { buildContextPack } from '../../src/context/context-pack.js';
 import { createKnowledgeAtom } from '../../src/knowledge/atom-store.js';
 import { ensureWorkspace } from '../../src/storage/kgraph-paths.js';
-import { cleanupTempRepo, createTempRepo } from '../fixtures/helpers.js';
+import { cleanupTempRepo, createTempRepo, writeText } from '../fixtures/helpers.js';
 
 describe('context query', () => {
   it('returns ranked files and symbols', async () => {
@@ -304,5 +304,79 @@ describe('context query', () => {
     expect(pack.omitted.map((item) => item.id)).toContain(
       'www/app/(pages)/about/page.tsx',
     );
+  });
+
+  it('packs relevant ranges from oversized files', async () => {
+    const repo = await createTempRepo();
+    try {
+      const filler = Array.from({ length: 240 }, (_, index) =>
+        `const filler${index} = "unrelated implementation detail";`,
+      ).join('\n');
+      await writeText(
+        repo,
+        'www/app/(pages)/about/page.tsx',
+        [
+          'const EXPERIENCE = [',
+          '  {',
+          '    title: "Senior Lead AI Engineer",',
+          '    company: "LSEG",',
+          '    period: "Jul 2026 - Present",',
+          '    description: "Agent Adapter and Java Spring Boot work.",',
+          '  },',
+          '];',
+          filler,
+        ].join('\n'),
+      );
+
+      const pack = buildContextPack(
+        {
+          query: 'about page LSEG work experience',
+          matchedDomains: [],
+          relevantFiles: [
+            {
+              item: {
+                path: 'www/app/(pages)/about/page.tsx',
+                tokenEstimate: 8800,
+              },
+              score: 20,
+              reasons: ['referenced by matched atom "about"'],
+            },
+          ] as never,
+          relevantSymbols: [],
+          relevantCognition: [
+            {
+              item: {
+                id: 'atom-1',
+                title: 'resume page LSEG promotion Senior Lead AI Engineer July 2026',
+                summary: 'About page LSEG work experience changed.',
+              },
+              score: 20,
+              reasons: ['high confidence atom', 'active atom evidence'],
+            },
+          ] as never,
+          relationships: [],
+          relationshipExplanations: [],
+          nearbySymbols: [],
+          nearbySymbolExplanations: [],
+          gitChanges: [],
+          staleReferences: [],
+          warnings: [],
+        },
+        1600,
+        repo,
+      );
+
+      const range = pack.items.find((item) => item.kind === 'file-range');
+      expect(range?.id).toMatch(/^www\/app\/\(pages\)\/about\/page\.tsx:\d+-\d+$/);
+      expect(range?.data).toMatchObject({
+        path: 'www/app/(pages)/about/page.tsx',
+      });
+      expect(JSON.stringify(range?.data)).toContain('Senior Lead AI Engineer');
+      expect(pack.omitted.map((item) => item.id)).toContain(
+        'www/app/(pages)/about/page.tsx',
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
   });
 });
