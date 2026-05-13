@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import { exec } from 'node:child_process';
 import { createServer } from 'node:http';
 import { loadConfig } from '../../config/config.js';
-import { readCognitionNotes } from '../../storage/cognition-store.js';
+import { refreshKnowledgeAtomStatuses } from '../../knowledge/atom-store.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { mapsExist, readMaps } from '../../storage/map-store.js';
 import { buildGraph } from '../../visualization/graph-builder.js';
@@ -33,10 +33,11 @@ export function registerVisualizeCommand(program: Command): void {
           );
         }
 
-        const [maps, cognition] = await Promise.all([
-          readMaps(workspace),
-          readCognitionNotes(workspace),
-        ]);
+        const maps = await readMaps(workspace);
+        const { atoms } = await refreshKnowledgeAtomStatuses(workspace, {
+          fileMap: maps.fileMap,
+          symbolMap: maps.symbolMap,
+        });
 
         await loadConfig(workspace); // ensure workspace is valid
         const graphData = buildGraph(
@@ -44,7 +45,7 @@ export function registerVisualizeCommand(program: Command): void {
           maps.symbolMap,
           maps.dependencyMap,
           maps.relationshipMap,
-          cognition,
+          atoms,
         );
         const html = renderHtml(graphData, workspace.rootPath);
 

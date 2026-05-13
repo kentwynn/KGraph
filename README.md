@@ -383,14 +383,13 @@ Other languages keep practical file, import, and symbol depth without full call 
 kgraph visualize
 ```
 
-The graph shows files, symbols, imports, TypeScript/JavaScript call edges, ownership edges, cognition notes, and relationship edges. Cognition notes are colored by reference health:
+The graph shows files, imports, TypeScript/JavaScript call edges, ownership edges, relationship edges, and canonical knowledge atoms. Symbols are kept out of the main rendered graph for performance and shown in the file detail panel instead. Atom nodes are capped in large memory sets and colored by lifecycle status:
 
-- current
-- mixed
+- active
+- needs-review
 - stale
-- unresolved
 
-Use it when you want to inspect what KGraph currently knows, find stale notes after refactors, or export a graph image for a report.
+Use it when you want to inspect what KGraph currently knows, find stale atoms after refactors, or export a graph image for a report.
 
 ## Development
 

@@ -1,4 +1,4 @@
-import type { CognitionNote } from '../types/cognition.js';
+import type { KnowledgeAtom } from '../types/knowledge.js';
 import type {
   DependencyMap,
   FileMap,
@@ -16,6 +16,9 @@ export interface GraphData {
   meta: {
     fileCount: number;
     symbolCount: number;
+    atomCount: number;
+    hiddenAtomCount: number;
+    /** @deprecated Kept for older tests/consumers that still read cognitionCount. */
     cognitionCount: number;
     tokenEstimate: number;
     generatedAt: string;
@@ -33,10 +36,10 @@ const LANGUAGE_COLORS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  current: '#10b981',
-  mixed: '#f59e0b',
+  active: '#10b981',
+  'needs-review': '#f59e0b',
   stale: '#ef4444',
-  unresolved: '#6b7280',
+  archived: '#6b7280',
 };
 
 const SYMBOL_COLORS: Record<string, string> = {
@@ -47,12 +50,14 @@ const SYMBOL_COLORS: Record<string, string> = {
   import: '#64748b',
 };
 
+const MAX_ATOM_NODES = 250;
+
 export function buildGraph(
   fileMap: FileMap,
   symbolMap: SymbolMap,
   dependencyMap: DependencyMap,
   relationshipMap: RelationshipMap,
-  cognitionNotes: CognitionNote[],
+  knowledgeAtoms: KnowledgeAtom[],
 ): GraphData {
   const elements: CytoscapeElement[] = [];
   const edgeIds = new Set<string>();
@@ -98,23 +103,31 @@ export function buildGraph(
     });
   }
 
-  for (const note of cognitionNotes) {
-    const id = `cognition-${note.id}`;
+  const atomsForGraph = selectAtomsForGraph(knowledgeAtoms);
+  for (const atom of atomsForGraph) {
+    const id = `atom-${atom.id}`;
     elements.push({
       data: {
         id,
-        label: note.title,
-        color: STATUS_COLORS[note.referencesStatus] ?? STATUS_COLORS.unresolved,
-        type: 'cognition',
-        referencesStatus: note.referencesStatus,
-        domain: note.domain ?? '',
-        relatedFiles: note.relatedFiles,
-        relatedSymbols: note.relatedSymbols,
+        label: atom.topic,
+        color: STATUS_COLORS[atom.status] ?? STATUS_COLORS.archived,
+        type: 'atom',
+        atomId: atom.id,
+        atomType: atom.type,
+        confidence: atom.confidence,
+        status: atom.status,
+        sourceCommand: atom.provenance.sourceCommand,
+        domain: atom.scopeRefs.domains[0] ?? '',
+        relatedFiles: atom.scopeRefs.files,
+        relatedSymbols: atom.scopeRefs.symbols,
+        supersededBy: atom.lifecycle.supersededBy ?? '',
+        supersedes: atom.lifecycle.supersedes,
+        invalidatedBy: atom.lifecycle.invalidatedBy ?? [],
       },
-      classes: `cognition ${note.referencesStatus}`,
+      classes: `atom ${atom.status}`,
     });
 
-    for (const filePath of note.relatedFiles) {
+    for (const filePath of atom.scopeRefs.files) {
       const target = fileMap.files.find((f) => f.path === filePath);
       if (target) {
         const edgeId = `${id}-ref-${target.id}`;
@@ -125,10 +138,10 @@ export function buildGraph(
               id: edgeId,
               source: id,
               target: target.id,
-              type: 'cognition-ref',
+              type: 'atom-ref',
               label: '',
             },
-            classes: 'cognition-ref',
+            classes: 'atom-ref',
           });
         }
       }
@@ -184,11 +197,37 @@ export function buildGraph(
     meta: {
       fileCount: fileMap.files.length,
       symbolCount: symbolMap.symbols.length,
-      cognitionCount: cognitionNotes.length,
+      atomCount: knowledgeAtoms.filter((atom) => atom.status !== 'archived').length,
+      hiddenAtomCount: Math.max(
+        0,
+        knowledgeAtoms.filter((atom) => atom.status !== 'archived').length -
+          atomsForGraph.length,
+      ),
+      cognitionCount: knowledgeAtoms.filter((atom) => atom.status !== 'archived').length,
       tokenEstimate,
       generatedAt: new Date().toISOString(),
     },
   };
+}
+
+function selectAtomsForGraph(atoms: KnowledgeAtom[]): KnowledgeAtom[] {
+  return atoms
+    .filter((atom) => atom.status !== 'archived')
+    .sort((left, right) => atomGraphScore(right) - atomGraphScore(left))
+    .slice(0, MAX_ATOM_NODES);
+}
+
+function atomGraphScore(atom: KnowledgeAtom): number {
+  const statusScore =
+    atom.status === 'active' ? 6 : atom.status === 'needs-review' ? 4 : 2;
+  const confidenceScore =
+    atom.confidence === 'high' ? 3 : atom.confidence === 'medium' ? 2 : 0;
+  const evidenceScore = Math.min(
+    4,
+    atom.scopeRefs.files.length + atom.scopeRefs.symbols.length,
+  );
+  const typeScore = atom.type === 'decision' || atom.type === 'gotcha' ? 1 : 0;
+  return statusScore + confidenceScore + evidenceScore + typeScore;
 }
 
 function getTokenBucket(tokenEstimate: number | undefined): 'small' | 'medium' | 'large' {

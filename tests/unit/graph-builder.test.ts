@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CognitionNote } from '../../src/types/cognition.js';
+import type { KnowledgeAtom } from '../../src/types/knowledge.js';
 import type {
   DependencyMap,
   FileMap,
@@ -22,6 +22,40 @@ function makeFile(id: string, path: string, language: string): RepositoryFile {
   };
 }
 
+function makeAtom(
+  id: string,
+  topic: string,
+  files: string[],
+  status: KnowledgeAtom['status'] = 'active',
+): KnowledgeAtom {
+  return {
+    id,
+    topic,
+    type: 'summary',
+    claim: topic,
+    summary: topic,
+    confidence: 'medium',
+    status,
+    evidenceRefs: files.map((file) => ({ type: 'file', path: file })),
+    scopeRefs: {
+      files,
+      symbols: ['getSession'],
+      domains: ['auth'],
+      packages: [],
+    },
+    provenance: {
+      sourceCommand: 'conclude',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+    lifecycle: {
+      supersedes: [],
+      ...(status === 'needs-review'
+        ? { invalidatedBy: ['changed file:src/auth.ts'] }
+        : {}),
+    },
+  };
+}
+
 const emptyMaps = {
   fileMap: { generatedAt: '', files: [] } as FileMap,
   symbolMap: { generatedAt: '', symbols: [] } as SymbolMap,
@@ -41,6 +75,7 @@ describe('graph-builder', () => {
     expect(result.elements).toHaveLength(0);
     expect(result.meta.fileCount).toBe(0);
     expect(result.meta.symbolCount).toBe(0);
+    expect(result.meta.atomCount).toBe(0);
     expect(result.meta.cognitionCount).toBe(0);
   });
 
@@ -158,74 +193,42 @@ describe('graph-builder', () => {
     expect(edges).toHaveLength(1);
   });
 
-  it('creates cognition nodes with ref edges to known files', () => {
+  it('creates atom nodes with ref edges to known files', () => {
     const fileMap: FileMap = {
       generatedAt: '',
       files: [makeFile('f1', 'src/auth.ts', 'typescript')],
     };
-    const note: CognitionNote = {
-      id: 'n1',
-      title: 'Auth Notes',
-      kind: 'summary',
-      confidence: 'medium',
-      domain: 'auth',
-      tags: [],
-      sections: {},
-      relatedFiles: ['src/auth.ts'],
-      relatedSymbols: ['getSession'],
-      referencesStatus: 'current',
-      sourceInboxPath: '',
-      processedPath: '',
-      createdAt: '',
-      source: 'inbox',
-      warnings: [],
-    };
+    const atom = makeAtom('n1', 'Auth Notes', ['src/auth.ts']);
     const result = buildGraph(
       fileMap,
       emptyMaps.symbolMap,
       emptyMaps.depMap,
       emptyMaps.relMap,
-      [note],
+      [atom],
     );
-    const cogNode = result.elements.find((e) => e.data.id === 'cognition-n1');
+    const cogNode = result.elements.find((e) => e.data.id === 'atom-n1');
     expect(cogNode).toBeDefined();
-    expect(cogNode?.data.type).toBe('cognition');
+    expect(cogNode?.data.type).toBe('atom');
     expect(cogNode?.data.color).toBe('#10b981');
-    expect(cogNode?.classes).toContain('cognition');
+    expect(cogNode?.classes).toContain('atom');
     const refEdge = result.elements.find(
-      (e) => e.data.type === 'cognition-ref',
+      (e) => e.data.type === 'atom-ref',
     );
     expect(refEdge).toBeDefined();
     expect(refEdge?.data.target).toBe('f1');
   });
 
-  it('skips cognition ref edges for files not in the file map', () => {
-    const note: CognitionNote = {
-      id: 'n1',
-      title: 'Notes',
-      kind: 'summary',
-      confidence: 'medium',
-      domain: undefined,
-      tags: [],
-      sections: {},
-      relatedFiles: ['src/deleted.ts'],
-      relatedSymbols: [],
-      referencesStatus: 'stale',
-      sourceInboxPath: '',
-      processedPath: '',
-      createdAt: '',
-      source: 'inbox',
-      warnings: [],
-    };
+  it('skips atom ref edges for files not in the file map', () => {
+    const atom = makeAtom('n1', 'Notes', ['src/deleted.ts'], 'stale');
     const result = buildGraph(
       emptyMaps.fileMap,
       emptyMaps.symbolMap,
       emptyMaps.depMap,
       emptyMaps.relMap,
-      [note],
+      [atom],
     );
     const refEdges = result.elements.filter(
-      (e) => e.data.type === 'cognition-ref',
+      (e) => e.data.type === 'atom-ref',
     );
     expect(refEdges).toHaveLength(0);
   });
@@ -250,34 +253,35 @@ describe('graph-builder', () => {
         },
       ],
     };
-    const note: CognitionNote = {
-      id: 'n1',
-      title: 'N',
-      kind: 'summary',
-      confidence: 'medium',
-      domain: undefined,
-      tags: [],
-      sections: {},
-      relatedFiles: [],
-      relatedSymbols: [],
-      referencesStatus: 'current',
-      sourceInboxPath: '',
-      processedPath: '',
-      createdAt: '',
-      source: 'inbox',
-      warnings: [],
-    };
+    const atom = makeAtom('n1', 'N', []);
     const result = buildGraph(
       fileMap,
       symbolMap,
       emptyMaps.depMap,
       emptyMaps.relMap,
-      [note],
+      [atom],
     );
     expect(result.meta.fileCount).toBe(2);
     expect(result.meta.symbolCount).toBe(1);
+    expect(result.meta.atomCount).toBe(1);
     expect(result.meta.cognitionCount).toBe(1);
     expect(result.meta.tokenEstimate).toBe(0);
+  });
+
+  it('caps rendered atom nodes for large memory sets', () => {
+    const atoms = Array.from({ length: 260 }, (_, index) =>
+      makeAtom(`a${index}`, `Atom ${index}`, []),
+    );
+    const result = buildGraph(
+      emptyMaps.fileMap,
+      emptyMaps.symbolMap,
+      emptyMaps.depMap,
+      emptyMaps.relMap,
+      atoms,
+    );
+    expect(result.elements.filter((e) => e.data.type === 'atom')).toHaveLength(250);
+    expect(result.meta.atomCount).toBe(260);
+    expect(result.meta.hiddenAtomCount).toBe(10);
   });
 
   it('creates symbol nodes and relationship edges from the relationship map', () => {
