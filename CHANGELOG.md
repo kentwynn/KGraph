@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.8](https://github.com/kentwynn/KGraph/compare/v0.2.7...v0.2.8) (2026-05-13)
+
+### ### Fixed
+
+* pass changelog notes to GitHub Release body ([47c9a0e](https://github.com/kentwynn/KGraph/commit/47c9a0e78a91589f119218a434ad1c7e0558e8cf))
+
 ## [0.2.7](https://github.com/kentwynn/KGraph/compare/v0.2.6...v0.2.7) (2026-05-13)
 
 ### ### Added
