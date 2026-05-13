@@ -49,6 +49,7 @@ export interface CognitionQualityReport {
   duplicateTitleCount: number;
   generatedFileScanCount: number;
   expensiveFileCount: number;
+  highConfidenceMissingEvidenceCount: number;
   sessionRepeatedReadCount: number;
   sessionEstimatedReadTokens: number;
   sessionEstimatedRepeatedReadTokens: number;
@@ -111,12 +112,20 @@ export async function analyzeCognitionQuality(
     duplicateTitleCount: countDuplicateAtomTopics(activeAtoms),
     generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
     expensiveFileCount: countExpensiveFiles(maps.fileMap),
+    highConfidenceMissingEvidenceCount:
+      countHighConfidenceMissingEvidence(activeAtoms),
     sessionRepeatedReadCount: session.repeatedReadCount,
     sessionEstimatedReadTokens: session.estimatedReadTokens,
     sessionEstimatedRepeatedReadTokens: session.estimatedRepeatedReadTokens,
     orphanedNoteCount,
     changes,
   };
+}
+
+function countHighConfidenceMissingEvidence(atoms: KnowledgeAtom[]): number {
+  return atoms.filter(
+    (atom) => atom.confidence === 'high' && atom.evidenceRefs.length === 0,
+  ).length;
 }
 
 export async function repairCognition(
@@ -254,6 +263,8 @@ export async function repairCognition(
     duplicateTitleCount: countDuplicateTitles(nextNotes),
     generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
     expensiveFileCount: countExpensiveFiles(maps.fileMap),
+    highConfidenceMissingEvidenceCount:
+      countHighConfidenceMissingEvidence(atoms),
     sessionRepeatedReadCount: session.repeatedReadCount,
     sessionEstimatedReadTokens: session.estimatedReadTokens,
     sessionEstimatedRepeatedReadTokens: session.estimatedRepeatedReadTokens,

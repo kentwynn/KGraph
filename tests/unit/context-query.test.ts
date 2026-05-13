@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '../../src/config/config.js';
 import { queryContext } from '../../src/context/context-query.js';
+import { buildContextPack } from '../../src/context/context-pack.js';
+import { createKnowledgeAtom } from '../../src/knowledge/atom-store.js';
 import { ensureWorkspace } from '../../src/storage/kgraph-paths.js';
 import { cleanupTempRepo, createTempRepo } from '../fixtures/helpers.js';
 
@@ -180,5 +182,127 @@ describe('context query', () => {
     } finally {
       await cleanupTempRepo(repo);
     }
+  });
+
+  it('boosts files referenced by matching atoms over generic path matches', async () => {
+    const repo = await createTempRepo();
+    try {
+      const workspace = await ensureWorkspace(repo);
+      const maps = {
+        fileMap: {
+          generatedAt: '',
+          files: [
+            {
+              path: 'openquery/app/workflow/page.tsx',
+              language: 'typescriptreact',
+              tokenEstimate: 1900,
+            } as never,
+            {
+              path: 'www/app/(pages)/about/page.tsx',
+              language: 'typescriptreact',
+              tokenEstimate: 8800,
+              contentHash: 'about-hash',
+            } as never,
+          ],
+        },
+        symbolMap: { generatedAt: '', symbols: [] },
+        dependencyMap: { generatedAt: '', dependencies: [] },
+        relationshipMap: { generatedAt: '', relationships: [] },
+      };
+      await createKnowledgeAtom(
+        workspace,
+        {
+          type: 'decision',
+          topic: 'resume page LSEG promotion Senior Lead AI Engineer July 2026',
+          claim: 'About page LSEG work experience changed.',
+          summary: 'About page LSEG work experience changed.',
+          confidence: 'high',
+          files: ['www/app/(pages)/about/page.tsx'],
+          sourceCommand: 'conclude',
+        },
+        maps,
+      );
+
+      const result = await queryContext(
+        workspace,
+        DEFAULT_CONFIG,
+        maps,
+        'about page LSEG work experience',
+      );
+
+      expect(result.relevantFiles[0].item.path).toBe(
+        'www/app/(pages)/about/page.tsx',
+      );
+      expect(result.relevantFiles[0].reasons).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('referenced by matched atom'),
+        ]),
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('packs cheap matching atoms before large generic files', async () => {
+    const pack = buildContextPack(
+      {
+        query: 'about page LSEG work experience',
+        matchedDomains: [],
+        relevantFiles: [
+          {
+            item: {
+              path: 'openquery/app/workflow/page.tsx',
+              tokenEstimate: 1900,
+            },
+            score: 5,
+            reasons: ['generic path-only match penalty'],
+          },
+          {
+            item: {
+              path: 'www/app/(pages)/about/page.tsx',
+              tokenEstimate: 8800,
+            },
+            score: 20,
+            reasons: ['referenced by matched atom "about"'],
+          },
+        ] as never,
+        relevantSymbols: [],
+        relevantCognition: [
+          {
+            item: {
+              id: 'atom-1',
+              title: 'resume page LSEG promotion Senior Lead AI Engineer July 2026',
+              summary: 'About page LSEG work experience changed.',
+            },
+            score: 20,
+            reasons: ['high confidence atom', 'active atom evidence'],
+          },
+        ] as never,
+        relationships: [],
+        relationshipExplanations: [],
+        nearbySymbols: [],
+        nearbySymbolExplanations: [],
+        gitChanges: [
+          {
+            path: 'www/app/(pages)/about/page.tsx',
+            status: 'unstaged',
+            reason: 'unstaged change',
+          },
+        ],
+        staleReferences: [],
+        warnings: [],
+      },
+      2000,
+    );
+
+    expect(pack.items.map((item) => item.kind)).toEqual([
+      'atom',
+      'git-change',
+      'file',
+    ]);
+    expect(pack.items[0].id).toBe('atom-1');
+    expect(pack.omitted.map((item) => item.id)).toContain(
+      'www/app/(pages)/about/page.tsx',
+    );
   });
 });

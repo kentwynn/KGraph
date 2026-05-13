@@ -2,6 +2,7 @@ import { readMaps } from '../storage/map-store.js';
 import { slugify, writeCognitionNote, writeDomainRecord } from '../storage/cognition-store.js';
 import { KGraphError } from '../cli/errors.js';
 import { createKnowledgeAtom } from '../knowledge/atom-store.js';
+import { getWorkingTreeChanges } from '../scanner/git-utils.js';
 import type {
   CognitionConfidence,
   CognitionKind,
@@ -36,6 +37,11 @@ export async function concludeTopic(
   const timestamp = now.replace(/[:.]/g, '-');
   const title = input.topic.trim();
   const summary = normalizeBody(input.body) ?? title;
+  const relatedFiles =
+    input.relatedFiles && input.relatedFiles.length > 0
+      ? input.relatedFiles
+      : await inferChangedFiles(workspace, maps);
+  const relatedSymbols = input.relatedSymbols ?? [];
   const note: CognitionNote = {
     title,
     kind: input.kind ?? 'summary',
@@ -45,11 +51,11 @@ export async function concludeTopic(
     summary,
     sections: {
       Summary: summary,
-      ...(input.relatedFiles?.length ? { 'Related Files': input.relatedFiles.map((file) => `- ${file}`).join('\n') } : {}),
-      ...(input.relatedSymbols?.length ? { 'Key Symbols': input.relatedSymbols.map((symbol) => `- \`${symbol}\``).join('\n') } : {}),
+      ...(relatedFiles.length ? { 'Related Files': relatedFiles.map((file) => `- ${file}`).join('\n') } : {}),
+      ...(relatedSymbols.length ? { 'Key Symbols': relatedSymbols.map((symbol) => `- \`${symbol}\``).join('\n') } : {}),
     },
-    relatedFiles: input.relatedFiles ?? [],
-    relatedSymbols: input.relatedSymbols ?? [],
+    relatedFiles,
+    relatedSymbols,
     warnings: [],
     id: `${timestamp}-${slugify(title) || 'conclusion'}`,
     sourceInboxPath: '',
@@ -57,8 +63,8 @@ export async function concludeTopic(
     createdAt: now,
     source: input.source,
     referencesStatus: evaluateReferenceStatus(
-      input.relatedFiles ?? [],
-      input.relatedSymbols ?? [],
+      relatedFiles,
+      relatedSymbols,
       { files: maps.fileMap.files, symbols: maps.symbolMap.symbols },
     ),
   };
@@ -76,8 +82,8 @@ export async function concludeTopic(
       claim: note.summary ?? note.title,
       summary: note.summary,
       confidence: note.confidence,
-      files: note.relatedFiles,
-      symbols: note.relatedSymbols,
+      files: relatedFiles,
+      symbols: relatedSymbols,
       domains: note.domain ? [note.domain] : [],
       sourceCommand:
         input.source === 'session-conclude'
@@ -93,6 +99,16 @@ export async function concludeTopic(
     maps,
   );
   return note;
+}
+
+async function inferChangedFiles(
+  workspace: KGraphWorkspace,
+  maps: Awaited<ReturnType<typeof readMaps>>,
+): Promise<string[]> {
+  const changed = await getWorkingTreeChanges(workspace.rootPath);
+  if (changed.length === 0) return [];
+  const currentFiles = new Set(maps.fileMap.files.map((file) => file.path));
+  return changed.filter((file) => currentFiles.has(file));
 }
 
 export async function concludeActiveSession(

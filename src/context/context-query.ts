@@ -21,6 +21,7 @@ import type {
   SymbolMap,
 } from '../types/maps.js';
 import { rankByFields, type Ranked } from './ranking.js';
+import { tokenize } from './ranking.js';
 
 export async function queryContext(
   workspace: KGraphWorkspace,
@@ -49,28 +50,48 @@ export async function queryContext(
       .filter((path): path is string => Boolean(path)),
   );
   const max = config.maxContextItems;
-  let relevantFiles = rankByFields(query, maps.fileMap.files, [
-    { name: 'path', value: (file) => file.path },
-    { name: 'language', value: (file) => file.language },
-  ])
-    .map((ranked) => ({
-      ...ranked,
-      score:
-        ranked.score -
-        Math.floor((ranked.item.tokenEstimate ?? 0) / 2000) +
-        (sessionTouchedPaths.has(ranked.item.path) ? 3 : 0),
-      reasons: sessionTouchedPaths.has(ranked.item.path)
-        ? [...ranked.reasons, 'touched in current session']
-        : ranked.reasons,
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, max);
-  const relevantSymbols = rankByFields(query, maps.symbolMap.symbols, [
-    { name: 'name', value: (symbol) => symbol.name },
-    { name: 'path', value: (symbol) => symbol.filePath },
-    { name: 'kind', value: (symbol) => symbol.kind },
-    { name: 'parent', value: (symbol) => symbol.parentName },
-  ]).slice(0, max);
+
+  // Collect git changes before file ranking so dirty files can influence ranking,
+  // not just appear later as a low-token pack item.
+  const knownFilePaths = new Set(maps.fileMap.files.map((f) => f.path));
+  const gitChanges: GitContextChange[] = [];
+  if (await isGitRepo(workspace.rootPath)) {
+    const workingTreeChanges = await getWorkingTreeChangesDetailed(
+      workspace.rootPath,
+    );
+    for (const change of workingTreeChanges) {
+      if (!knownFilePaths.has(change.path)) continue;
+      const status =
+        change.staged && !change.unstaged
+          ? 'staged'
+          : change.unstaged && !change.staged
+            ? 'unstaged'
+            : 'staged'; // both staged and unstaged -> report as staged
+      gitChanges.push({
+        path: change.path,
+        status,
+        reason:
+          change.staged && change.unstaged
+            ? 'partially staged'
+            : status === 'staged'
+              ? 'staged change'
+              : 'unstaged change',
+      });
+    }
+    const committedPaths = new Set(gitChanges.map((c) => c.path));
+    const recentCommitted = await getRecentlyCommittedFiles(workspace.rootPath);
+    for (const filePath of recentCommitted) {
+      if (!knownFilePaths.has(filePath) || committedPaths.has(filePath))
+        continue;
+      gitChanges.push({
+        path: filePath,
+        status: 'recent-commit',
+        reason: 'changed in recent commits',
+      });
+    }
+  }
+  const gitChangedPaths = new Set(gitChanges.map((change) => change.path));
+
   const relevantCognition = rankByFields(
     query,
     atoms.filter((atom) => atom.status !== 'archived'),
@@ -94,10 +115,40 @@ export async function queryContext(
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, max);
+  const atomLinkedFiles = new Map<string, string[]>();
+  for (const ranked of relevantCognition) {
+    for (const fp of ranked.item.relatedFiles) {
+      atomLinkedFiles.set(fp, [
+        ...(atomLinkedFiles.get(fp) ?? []),
+        `referenced by matched atom "${ranked.item.title}"`,
+      ]);
+    }
+  }
   const matchedDomains = rankByFields(query, domains, [
     { name: 'name', value: (domain) => domain.name },
     { name: 'tags', value: (domain) => domain.tags },
     { name: 'path', value: (domain) => domain.pathHints },
+  ]).slice(0, max);
+
+  let relevantFiles = rankByFields(query, maps.fileMap.files, [
+    { name: 'path', value: (file) => file.path },
+    { name: 'language', value: (file) => file.language },
+  ])
+    .map((ranked) =>
+      applyFileRankAdjustments(ranked, {
+        query,
+        atomLinkedFiles,
+        gitChangedPaths,
+        sessionTouchedPaths,
+      }),
+    )
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max);
+  const relevantSymbols = rankByFields(query, maps.symbolMap.symbols, [
+    { name: 'name', value: (symbol) => symbol.name },
+    { name: 'path', value: (symbol) => symbol.filePath },
+    { name: 'kind', value: (symbol) => symbol.kind },
+    { name: 'parent', value: (symbol) => symbol.parentName },
   ]).slice(0, max);
 
   // Inject files linked by matched cognition notes/domains that didn't score on name alone
@@ -148,10 +199,10 @@ export async function queryContext(
       .filter((f) => cognitionLinkedMap.has(f.path))
       .map((f) => ({
         item: f,
-        score: 1,
+        score: 12,
         reasons: cognitionLinkedMap.get(f.path)!,
       })),
-  ];
+  ].sort((a, b) => b.score - a.score);
 
   const relatedIds = new Set<string>([
     ...relevantFiles.map((file) => file.item.path),
@@ -278,45 +329,6 @@ export async function queryContext(
     ],
   }));
 
-  // Collect git changes: working-tree and recently committed files known to KGraph
-  const knownFilePaths = new Set(maps.fileMap.files.map((f) => f.path));
-  const gitChanges: GitContextChange[] = [];
-  if (await isGitRepo(workspace.rootPath)) {
-    const workingTreeChanges = await getWorkingTreeChangesDetailed(
-      workspace.rootPath,
-    );
-    for (const change of workingTreeChanges) {
-      if (!knownFilePaths.has(change.path)) continue;
-      const status =
-        change.staged && !change.unstaged
-          ? 'staged'
-          : change.unstaged && !change.staged
-            ? 'unstaged'
-            : 'staged'; // both staged and unstaged → report as staged
-      gitChanges.push({
-        path: change.path,
-        status,
-        reason:
-          change.staged && change.unstaged
-            ? 'partially staged'
-            : status === 'staged'
-              ? 'staged change'
-              : 'unstaged change',
-      });
-    }
-    const committedPaths = new Set(gitChanges.map((c) => c.path));
-    const recentCommitted = await getRecentlyCommittedFiles(workspace.rootPath);
-    for (const filePath of recentCommitted) {
-      if (!knownFilePaths.has(filePath) || committedPaths.has(filePath))
-        continue;
-      gitChanges.push({
-        path: filePath,
-        status: 'recent-commit',
-        reason: 'changed in recent commits',
-      });
-    }
-  }
-
   return {
     query,
     matchedDomains,
@@ -331,6 +343,50 @@ export async function queryContext(
     staleReferences,
     warnings: [],
   };
+}
+
+function applyFileRankAdjustments<T extends { path: string; tokenEstimate?: number }>(
+  ranked: Ranked<T>,
+  context: {
+    query: string;
+    atomLinkedFiles: Map<string, string[]>;
+    gitChangedPaths: Set<string>;
+    sessionTouchedPaths: Set<string>;
+  },
+): Ranked<T> {
+  const reasons = [...ranked.reasons];
+  let score = ranked.score - Math.floor((ranked.item.tokenEstimate ?? 0) / 2000);
+
+  if (context.sessionTouchedPaths.has(ranked.item.path)) {
+    score += 3;
+    reasons.push('touched in current session');
+  }
+  if (context.gitChangedPaths.has(ranked.item.path)) {
+    score += 10;
+    reasons.push('current git change');
+  }
+  const atomReasons = context.atomLinkedFiles.get(ranked.item.path) ?? [];
+  if (atomReasons.length > 0) {
+    score += 12;
+    reasons.push(...atomReasons);
+  }
+
+  const strongTokens = tokenize(context.query).filter(
+    (token) =>
+      token.length >= 4 &&
+      !['page', 'work', 'file', 'component', 'app'].includes(token),
+  );
+  const pathTokens = new Set(tokenize(ranked.item.path));
+  const strongMatches = strongTokens.filter((token) => pathTokens.has(token));
+  if (strongMatches.length > 0) {
+    score += strongMatches.length * 3;
+    reasons.push(`path matched specific query token(s): ${strongMatches.join(', ')}`);
+  } else if (strongTokens.length > 0) {
+    score -= 6;
+    reasons.push('generic path-only match penalty');
+  }
+
+  return { ...ranked, score, reasons };
 }
 
 function explainRelationships(

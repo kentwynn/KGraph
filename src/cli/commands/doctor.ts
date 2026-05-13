@@ -220,6 +220,9 @@ export function printQualityReport(report: CognitionQualityReport): void {
   console.log(`Duplicate compatibility note titles: ${report.duplicateTitleCount}`);
   console.log(`Generated files scanned: ${report.generatedFileScanCount}`);
   console.log(`Expensive files: ${report.expensiveFileCount}`);
+  console.log(
+    `High-confidence atoms without evidence: ${report.highConfidenceMissingEvidenceCount}`,
+  );
   console.log(`Session repeated reads: ${report.sessionRepeatedReadCount}`);
   console.log(
     `Session estimated read tokens: ${report.sessionEstimatedReadTokens}`,
@@ -266,6 +269,11 @@ function summarizeQualityFindings(report: CognitionQualityReport): string[] {
   if (report.generatedFileScanCount > 0) {
     findings.push(
       `${report.generatedFileScanCount} generated/integration file(s) scanned; update excludes`,
+    );
+  }
+  if (report.highConfidenceMissingEvidenceCount > 0) {
+    findings.push(
+      `${report.highConfidenceMissingEvidenceCount} high-confidence atom(s) without evidence; add file/symbol refs or supersede`,
     );
   }
   return findings;
