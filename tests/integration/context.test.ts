@@ -18,7 +18,8 @@ describe('kgraph context', () => {
       );
       await runCli(repo, ['update']);
       const markdown = await runCli(repo, ['context', 'auth refresh']);
-      expect(markdown.stdout).toContain('# KGraph Context');
+      expect(markdown.stdout).toContain('KGraph Context · auth refresh');
+      expect(markdown.stdout).toContain('● Signal');
       expect(markdown.stdout).toContain('because');
       const json = await runCli(repo, ['context', 'auth refresh', '--json']);
       const parsed = JSON.parse(json.stdout);
@@ -92,7 +93,7 @@ describe('kgraph context', () => {
       const result = await runCli(repo, ['auth refresh']);
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Refresh Complete');
-      expect(result.stdout).toContain('# KGraph Context');
+      expect(result.stdout).toContain('KGraph Context · auth refresh');
       expect(result.stdout).toContain('src/auth.ts');
     } finally {
       await cleanupTempRepo(repo);

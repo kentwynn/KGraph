@@ -158,7 +158,7 @@ describe('git changes in context output', () => {
       );
 
       const result = await runCli(repo, ['context', 'auth']);
-      expect(result.stdout).toContain('## Recent Git Changes');
+      expect(result.stdout).toContain('● Recent Git Changes');
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -206,7 +206,7 @@ describe('git changes in context output', () => {
       await runCli(repo, ['init']);
 
       const result = await runCli(repo, ['context', 'auth']);
-      expect(result.stdout).toContain('## Recent Git Changes');
+      expect(result.stdout).toContain('● Recent Git Changes');
       expect(result.stdout).toContain('- None');
     } finally {
       await cleanupTempRepo(repo);

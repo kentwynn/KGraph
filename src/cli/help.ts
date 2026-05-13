@@ -1,40 +1,43 @@
 import { Chalk } from 'chalk';
-import figlet from 'figlet';
+
+type Theme = InstanceType<typeof Chalk>;
 
 export function renderRootHelp(useColor = supportsColor()): string {
   const theme = new Chalk({ level: useColor ? 3 : 0 });
   const command = (name: string, description: string) =>
     `  ${theme.green(name.padEnd(42))} ${description}`;
-  const logo = renderLogo();
+  const accent = atomAccent(theme);
 
   return [
     '',
-    theme.hex('#7dd3fc').bold(logo),
+    renderAtomLogo(theme),
     '',
-    `  ${theme.bold('KGraph')} ${theme.dim('Persistent repo intelligence for AI coding tools')}`,
+    renderSignalPanel(theme, [
+      ['purpose', 'durable engineering memory for AI coding tools'],
+      ['storage', '.kgraph/ atoms, maps, indexes, and session history'],
+      ['stance', 'local-first · deterministic-first · inspectable'],
+      ['agents', 'Codex · Copilot · Cursor · Claude Code · Gemini · Windsurf · Cline'],
+    ]),
     '',
-    `  ${theme.hex('#c084fc')('Build a local knowledge layer that helps Codex, Copilot, Cursor,')}`,
-    `  ${theme.hex('#c084fc')('Claude Code, Gemini, Windsurf, and Cline reuse repo intelligence.')}`,
-    '',
-    theme.bold('Usage'),
+    sectionTitle(theme, `${accent} Usage`),
     '  kgraph [topic]',
     '  kgraph <command> [options]',
     '',
-    theme.bold('Start'),
+    sectionTitle(theme, `${accent} Start`),
     command('init', 'Required once: create .kgraph/ workspace'),
     command(
       'init --integrations codex,gemini',
       'Initialize and connect AI tools',
     ),
     '',
-    theme.bold('Daily workflow'),
+    sectionTitle(theme, `${accent} Daily workflow`),
     command('kgraph', 'Refresh scan maps and process pending capture notes'),
     command(
       'kgraph "auth token refresh"',
       'Refresh everything and return compact context for a topic',
     ),
     '',
-    theme.bold('Workflows'),
+    sectionTitle(theme, `${accent} Workflows`),
     command(
       'scan',
       'Optional: refresh only file, symbol, import, and relationship maps',
@@ -81,7 +84,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     ),
     command('history "blog button"', 'Search processed cognition sessions'),
     '',
-    theme.bold('Integrations'),
+    sectionTitle(theme, `${accent} Integrations`),
     command('integrate list', 'Show configured AI tool integrations'),
     command(
       'integrate add gemini windsurf cline',
@@ -104,16 +107,18 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'Control automatic KGraph involvement per integration',
     ),
     '',
-    theme.bold('Options'),
+    sectionTitle(theme, `${accent} Options`),
     command('-V, --version', 'Show version'),
     command('-h, --help', 'Show this help'),
     '',
-    `${theme.yellow('Examples')}`,
+    sectionTitle(theme, `${accent} Examples`),
     '  kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline',
     '  kgraph "blog admin token usage"',
+    '  kgraph pack "about page update" --budget 4000',
     '  kgraph doctor',
     '',
     theme.dim('Docs: https://github.com/kentwynn/KGraph#readme'),
+    theme.dim('Powered by Kent Wynn: https://kentwynn.com'),
     '',
   ].join('\n');
 }
@@ -137,6 +142,7 @@ export function renderWorkflowBanner(
   useColor = supportsColor(),
 ): string {
   const theme = new Chalk({ level: useColor ? 3 : 0 });
+  const accent = atomAccent(theme);
   const command = (name: string, description: string) =>
     `  ${theme.green(name.padEnd(42))} ${description}`;
   const integrationLine =
@@ -152,11 +158,11 @@ export function renderWorkflowBanner(
 
   return [
     '',
-    theme.hex('#7dd3fc').bold(renderLogo()),
+    renderAtomLogo(theme),
     '',
-    `  ${theme.bold('KGraph')} ${theme.dim('repo intelligence refreshed')}`,
+    `  ${theme.bold('KGraph')} ${theme.dim('· repo intelligence refreshed')}`,
     '',
-    theme.bold('Refresh Complete'),
+    sectionTitle(theme, `${accent} Refresh Complete`),
     command(
       'files',
       String(stats.files) +
@@ -168,7 +174,7 @@ export function renderWorkflowBanner(
     command('capture notes processed', String(stats.cognitionNotes)),
     command('integration modes', integrationLine),
     '',
-    theme.bold('Next'),
+    sectionTitle(theme, `${accent} Next`),
     command(
       'kgraph "auth token refresh"',
       'Return compact context for a topic',
@@ -182,16 +188,33 @@ export function renderWorkflowBanner(
   ].join('\n');
 }
 
-function renderLogo(): string {
-  try {
-    return figlet.textSync('KGraph', {
-      font: 'ANSI Shadow',
-      horizontalLayout: 'default',
-      verticalLayout: 'default',
-    });
-  } catch {
-    return 'KGraph';
-  }
+function renderAtomLogo(theme: Theme): string {
+  const title = `${theme.hex('#38bdf8').bold('KGraph')} ${theme.dim('·')} ${theme.hex('#c084fc').bold('Atom Core')}`;
+  const atom = theme.hex('#22d3ee').bold('⚛');
+  const memory = theme.hex('#a78bfa')('persistent repo intelligence for AI coding tools');
+  return [
+    `  ${atom}  ${theme.dim('atoms · evidence · context packs')}`,
+    `     ${title}`,
+    `     ${memory}`,
+  ].join('\n');
+}
+
+function renderSignalPanel(theme: Theme, rows: Array<[string, string]>): string {
+  const labelWidth = Math.max(...rows.map(([label]) => label.length));
+  return rows
+    .map(
+      ([label, value]) =>
+        `  ${theme.hex('#22d3ee')('●')} ${theme.bold(label.padEnd(labelWidth))}  ${theme.dim(value)}`,
+    )
+    .join('\n');
+}
+
+function sectionTitle(theme: Theme, title: string): string {
+  return theme.bold(title);
+}
+
+function atomAccent(theme: Theme): string {
+  return theme.hex('#22d3ee')('●');
 }
 
 function supportsColor(): boolean {

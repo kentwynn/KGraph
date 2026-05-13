@@ -4,6 +4,8 @@ Persistent repository intelligence for AI coding tools.
 
 KGraph gives Codex, GitHub Copilot, Cursor, Claude Code, Gemini CLI, Windsurf, and Cline a local knowledge layer for your repo: file maps, symbols, imports, relationships, and durable knowledge atoms from previous AI sessions. The goal is simple: your assistant should not spend every session re-learning the same codebase.
 
+The CLI presents this as **Atom Core**: lightweight local atoms plus deterministic repo maps, context packs, and session history that remain inspectable under `.kgraph/`.
+
 ## The Workflow
 
 Use KGraph in two steps:

@@ -5,8 +5,9 @@ import { shouldRenderRootHelpBeforeParse } from '../../src/cli/index.js';
 describe('root help', () => {
   it('renders branded command guidance without color', () => {
     const help = renderRootHelp(false);
-    expect(help).toContain('██╗');
-    expect(help).toContain('KGraph Persistent repo intelligence');
+    expect(help).toContain('KGraph · Atom Core');
+    expect(help).toContain('persistent repo intelligence');
+    expect(help).toContain('durable engineering memory');
     expect(help).toContain('init --integrations codex,gemini');
     expect(help).toContain('context "auth token refresh"');
     expect(help).toContain('session read src/auth.ts --agent codex');
@@ -15,6 +16,7 @@ describe('root help', () => {
     expect(help).toContain('integrate set copilot --mode manual');
     expect(help).toContain('uninstall --yes');
     expect(help).toContain('--mode smart|always|manual|off');
+    expect(help).toContain('Powered by Kent Wynn: https://kentwynn.com');
   });
 
   it('shows configured integration modes in the refresh banner', () => {
