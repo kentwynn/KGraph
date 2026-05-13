@@ -1,5 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import {
   cleanupTempRepo,
@@ -7,10 +9,29 @@ import {
   runCli,
 } from '../fixtures/helpers.js';
 
+const execFileAsync = promisify(execFile);
+
+async function gitInit(repoPath: string): Promise<void> {
+  await execFileAsync('git', ['init'], { cwd: repoPath });
+  await execFileAsync('git', ['config', 'user.email', 'test@kgraph.test'], {
+    cwd: repoPath,
+  });
+  await execFileAsync('git', ['config', 'user.name', 'KGraph Test'], {
+    cwd: repoPath,
+  });
+}
+
+async function gitCommitAll(repoPath: string, message: string): Promise<void> {
+  await execFileAsync('git', ['add', '-A'], { cwd: repoPath });
+  await execFileAsync('git', ['commit', '-m', message], { cwd: repoPath });
+}
+
 describe('kgraph knowledge', () => {
   it('creates atoms from conclude and supports list/get/archive/supersede', async () => {
     const repo = await copyFixture('js-ts-repo');
     try {
+      await gitInit(repo);
+      await gitCommitAll(repo, 'initial');
       await runCli(repo, ['init']);
       await runCli(repo, ['scan']);
       await runCli(repo, [
@@ -73,6 +94,78 @@ describe('kgraph knowledge', () => {
         (await runCli(repo, ['knowledge', 'archive', secondId, '--json'])).stdout,
       );
       expect(archived.status).toBe('archived');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('infers changed files for bare conclude commands', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await gitInit(repo);
+      await gitCommitAll(repo, 'initial');
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      await writeFile(
+        path.join(repo, 'src', 'auth.ts'),
+        `${await readFile(path.join(repo, 'src', 'auth.ts'), 'utf8')}\nexport const changedForConclusion = true;\n`,
+        'utf8',
+      );
+
+      await runCli(repo, [
+        'conclude',
+        'auth changed conclusion',
+        '--type',
+        'finding',
+        '--confidence',
+        'high',
+      ]);
+
+      const list = JSON.parse(
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'auth changed conclusion',
+            '--json',
+          ])
+        ).stdout,
+      );
+      expect(list[0].scopeRefs.files).toContain('src/auth.ts');
+      expect(
+        list[0].evidenceRefs.some(
+          (ref: { type: string; path?: string }) =>
+            ref.type === 'file' && ref.path === 'src/auth.ts',
+        ),
+      ).toBe(true);
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('doctor flags high-confidence atoms without evidence', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      await runCli(repo, [
+        'conclude',
+        'unsupported high confidence conclusion',
+        '--type',
+        'decision',
+        '--confidence',
+        'high',
+      ]);
+
+      const doctor = await runCli(repo, ['doctor', '--quality']);
+      expect(doctor.code).toBe(1);
+      expect(doctor.stdout).toContain(
+        'high-confidence atom(s) without evidence',
+      );
+      expect(doctor.stdout).toContain(
+        'High-confidence atoms without evidence: 1',
+      );
     } finally {
       await cleanupTempRepo(repo);
     }

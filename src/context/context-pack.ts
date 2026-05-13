@@ -62,10 +62,11 @@ export function buildContextPack(
     })),
   ];
 
+  const orderedCandidates = candidates.sort(comparePackCandidates);
   const items: ContextPackItem[] = [];
   const omitted: ContextPackItem[] = [];
   let usedTokens = 0;
-  for (const candidate of candidates) {
+  for (const candidate of orderedCandidates) {
     if (usedTokens + candidate.tokenEstimate <= budget) {
       items.push(candidate);
       usedTokens += candidate.tokenEstimate;
@@ -82,4 +83,23 @@ export function buildContextPack(
     omitted,
     warnings: response.warnings,
   };
+}
+
+function comparePackCandidates(left: ContextPackItem, right: ContextPackItem): number {
+  return packPriority(right) - packPriority(left);
+}
+
+function packPriority(item: ContextPackItem): number {
+  let score = 0;
+  if (item.kind === 'atom') score += 40;
+  if (item.kind === 'git-change') score += 35;
+  if (item.kind === 'symbol') score += 25;
+  if (item.kind === 'file') score += 15;
+  if (item.kind === 'relationship') score += 5;
+  if (item.reasons.some((reason) => reason.includes('matched atom'))) score += 30;
+  if (item.reasons.some((reason) => reason.includes('current git change'))) score += 25;
+  if (item.reasons.some((reason) => reason.includes('specific query token'))) score += 10;
+  if (item.reasons.some((reason) => reason.includes('generic path-only match penalty'))) score -= 20;
+  score -= Math.floor(item.tokenEstimate / 2000);
+  return score;
 }
