@@ -10,6 +10,7 @@ const COMPACT_STEP = `Run \`kgraph compact --dry-run\` when cognition looks dupl
 const HISTORY_STEP = `Run \`kgraph history\` or \`kgraph history "<topic>"\` to review past cognition sessions with git author attribution.`;
 const KNOWLEDGE_STEP = `Run \`kgraph knowledge list --topic "<topic>"\` or \`kgraph knowledge get <atom-id>\` when the user asks what KGraph remembers or atom provenance/lifecycle matters.`;
 const PACK_STEP = `Run \`kgraph pack "<task>" --budget 8000 --json\` when an agent needs a machine-readable, token-budgeted context pack instead of human Markdown context.`;
+const STALE_STEP = `Run \`kgraph stale\` when changed or deleted code may have invalidated durable knowledge. Run \`kgraph blame <atom-id>\` when provenance or evidence for a memory matters.`;
 
 function sessionStep(agentName: string, qualifier?: string): string {
   const base = `Track meaningful session activity with \`kgraph session start --agent ${agentName}\`, \`kgraph session read <path> --agent ${agentName}\`, \`kgraph session write <path> --agent ${agentName}\`, and \`kgraph session end --agent ${agentName} --conclude --topic "<topic>"\` when durable session memory is useful`;
@@ -35,15 +36,16 @@ export function numberedWorkflow(
 4. ${PACK_STEP}
 5. ${KNOWLEDGE_STEP}
 6. ${DOCTOR_STEP}
-7. ${sessionStep(agentName, options.sessionQualifier)}
-8. ${IMPACT_STEP}
+7. ${STALE_STEP}
+8. ${sessionStep(agentName, options.sessionQualifier)}
+9. ${IMPACT_STEP}
 
 {{KGRAPH_CAPTURE_POLICY}}
 
-9. ${REPAIR_STEP}
-10. ${COMPACT_STEP}
-11. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-12. ${HISTORY_STEP}`;
+10. ${REPAIR_STEP}
+11. ${COMPACT_STEP}
+12. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+13. ${HISTORY_STEP}`;
 }
 
 /**
@@ -58,6 +60,7 @@ export function bulletWorkflow(
 - ${PACK_STEP}
 - ${KNOWLEDGE_STEP}
 - ${DOCTOR_STEP}
+- ${STALE_STEP}
 - ${sessionStep(agentName, options.sessionQualifier)}
 - ${IMPACT_STEP}
 {{KGRAPH_CAPTURE_POLICY}}

@@ -7,7 +7,7 @@ export const claudeCodeAdapter: IntegrationAdapter = {
   targetPath: 'CLAUDE.md',
   instructions: `## KGraph Workflow
 
-{{KGRAPH_CONTEXT_POLICY}} Use /kgraph for the full automated workflow. Run \`kgraph pack "<task>" --budget 8000 --json\` for a machine-readable token-budgeted context pack, \`kgraph knowledge list\` or \`kgraph knowledge get <atom-id>\` to inspect durable atoms, \`kgraph conclude\` for durable typed engineering memory, and \`kgraph compact --dry-run\` when cognition looks duplicated or stale. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
+{{KGRAPH_CONTEXT_POLICY}} Use /kgraph for the full automated workflow. Run \`kgraph pack "<task>" --budget 8000 --json\` for a machine-readable token-budgeted context pack, \`kgraph knowledge list\` or \`kgraph knowledge get <atom-id>\` to inspect durable atoms, \`kgraph stale\` and \`kgraph blame <atom-id>\` when lifecycle/provenance matters, \`kgraph conclude\` for durable typed engineering memory, and \`kgraph compact --dry-run\` when cognition looks duplicated or stale. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
 `,
   commandFiles: [
     {
@@ -40,6 +40,16 @@ ${numberedWorkflow('claude-code', { sessionQualifier: 'when native hooks are una
     {
       path: '.claude/commands/kgraph-knowledge.md',
       content: `Use \`kgraph knowledge list\` and \`kgraph knowledge get <atom-id>\` to inspect durable atoms, evidence, provenance, and lifecycle. Run \`kgraph knowledge archive <atom-id>\` or \`kgraph knowledge supersede <old-id> <new-id>\` only when the user explicitly asks to mutate atom lifecycle.
+`,
+    },
+    {
+      path: '.claude/commands/kgraph-stale.md',
+      content: `Run \`kgraph stale\` to refresh atom status against the current scan and summarize stale or needs-review atoms with invalidation reasons.
+`,
+    },
+    {
+      path: '.claude/commands/kgraph-blame.md',
+      content: `Run \`kgraph blame "$ARGUMENTS"\` to show who or what created a knowledge atom, the source command/session/commit, evidence refs, and lifecycle links.
 `,
     },
     {

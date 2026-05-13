@@ -5,9 +5,13 @@ import {
 } from '../scanner/git-utils.js';
 import { readDomainRecords } from '../storage/cognition-store.js';
 import { readSessionState } from '../session/session-store.js';
-import { atomToCognitionNote, readKnowledgeAtoms } from '../knowledge/atom-store.js';
+import {
+  atomToCognitionNote,
+  refreshKnowledgeAtomStatuses,
+} from '../knowledge/atom-store.js';
 import type { ContextResponse, GitContextChange } from '../types/cognition.js';
 import type { KGraphConfig, KGraphWorkspace } from '../types/config.js';
+import type { KnowledgeAtom } from '../types/knowledge.js';
 import type {
   CodeSymbol,
   DependencyMap,
@@ -29,7 +33,11 @@ export async function queryContext(
   },
   query: string,
 ): Promise<ContextResponse> {
-  const atoms = await readKnowledgeAtoms(workspace);
+  const refreshedAtoms = await refreshKnowledgeAtomStatuses(workspace, {
+    fileMap: maps.fileMap,
+    symbolMap: maps.symbolMap,
+  });
+  const atoms = refreshedAtoms.atoms;
   const cognition = atoms
     .filter((atom) => atom.status !== 'archived')
     .map(atomToCognitionNote);
@@ -63,17 +71,27 @@ export async function queryContext(
     { name: 'kind', value: (symbol) => symbol.kind },
     { name: 'parent', value: (symbol) => symbol.parentName },
   ]).slice(0, max);
-  const relevantCognition = rankByFields(query, cognition, [
-    { name: 'title', value: (note) => note.title },
-    { name: 'type', value: (note) => note.kind },
-    { name: 'confidence', value: (note) => note.confidence },
-    { name: 'domain', value: (note) => note.domain },
-    { name: 'tags', value: (note) => note.tags },
-    { name: 'files', value: (note) => note.relatedFiles },
-    { name: 'symbols', value: (note) => note.relatedSymbols },
-    { name: 'summary', value: (note) => note.summary },
-  ])
-    .map((ranked) => applyCognitionRankAdjustments(ranked))
+  const relevantCognition = rankByFields(
+    query,
+    atoms.filter((atom) => atom.status !== 'archived'),
+    [
+      { name: 'topic', value: (atom) => atom.topic },
+      { name: 'claim', value: (atom) => atom.claim },
+      { name: 'type', value: (atom) => atom.type },
+      { name: 'confidence', value: (atom) => atom.confidence },
+      { name: 'status', value: (atom) => atom.status },
+      { name: 'source', value: (atom) => atom.provenance.sourceCommand },
+      { name: 'domains', value: (atom) => atom.scopeRefs.domains },
+      { name: 'files', value: (atom) => atom.scopeRefs.files },
+      { name: 'symbols', value: (atom) => atom.scopeRefs.symbols },
+      { name: 'summary', value: (atom) => atom.summary },
+    ],
+  )
+    .map((ranked) => applyAtomRankAdjustments(ranked))
+    .map((ranked) => ({
+      ...ranked,
+      item: atomToCognitionNote(ranked.item),
+    }))
     .sort((a, b) => b.score - a.score)
     .slice(0, max);
   const matchedDomains = rankByFields(query, domains, [
@@ -399,36 +417,40 @@ function explainRelationships(
   });
 }
 
-function applyCognitionRankAdjustments<T extends {
-  confidence?: string;
-  referencesStatus?: string;
-  kind?: string;
-}>(ranked: Ranked<T>): Ranked<T> {
+function applyAtomRankAdjustments(ranked: Ranked<KnowledgeAtom>): Ranked<KnowledgeAtom> {
   const reasons = [...ranked.reasons];
   let score = ranked.score;
   if (ranked.item.confidence === 'high') {
-    score += 3;
-    reasons.push('high confidence cognition');
-  } else if (ranked.item.confidence === 'low') {
-    score -= 2;
+    score += 4;
+    reasons.push('high confidence atom');
+  } else if (ranked.item.confidence === 'medium') {
+    score += 1;
+    reasons.push('medium confidence atom');
+  } else {
+    score -= 3;
     reasons.push('low confidence penalty');
   }
-  if (ranked.item.referencesStatus === 'current') {
-    score += 2;
-    reasons.push('current references');
-  } else if (ranked.item.referencesStatus === 'mixed') {
-    score -= 1;
-    reasons.push('mixed reference penalty');
-  } else if (
-    ranked.item.referencesStatus === 'stale' ||
-    ranked.item.referencesStatus === 'unresolved'
-  ) {
-    score -= 4;
-    reasons.push('stale reference penalty');
+  if (ranked.item.status === 'active') {
+    score += 3;
+    reasons.push('active atom evidence');
+  } else if (ranked.item.status === 'needs-review') {
+    score -= 2;
+    reasons.push('needs-review stale penalty');
+  } else if (ranked.item.status === 'stale') {
+    score -= 6;
+    reasons.push('stale atom penalty');
   }
-  if (ranked.item.kind === 'decision' || ranked.item.kind === 'gotcha') {
-    score += 1;
-    reasons.push(`${ranked.item.kind} cognition`);
+  if (ranked.item.type === 'decision' || ranked.item.type === 'gotcha') {
+    score += 2;
+    reasons.push(`${ranked.item.type} atom`);
+  }
+  if (ranked.item.provenance.sourceCommand === 'legacy-migration') {
+    score -= 1;
+    reasons.push('legacy compatibility atom');
+  }
+  if (ranked.item.lifecycle.supersededBy) {
+    score -= 8;
+    reasons.push('superseded atom penalty');
   }
   return { ...ranked, score, reasons };
 }

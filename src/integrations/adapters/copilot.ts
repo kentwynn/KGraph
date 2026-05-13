@@ -14,7 +14,7 @@ ${numberedWorkflow('copilot')}
       path: '.github/agents/kgraph.agent.md',
       content: `---
 name: kgraph
-description: Use KGraph persistent repo intelligence to answer questions about this codebase. Runs kgraph context, pack, knowledge, scan, update, conclude, compact, impact, history, and session commands to ground responses in durable local knowledge.
+description: Use KGraph persistent repo intelligence to answer questions about this codebase. Runs kgraph context, pack, knowledge, stale, blame, scan, update, conclude, compact, impact, history, and session commands to ground responses in durable local knowledge.
 tools:
   - run_in_terminal
   - read_file
@@ -82,6 +82,27 @@ argument-hint: "list, get <atom-id>, archive <atom-id>, or supersede <old-id> <n
 ---
 
 Use \`kgraph knowledge list\` and \`kgraph knowledge get <atom-id>\` to inspect durable atoms, evidence, provenance, and lifecycle. Run \`kgraph knowledge archive <atom-id>\` or \`kgraph knowledge supersede <old-id> <new-id>\` only when the user explicitly asks to mutate atom lifecycle.
+`,
+    },
+    {
+      path: '.github/prompts/kgraph-stale.prompt.md',
+      content: `---
+description: Show KGraph knowledge invalidated by changed or missing refs
+agent: agent
+---
+
+Run \`kgraph stale\` to refresh atom status against the current scan and summarize stale or needs-review atoms with invalidation reasons.
+`,
+    },
+    {
+      path: '.github/prompts/kgraph-blame.prompt.md',
+      content: `---
+description: Show KGraph atom provenance and evidence
+agent: agent
+argument-hint: "Atom id"
+---
+
+Run \`kgraph blame "$ARGUMENTS"\` to show who or what created a knowledge atom, the source command/session/commit, evidence refs, and lifecycle links.
 `,
     },
     {

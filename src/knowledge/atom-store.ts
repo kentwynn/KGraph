@@ -35,6 +35,16 @@ export interface AtomInput {
   idSeed?: string;
 }
 
+export interface AtomStatusRefreshResult {
+  atoms: KnowledgeAtom[];
+  updated: Array<{
+    atomId: string;
+    previousStatus: KnowledgeAtom['status'];
+    nextStatus: KnowledgeAtom['status'];
+    reasons: string[];
+  }>;
+}
+
 export async function ensureKnowledgeStore(
   workspace: KGraphWorkspace,
 ): Promise<void> {
@@ -190,6 +200,58 @@ export async function updateKnowledgeAtom(
   atoms[index] = updater(atoms[index]);
   await writeKnowledgeAtoms(workspace, atoms);
   return atoms[index];
+}
+
+export async function refreshKnowledgeAtomStatuses(
+  workspace: KGraphWorkspace,
+  maps: { fileMap: FileMap; symbolMap: SymbolMap },
+  dryRun = false,
+): Promise<AtomStatusRefreshResult> {
+  const atoms = await readKnowledgeAtoms(workspace);
+  const now = new Date().toISOString();
+  const updated: AtomStatusRefreshResult['updated'] = [];
+  const nextAtoms = atoms.map((atom) => {
+    if (atom.status === 'archived') return atom;
+    const health = evaluateAtomHealth(atom.evidenceRefs, maps);
+    const nextConfidence = computeConfidence(atom.confidence, health.status, atom);
+    const nextLifecycle: KnowledgeAtom['lifecycle'] = {
+      ...atom.lifecycle,
+      ...(health.reasons.length > 0 ? { invalidatedBy: health.reasons } : {}),
+    };
+    if (health.status === 'active') {
+      delete nextLifecycle.invalidatedBy;
+    }
+    const statusChanged = health.status !== atom.status;
+    const confidenceChanged = nextConfidence !== atom.confidence;
+    const invalidationChanged =
+      JSON.stringify(nextLifecycle.invalidatedBy ?? []) !==
+      JSON.stringify(atom.lifecycle.invalidatedBy ?? []);
+    const nextAtom: KnowledgeAtom = {
+      ...atom,
+      status: health.status,
+      confidence: nextConfidence,
+      lifecycle: nextLifecycle,
+      provenance: {
+        ...atom.provenance,
+        ...(statusChanged || confidenceChanged || invalidationChanged
+          ? { updatedAt: now }
+          : {}),
+      },
+    };
+    if (statusChanged || confidenceChanged || invalidationChanged) {
+      updated.push({
+        atomId: atom.id,
+        previousStatus: atom.status,
+        nextStatus: health.status,
+        reasons: health.reasons,
+      });
+    }
+    return nextAtom;
+  });
+  if (!dryRun && updated.length > 0) {
+    await writeKnowledgeAtoms(workspace, nextAtoms);
+  }
+  return { atoms: nextAtoms, updated };
 }
 
 export async function validateKnowledgeStore(
@@ -359,35 +421,56 @@ function evaluateAtomStatus(
   refs: KnowledgeEvidenceRef[],
   maps?: { fileMap: FileMap; symbolMap: SymbolMap },
 ): KnowledgeAtom['status'] {
-  if (!maps || refs.length === 0) return 'active';
+  return evaluateAtomHealth(refs, maps).status;
+}
+
+function evaluateAtomHealth(
+  refs: KnowledgeEvidenceRef[],
+  maps?: { fileMap: FileMap; symbolMap: SymbolMap },
+): { status: KnowledgeAtom['status']; reasons: string[] } {
+  if (!maps || refs.length === 0) return { status: 'active', reasons: [] };
   const fileByPath = new Map(maps.fileMap.files.map((file) => [file.path, file]));
   const symbolNames = new Set(maps.symbolMap.symbols.map((symbol) => symbol.name));
   const symbolIds = new Set(maps.symbolMap.symbols.map((symbol) => symbol.id));
   let stale = false;
   let needsReview = false;
+  const reasons: string[] = [];
   for (const ref of refs) {
     if (ref.type === 'file') {
       const file = fileByPath.get(ref.path);
-      if (!file) stale = true;
-      else if (ref.contentHash && ref.contentHash !== file.contentHash) needsReview = true;
+      if (!file) {
+        stale = true;
+        reasons.push(`missing file:${ref.path}`);
+      } else if (ref.contentHash && ref.contentHash !== file.contentHash) {
+        needsReview = true;
+        reasons.push(`changed file:${ref.path}`);
+      }
     }
     if (ref.type === 'symbol') {
       const exists =
         (ref.symbolId && symbolIds.has(ref.symbolId)) || symbolNames.has(ref.name);
-      if (!exists) stale = true;
+      if (!exists) {
+        stale = true;
+        reasons.push(`missing symbol:${ref.name}`);
+      }
     }
   }
-  if (stale) return 'stale';
-  if (needsReview) return 'needs-review';
-  return 'active';
+  if (stale) return { status: 'stale', reasons };
+  if (needsReview) return { status: 'needs-review', reasons };
+  return { status: 'active', reasons };
 }
 
 function computeConfidence(
   initial: CognitionConfidence,
   status: KnowledgeAtom['status'],
+  atom?: KnowledgeAtom,
 ): CognitionConfidence {
+  if (atom?.lifecycle.supersededBy || atom?.status === 'archived') return 'low';
   if (status === 'stale') return 'low';
   if (status === 'needs-review' && initial === 'high') return 'medium';
+  if (atom?.provenance.sourceCommand === 'legacy-migration' && initial === 'high') {
+    return 'medium';
+  }
   return initial;
 }
 

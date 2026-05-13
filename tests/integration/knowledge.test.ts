@@ -150,6 +150,54 @@ describe('kgraph knowledge', () => {
     }
   });
 
+  it('refreshes stale atom status and reports atom blame', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      await runCli(repo, [
+        'conclude',
+        'auth stale atom',
+        '--type',
+        'finding',
+        '--confidence',
+        'high',
+        '--file',
+        'src/auth.ts',
+        '--note',
+        'Auth stale atom tracks auth.ts evidence.',
+      ]);
+      const atoms = JSON.parse(
+        (await runCli(repo, ['knowledge', 'list', '--topic', 'auth stale atom', '--json']))
+          .stdout,
+      );
+      await writeFile(
+        path.join(repo, 'src', 'auth.ts'),
+        `${await readFile(path.join(repo, 'src', 'auth.ts'), 'utf8')}\nexport const changedForStale = true;\n`,
+        'utf8',
+      );
+      await runCli(repo, ['scan']);
+
+      const stale = JSON.parse((await runCli(repo, ['stale', '--json'])).stdout);
+      const staleAtom = stale.atoms.find(
+        (atom: { id: string }) => atom.id === atoms[0].id,
+      );
+      expect(staleAtom.status).toBe('needs-review');
+      expect(staleAtom.confidence).toBe('medium');
+      expect(staleAtom.lifecycle.invalidatedBy).toContain('changed file:src/auth.ts');
+
+      const blame = JSON.parse(
+        (await runCli(repo, ['blame', atoms[0].id, '--json'])).stdout,
+      );
+      expect(blame.provenance.sourceCommand).toBe('conclude');
+      expect(blame.evidenceRefs.some((ref: { type: string }) => ref.type === 'file')).toBe(
+        true,
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
   it('doctor reports invalid atom JSONL', async () => {
     const repo = await copyFixture('js-ts-repo');
     try {
