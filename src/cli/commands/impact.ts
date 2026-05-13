@@ -1,7 +1,10 @@
 import type { Command } from 'commander';
 import { loadConfig } from '../../config/config.js';
 import { analyzeImpact, type ImpactResponse } from '../../context/impact.js';
-import { readCognitionNotes } from '../../storage/cognition-store.js';
+import {
+  atomToCognitionNote,
+  refreshKnowledgeAtomStatuses,
+} from '../../knowledge/atom-store.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { mapsExist, readMaps } from '../../storage/map-store.js';
 import { KGraphError, runCommand } from '../errors.js';
@@ -20,11 +23,17 @@ export function registerImpactCommand(program: Command): void {
         if (!(await mapsExist(workspace))) {
           throw new KGraphError('KGraph maps are missing. Run `kgraph scan` first.');
         }
-        const [config, maps, cognition] = await Promise.all([
+        const [config, maps] = await Promise.all([
           loadConfig(workspace),
           readMaps(workspace),
-          readCognitionNotes(workspace),
         ]);
+        const { atoms } = await refreshKnowledgeAtomStatuses(workspace, {
+          fileMap: maps.fileMap,
+          symbolMap: maps.symbolMap,
+        });
+        const cognition = atoms
+          .filter((atom) => atom.status !== 'archived')
+          .map(atomToCognitionNote);
         const response = analyzeImpact(query, maps, cognition, config.maxContextItems);
         console.log(options.json ? JSON.stringify(response, null, 2) : renderImpactMarkdown(response));
       }),
@@ -45,8 +54,8 @@ export function renderImpactMarkdown(response: ImpactResponse): string {
   lines.push(...formatList(response.calls.map((rel) => `- ${rel.sourceId} calls ${rel.targetId} (${rel.confidence})`)));
   lines.push('', '## Ownership', '');
   lines.push(...formatList(response.ownership.map((rel) => `- ${rel.sourceId} owns ${rel.targetId} (${rel.confidence})`)));
-  lines.push('', '## Related Cognition', '');
-  lines.push(...formatList(response.relatedCognition.map((note) => `- ${note.title} [${note.referencesStatus}]`)));
+  lines.push('', '## Related Knowledge', '');
+  lines.push(...formatList(response.relatedCognition.map((note) => `- ${note.title} [${note.referencesStatus}, ${note.confidence}]`)));
   lines.push('', '## Risk', '');
   lines.push(...formatList(response.risk.map((item) => `- ${item}`)));
   return lines.join('\n');

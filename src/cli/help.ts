@@ -71,8 +71,8 @@ export function renderRootHelp(useColor = supportsColor()): string {
     ),
     command('doctor', 'Check workspace health and next actions'),
     command('doctor --quality', 'Report stale/noisy cognition references'),
-    command('repair --dry-run', 'Preview cognition reference cleanup'),
-    command('repair', 'Clean noisy stale cognition references'),
+    command('repair --dry-run', 'Preview atom reference cleanup'),
+    command('repair', 'Clean noisy stale atom references'),
     command('uninstall', 'Preview repo-local KGraph removal'),
     command('uninstall --yes', 'Remove .kgraph/ and managed integrations'),
     command(

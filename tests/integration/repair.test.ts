@@ -43,34 +43,21 @@ describe('kgraph repair', () => {
       expect(repair.code).toBe(0);
       expect(repair.stdout).toContain('KGraph Repair');
 
-      const repaired = await readCognition(repo, 'auth-cleanup.md');
-      expect(repaired.kind).toBe('finding');
+      const atoms = JSON.parse(
+        (await runCli(repo, ['knowledge', 'list', '--topic', 'Auth Cleanup', '--json']))
+          .stdout,
+      );
+      expect(atoms).toHaveLength(1);
+      const repaired = atoms[0];
+      expect(repaired.type).toBe('finding');
       expect(repaired.confidence).toBe('medium');
-      expect(repaired.source).toBe('inbox');
-      expect(repaired.relatedFiles).toEqual(['src/auth.ts']);
+      expect(repaired.provenance.sourceCommand).toBe('legacy-migration');
+      expect(repaired.scopeRefs.files).toEqual(['src/auth.ts']);
       // loginUser exists in the fixture; className is camelCase so it is preserved
-      expect(repaired.relatedSymbols).toEqual(['loginUser', 'className']);
-      expect(repaired.referencesStatus).toBe('mixed');
+      expect(repaired.scopeRefs.symbols).toEqual(['loginUser', 'className']);
+      expect(repaired.status).toBe('needs-review');
     } finally {
       await cleanupTempRepo(repo);
     }
   });
 });
-
-async function readCognition(
-  repo: string,
-  fileName: string,
-): Promise<CognitionNote> {
-  const raw = await readJsonFromMarkdown(
-    path.join(repo, '.kgraph/cognition', fileName),
-  );
-  return raw as CognitionNote;
-}
-
-async function readJsonFromMarkdown(filePath: string): Promise<unknown> {
-  const { readFile } = await import('node:fs/promises');
-  const raw = await readFile(filePath, 'utf8');
-  const match = raw.match(/```json\n([\s\S]*?)\n```/);
-  if (!match) throw new Error('Missing metadata JSON');
-  return JSON.parse(match[1]);
-}

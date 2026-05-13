@@ -125,7 +125,7 @@ kgraph "topic"
 kgraph
 ```
 
-Use `kgraph doctor` after setup and before trusting a repo's saved intelligence. It checks initialization, maps, pending inbox notes, integration targets, and actionable quality problems. Use `kgraph doctor --quality` and `kgraph repair --dry-run` when stale or noisy cognition references start making context harder to trust.
+Use `kgraph doctor` after setup and before trusting a repo's saved intelligence. It checks initialization, maps, pending inbox notes, integration targets, and actionable quality problems. Use `kgraph doctor --quality` and `kgraph repair --dry-run` when stale or noisy atom references start making context harder to trust.
 
 Agents can also report session activity so KGraph can estimate token waste:
 
@@ -179,7 +179,7 @@ kgraph repair --dry-run
 kgraph repair
 ```
 
-`repair --dry-run` previews cleanup for noisy cognition references, such as framework names recorded as files or local variables recorded as symbols. `repair` applies only the safe noisy-reference cleanup; broader quality findings stay report-only. Run repair intentionally when stale references make context noisy; it is not part of every normal workflow.
+`repair --dry-run` previews cleanup for noisy atom references, such as framework names recorded as files or local variables recorded as symbols. `repair` applies only the safe noisy-reference cleanup; broader quality findings stay report-only. Run repair intentionally when stale references make context noisy; it is not part of every normal workflow.
 
 ```bash
 kgraph uninstall
@@ -194,7 +194,7 @@ kgraph impact "Button"
 kgraph impact "createSession" --json
 ```
 
-Show practical impact for a file, symbol, or topic: matched files/symbols, import users, callers, callees, ownership edges, related cognition, and risk hints.
+Show practical impact for a file, symbol, or topic: matched files/symbols, import users, callers, callees, ownership edges, related knowledge atoms, and risk hints.
 
 ```bash
 kgraph session
