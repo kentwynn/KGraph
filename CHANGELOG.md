@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.11](https://github.com/kentwynn/KGraph/compare/v0.2.10...v0.2.11) (2026-05-13)
+
+### ### Added
+
+* add atom core - knowledge system, context pack, new CLI commands and integration updates ([0f33dde](https://github.com/kentwynn/KGraph/commit/0f33dde738ba515832cd871cb68081b2e0f8e7b6))
+* expand atom core - blame/stale commands, compact upgrades, context and knowledge enhancements ([2efb16b](https://github.com/kentwynn/KGraph/commit/2efb16b47b9f9441bdc6d8e03bc620d51c3d7259))
+
 ## [0.2.10](https://github.com/kentwynn/KGraph/compare/v0.2.9...v0.2.10) (2026-05-13)
 
 ### ### Fixed
