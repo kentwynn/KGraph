@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.18](https://github.com/kentwynn/KGraph/compare/v0.2.17...v0.2.18) (2026-05-14)
+
+### ### Added
+
+* replace copilot prompts with shared .agents/skills/ SKILL.md files ([58ff3ea](https://github.com/kentwynn/KGraph/commit/58ff3eafd008d81c51f39e638204312d7ab1e1ce))
+
 ## [0.2.17](https://github.com/kentwynn/KGraph/compare/v0.2.16...v0.2.17) (2026-05-13)
 
 ### ### Added
