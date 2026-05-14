@@ -5,7 +5,6 @@ import {
   cleanupTempRepo,
   createTempRepo,
   runCli,
-  writeText,
 } from '../fixtures/helpers.js';
 
 describe('kgraph integrate', () => {
@@ -17,21 +16,6 @@ describe('kgraph integrate', () => {
         path.join(repo, 'AGENTS.md'),
         'Existing Codex guidance\n',
         'utf8',
-      );
-      await writeText(
-        repo,
-        '.github/prompts/kgraph-update.prompt.md',
-        'old duplicate prompt\n',
-      );
-      await writeText(
-        repo,
-        '.github/prompts/kgraph.prompt.md',
-        'old duplicate full workflow prompt\n',
-      );
-      await writeText(
-        repo,
-        '.agents/skills/kgraph-scan/SKILL.md',
-        'old duplicate skill\n',
       );
 
       const add = await runCli(repo, ['integrate', 'add', 'codex', 'copilot']);
@@ -51,44 +35,42 @@ describe('kgraph integrate', () => {
       expect(agents).toContain('BEGIN KGRAPH codex');
       expect(agents).toContain('Every chat in this repository');
       await access(path.join(repo, '.github', 'copilot-instructions.md'));
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-scan.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-doctor.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-repair.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-compact.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-pack.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-knowledge.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-stale.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-blame.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-conclude.prompt.md'),
-      );
-      await access(
-        path.join(repo, '.github', 'prompts', 'kgraph-update.prompt.md'),
-      );
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-scan', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-doctor', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-repair', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-compact', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-pack', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-knowledge', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-stale', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-blame', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-conclude', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-update', 'SKILL.md'),
+      );
       await runCli(repo, ['integrate', 'add', 'claude-code']);
       await access(
         path.join(repo, '.claude', 'hooks', 'kgraph-session-start.cjs'),
       );
-      await access(
-        path.join(repo, '.claude', 'commands', 'kgraph-compact.md'),
-      );
+      await access(path.join(repo, '.claude', 'commands', 'kgraph-compact.md'));
       await access(path.join(repo, '.claude', 'commands', 'kgraph-pack.md'));
       await access(
         path.join(repo, '.claude', 'commands', 'kgraph-knowledge.md'),
@@ -101,17 +83,6 @@ describe('kgraph integrate', () => {
       await access(
         path.join(repo, '.claude', 'hooks', 'kgraph-session-pre-read.cjs'),
       );
-      await expect(
-        access(path.join(repo, '.github', 'prompts', 'kgraph.prompt.md')),
-      ).rejects.toThrow();
-      await expect(
-        access(
-          path.join(repo, '.agents', 'skills', 'kgraph-update', 'SKILL.md'),
-        ),
-      ).rejects.toThrow();
-      await expect(
-        access(path.join(repo, '.agents', 'skills', 'kgraph-scan', 'SKILL.md')),
-      ).rejects.toThrow();
 
       const remove = await runCli(repo, ['integrate', 'remove', 'codex']);
       expect(remove.code).toBe(0);
@@ -120,9 +91,8 @@ describe('kgraph integrate', () => {
       const after = await readFile(path.join(repo, 'AGENTS.md'), 'utf8');
       expect(after).toBe('Existing Codex guidance\n');
       expect(after).not.toContain('BEGIN KGRAPH codex');
-      await expect(
-        access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md')),
-      ).rejects.toThrow();
+      // Skills still exist because copilot is still enabled and shares them
+      await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -233,7 +203,7 @@ describe('kgraph integrate', () => {
         access(path.join(repo, '.github', 'copilot-instructions.md')),
       ).rejects.toThrow();
       await expect(
-        access(path.join(repo, '.github', 'prompts', 'kgraph-scan.prompt.md')),
+        access(path.join(repo, '.agents', 'skills', 'kgraph-scan', 'SKILL.md')),
       ).rejects.toThrow();
     } finally {
       await cleanupTempRepo(repo);

@@ -24,15 +24,13 @@ describe('kgraph init integrations', () => {
 
       await access(path.join(repo, 'AGENTS.md'));
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-update', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-scan', 'SKILL.md'),
+      );
       await access(path.join(repo, '.cursor', 'rules', 'kgraph.mdc'));
-      await expect(
-        access(
-          path.join(repo, '.agents', 'skills', 'kgraph-update', 'SKILL.md'),
-        ),
-      ).rejects.toThrow();
-      await expect(
-        access(path.join(repo, '.agents', 'skills', 'kgraph-scan', 'SKILL.md')),
-      ).rejects.toThrow();
       await expect(
         access(path.join(repo, '.cursor', 'rules', 'kgraph-commands.mdc')),
       ).rejects.toThrow();
