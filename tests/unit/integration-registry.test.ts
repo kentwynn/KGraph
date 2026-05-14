@@ -37,22 +37,38 @@ describe('integration registry', () => {
       getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
     ).toEqual(
       expect.arrayContaining([
-        '.github/prompts/kgraph-doctor.prompt.md',
-        '.github/prompts/kgraph-impact.prompt.md',
-        '.github/prompts/kgraph-session.prompt.md',
-        '.github/prompts/kgraph-repair.prompt.md',
-        '.github/prompts/kgraph-compact.prompt.md',
-        '.github/prompts/kgraph-pack.prompt.md',
-        '.github/prompts/kgraph-knowledge.prompt.md',
-        '.github/prompts/kgraph-stale.prompt.md',
-        '.github/prompts/kgraph-blame.prompt.md',
-        '.github/prompts/kgraph-conclude.prompt.md',
-        '.github/prompts/kgraph-scan.prompt.md',
+        '.agents/skills/kgraph/SKILL.md',
+        '.agents/skills/kgraph-doctor/SKILL.md',
+        '.agents/skills/kgraph-impact/SKILL.md',
+        '.agents/skills/kgraph-session/SKILL.md',
+        '.agents/skills/kgraph-repair/SKILL.md',
+        '.agents/skills/kgraph-compact/SKILL.md',
+        '.agents/skills/kgraph-pack/SKILL.md',
+        '.agents/skills/kgraph-knowledge/SKILL.md',
+        '.agents/skills/kgraph-stale/SKILL.md',
+        '.agents/skills/kgraph-blame/SKILL.md',
+        '.agents/skills/kgraph-conclude/SKILL.md',
+        '.agents/skills/kgraph-scan/SKILL.md',
       ]),
     );
     expect(
       getIntegrationAdapter('codex').commandFiles?.map((file) => file.path),
-    ).toContain('.agents/skills/kgraph/SKILL.md');
+    ).toEqual(
+      expect.arrayContaining([
+        '.agents/skills/kgraph/SKILL.md',
+        '.agents/skills/kgraph-doctor/SKILL.md',
+        '.agents/skills/kgraph-impact/SKILL.md',
+        '.agents/skills/kgraph-session/SKILL.md',
+        '.agents/skills/kgraph-repair/SKILL.md',
+        '.agents/skills/kgraph-compact/SKILL.md',
+        '.agents/skills/kgraph-pack/SKILL.md',
+        '.agents/skills/kgraph-knowledge/SKILL.md',
+        '.agents/skills/kgraph-stale/SKILL.md',
+        '.agents/skills/kgraph-blame/SKILL.md',
+        '.agents/skills/kgraph-conclude/SKILL.md',
+        '.agents/skills/kgraph-scan/SKILL.md',
+      ]),
+    );
     expect(
       getIntegrationAdapter('claude-code').commandFiles?.map(
         (file) => file.path,
@@ -110,21 +126,12 @@ describe('integration registry', () => {
       expect(content).toContain('Do not skip capture for meaningful UI text');
       expect(content).toContain('If repo files changed');
     }
-    expect(
-      getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
-    ).not.toContain('.github/prompts/kgraph.prompt.md');
-    expect(getIntegrationAdapter('copilot').obsoleteCommandFiles).toContain(
-      '.github/prompts/kgraph.prompt.md',
-    );
   });
 
   it('does not generate a Copilot custom agent', () => {
     expect(
       getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
     ).not.toContain('.github/agents/kgraph.agent.md');
-    expect(getIntegrationAdapter('copilot').obsoleteCommandFiles).not.toContain(
-      '.github/agents/kgraph.agent.md',
-    );
   });
 
   it('keeps the Claude generic kgraph command focused on the single normal entry point', () => {

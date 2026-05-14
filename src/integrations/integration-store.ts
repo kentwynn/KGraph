@@ -1,4 +1,11 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  rmdir,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
 import { loadConfig, saveConfig } from '../config/config.js';
 import { pathExists } from '../storage/kgraph-paths.js';
@@ -51,6 +58,7 @@ export async function addIntegrations(
     config.integrations.map((integration) => [integration.name, integration]),
   );
   const changed: IntegrationConfig[] = [];
+  const writtenCommandFiles = new Set<string>();
 
   for (const name of names) {
     const adapter = getIntegrationAdapter(name);
@@ -78,13 +86,19 @@ export async function addIntegrations(
         adapter.name,
         applyContextPolicy(adapter.instructions, mode),
       );
+      const deduped = (adapter.commandFiles ?? []).filter(
+        (file) => !writtenCommandFiles.has(file.path),
+      );
       await writeIntegrationCommandFiles(
         workspace.rootPath,
-        (adapter.commandFiles ?? []).map((file) => ({
+        deduped.map((file) => ({
           ...file,
           content: applyContextPolicy(file.content, mode),
         })),
       );
+      for (const file of adapter.commandFiles ?? []) {
+        writtenCommandFiles.add(file.path);
+      }
     }
     await removeIntegrationCommandFiles(
       workspace.rootPath,
@@ -117,6 +131,18 @@ export async function removeIntegrations(
   const removeNames = new Set(names);
   const removed: IntegrationName[] = [];
 
+  // Collect command-file paths still owned by remaining enabled integrations
+  const retainedPaths = new Set<string>();
+  for (const integration of config.integrations) {
+    if (removeNames.has(integration.name) || !integration.enabled) {
+      continue;
+    }
+    const adapter = getIntegrationAdapter(integration.name);
+    for (const file of adapter.commandFiles ?? []) {
+      retainedPaths.add(file.path);
+    }
+  }
+
   for (const name of removeNames) {
     const adapter = getIntegrationAdapter(name);
     await removeIntegrationInstructions(
@@ -126,7 +152,9 @@ export async function removeIntegrations(
     );
     await removeIntegrationCommandFiles(
       workspace.rootPath,
-      adapter.commandFiles ?? [],
+      (adapter.commandFiles ?? []).filter(
+        (file) => !retainedPaths.has(file.path),
+      ),
     );
     await removeIntegrationCommandFiles(
       workspace.rootPath,
@@ -193,6 +221,19 @@ async function removeIntegrationCommandFiles(
 ): Promise<void> {
   for (const file of files) {
     const filePath = typeof file === 'string' ? file : file.path;
-    await rm(path.join(rootPath, filePath), { force: true, recursive: true });
+    const fullPath = path.join(rootPath, filePath);
+    await rm(fullPath, { force: true, recursive: true });
+    // Remove empty parent directories up to (but not including) rootPath
+    let dir = path.dirname(fullPath);
+    while (dir !== rootPath && dir.startsWith(rootPath)) {
+      try {
+        const entries = await readdir(dir);
+        if (entries.length > 0) break;
+        await rmdir(dir);
+        dir = path.dirname(dir);
+      } catch {
+        break;
+      }
+    }
   }
 }
