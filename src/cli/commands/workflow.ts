@@ -5,7 +5,7 @@ import {
 import { concludeTopic } from '../../cognition/conclusion.js';
 import { loadConfig } from '../../config/config.js';
 import { queryContext } from '../../context/context-query.js';
-import { readKnowledgeAtoms } from '../../knowledge/atom-store.js';
+import { refreshKnowledgeAtomStatuses } from '../../knowledge/atom-store.js';
 import { getWorkingTreeChanges } from '../../scanner/git-utils.js';
 import { scanRepository } from '../../scanner/repo-scanner.js';
 import { listInboxNotes } from '../../storage/cognition-store.js';
@@ -92,10 +92,22 @@ export async function runDefaultWorkflow(
       }
     }
 
-    const atoms = await readKnowledgeAtoms(workspace);
+    const refreshedAtoms = await refreshKnowledgeAtomStatuses(workspace, {
+      fileMap: {
+        generatedAt: new Date().toISOString(),
+        files: scan.files,
+      },
+      symbolMap: {
+        generatedAt: new Date().toISOString(),
+        symbols: scan.symbols,
+      },
+    });
+    const atoms = refreshedAtoms.atoms;
     const pendingInbox = await listInboxNotes(workspace);
     const activeAtoms = atoms.filter((atom) => atom.status === 'active');
     const captureCheck = await buildCaptureCheck(workspace.rootPath, {
+      topic,
+      previousFiles: previousMaps.fileMap.files,
       files: scan.files,
       atoms,
     });
@@ -154,21 +166,48 @@ export async function runDefaultWorkflow(
 
 async function buildCaptureCheck(
   rootPath: string,
-  input: { files: RepositoryFile[]; atoms: KnowledgeAtom[] },
-): Promise<{ required: boolean; changedFiles: string[]; coveredFiles: string[] }> {
+  input: {
+    topic?: string;
+    previousFiles: RepositoryFile[];
+    files: RepositoryFile[];
+    atoms: KnowledgeAtom[];
+  },
+): Promise<{
+  required: boolean;
+  changedFiles: string[];
+  coveredFiles: string[];
+  invalidatedAtoms: KnowledgeAtom[];
+}> {
   const knownFiles = new Set(input.files.map((file) => file.path));
-  const changedFiles = (await getWorkingTreeChanges(rootPath)).filter((file) =>
-    knownFiles.has(file),
+  const previousByPath = new Map(
+    input.previousFiles.map((file) => [file.path, file]),
   );
-  if (changedFiles.length === 0) {
-    return { required: false, changedFiles, coveredFiles: [] };
-  }
+  const currentPaths = new Set(input.files.map((file) => file.path));
+  const mapChangedFiles = input.files
+    .filter((file) => {
+      const previous = previousByPath.get(file.path);
+      return !previous || previous.contentHash !== file.contentHash;
+    })
+    .map((file) => file.path);
+  const deletedFiles = input.previousFiles
+    .filter((file) => !currentPaths.has(file.path))
+    .map((file) => file.path);
+  const gitChangedFiles = (await getWorkingTreeChanges(rootPath)).filter(
+    (file) => knownFiles.has(file) || previousByPath.has(file),
+  );
+  const changedFiles = [
+    ...new Set([...mapChangedFiles, ...deletedFiles, ...gitChangedFiles]),
+  ];
   const recentCutoff = Date.now() - 24 * 60 * 60 * 1000;
   const recentActiveAtoms = input.atoms.filter((atom) => {
     if (atom.status !== 'active') return false;
     const createdAt = Date.parse(atom.provenance.createdAt);
     return Number.isFinite(createdAt) && createdAt >= recentCutoff;
   });
+  const invalidatedAtoms = matchingInvalidatedAtoms(
+    input.atoms,
+    input.topic,
+  ).filter((atom) => !isInvalidatedAtomCovered(atom, recentActiveAtoms));
   const covered = new Set<string>();
   for (const atom of recentActiveAtoms) {
     for (const ref of atom.evidenceRefs) {
@@ -183,20 +222,108 @@ async function buildCaptureCheck(
     }
   }
   return {
-    required: changedFiles.some((file) => !covered.has(file)),
+    required:
+      changedFiles.some((file) => !covered.has(file)) ||
+      invalidatedAtoms.length > 0,
     changedFiles,
     coveredFiles: [...covered],
+    invalidatedAtoms,
   };
 }
 
+function isInvalidatedAtomCovered(
+  invalidated: KnowledgeAtom,
+  recentActiveAtoms: KnowledgeAtom[],
+): boolean {
+  const invalidatedFiles = new Set(invalidated.scopeRefs.files);
+  const invalidatedSymbols = new Set(invalidated.scopeRefs.symbols);
+  for (const ref of invalidated.evidenceRefs) {
+    if (ref.type === 'file') invalidatedFiles.add(ref.path);
+    if (ref.type === 'symbol') invalidatedSymbols.add(ref.name);
+  }
+
+  return recentActiveAtoms.some((atom) => {
+    const atomFiles = new Set(atom.scopeRefs.files);
+    const atomSymbols = new Set(atom.scopeRefs.symbols);
+    for (const ref of atom.evidenceRefs) {
+      if (ref.type === 'file') atomFiles.add(ref.path);
+      if (ref.type === 'symbol') atomSymbols.add(ref.name);
+    }
+    const fileOverlap = [...invalidatedFiles].some((file) =>
+      atomFiles.has(file),
+    );
+    const symbolOverlap = [...invalidatedSymbols].some((symbol) =>
+      atomSymbols.has(symbol),
+    );
+    if (fileOverlap || symbolOverlap) return true;
+    return tokenOverlap(invalidated.topic, atom.topic);
+  });
+}
+
+function tokenOverlap(a: string, b: string): boolean {
+  const aTokens = new Set(
+    a
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean),
+  );
+  return b
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .some((token) => aTokens.has(token));
+}
+
+function matchingInvalidatedAtoms(
+  atoms: KnowledgeAtom[],
+  topic?: string,
+): KnowledgeAtom[] {
+  const tokens = new Set(
+    (topic ?? '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean),
+  );
+  return atoms.filter((atom) => {
+    if (atom.status !== 'needs-review' && atom.status !== 'stale') return false;
+    if (tokens.size === 0) return true;
+    const haystack = [
+      atom.topic,
+      atom.claim,
+      atom.summary,
+      ...atom.scopeRefs.files,
+      ...atom.scopeRefs.symbols,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return [...tokens].some((token) => haystack.includes(token));
+  });
+}
+
 function renderFinalCaptureCheck(
-  check: { required: boolean; changedFiles: string[]; coveredFiles: string[] },
+  check: {
+    required: boolean;
+    changedFiles: string[];
+    coveredFiles: string[];
+    invalidatedAtoms: KnowledgeAtom[];
+  },
   topic?: string,
 ): void {
   console.log('KGraph Final Check');
   if (check.changedFiles.length === 0) {
+    if (check.required) {
+      console.log('  status        capture-required');
+      console.log('  changed files 0');
+      console.log(`  invalid atoms ${check.invalidatedAtoms.length}`);
+      console.log('  conclusion    missing for needs-review or stale knowledge');
+      console.log(
+        `  next          kgraph "${topic || '<topic>'}" --capture "<durable conclusion>" --capture-file <path>`,
+      );
+      return;
+    }
     console.log('  status        clean');
-    console.log('  reason        no mapped repo files changed');
+    console.log('  reason        no mapped repo files changed or invalidated matching atoms');
     return;
   }
   if (!check.required) {
@@ -207,6 +334,9 @@ function renderFinalCaptureCheck(
   }
   console.log('  status        capture-required');
   console.log(`  changed files ${check.changedFiles.length}`);
+  if (check.invalidatedAtoms.length > 0) {
+    console.log(`  invalid atoms ${check.invalidatedAtoms.length}`);
+  }
   console.log('  conclusion    missing for one or more changed files');
   console.log(
     `  next          kgraph "${topic || '<topic>'}" --capture "<durable conclusion>" --capture-file <path>`,

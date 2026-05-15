@@ -292,6 +292,7 @@ export async function validateKnowledgeStore(
     const symbolNames = new Set(maps.symbolMap.symbols.map((symbol) => symbol.name));
     const symbolIds = new Set(maps.symbolMap.symbols.map((symbol) => symbol.id));
     for (const atom of atoms) {
+      if (atom.status === 'archived') continue;
       for (const ref of atom.evidenceRefs) {
         if (ref.type === 'file') {
           const file = fileByPath.get(ref.path);
