@@ -28,6 +28,10 @@ describe("instruction blocks", () => {
     const content = applyContextPolicy("Capture: {{KGRAPH_CAPTURE_POLICY}}", "always");
     expect(content).toContain("KGraph runtime capture, not project documentation");
     expect(content).toContain("kgraph conclude");
+    expect(content).toContain('No durable knowledge created');
+    expect(content).toContain('--final');
+    expect(content).toContain('--capture-file');
+    expect(content).toContain('High-confidence conclusions must include');
     expect(content).toContain("Do not skip capture for meaningful UI text");
     expect(content).toContain("When using an inbox note, use this structure");
   });

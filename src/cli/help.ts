@@ -36,6 +36,14 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'kgraph "auth token refresh"',
       'Refresh everything and return compact context for a topic',
     ),
+    command(
+      'kgraph "auth token refresh" --final',
+      'End-of-work check: enforce capture when changed files need memory',
+    ),
+    command(
+      'kgraph "auth token refresh" --capture "..."',
+      'Store durable knowledge through the smart root workflow',
+    ),
     '',
     sectionTitle(theme, `${accent} Workflows`),
     command(
@@ -110,10 +118,16 @@ export function renderRootHelp(useColor = supportsColor()): string {
     sectionTitle(theme, `${accent} Options`),
     command('-V, --version', 'Show version'),
     command('-h, --help', 'Show this help'),
+    command('--final', 'Run final capture enforcement in the root workflow'),
+    command('--capture <text>', 'Store a durable conclusion in the root workflow'),
+    command('--capture-file <path>', 'Attach file evidence to root capture'),
+    command('--capture-symbol <name>', 'Attach symbol evidence to root capture'),
     '',
     sectionTitle(theme, `${accent} Examples`),
     '  kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline',
     '  kgraph "blog admin token usage"',
+    '  kgraph "blog admin token usage" --final',
+    '  kgraph "blog admin token usage" --capture "Author filter now uses display names" --capture-file www/app/blog/page.tsx',
     '  kgraph pack "about page update" --budget 4000',
     '  kgraph doctor',
     '',
@@ -129,12 +143,24 @@ interface WorkflowBannerStats {
   cognitionNotes: number;
   skippedFiles?: number;
   integrations?: WorkflowBannerIntegration[];
+  memory?: WorkflowBannerMemory;
 }
 
 interface WorkflowBannerIntegration {
   name: string;
   mode: string;
   enabled: boolean;
+}
+
+interface WorkflowBannerMemory {
+  atomsProcessed: number;
+  pendingInbox: number;
+  activeAtoms: number;
+  needsReviewAtoms: number;
+  staleAtoms: number;
+  highConfidenceMissingEvidence: number;
+  changedFiles?: number;
+  captureRequired?: boolean;
 }
 
 export function renderWorkflowBanner(
@@ -173,6 +199,27 @@ export function renderWorkflowBanner(
     command('symbols', String(stats.symbols)),
     command('capture notes processed', String(stats.cognitionNotes)),
     command('integration modes', integrationLine),
+    ...(stats.memory
+      ? [
+          '',
+          sectionTitle(theme, `${accent} Memory`),
+          command('atoms processed', String(stats.memory.atomsProcessed)),
+          command('pending inbox', String(stats.memory.pendingInbox)),
+          command('active atoms', String(stats.memory.activeAtoms)),
+          command('needs review', String(stats.memory.needsReviewAtoms)),
+          command('stale', String(stats.memory.staleAtoms)),
+          command(
+            'high-confidence missing evidence',
+            String(stats.memory.highConfidenceMissingEvidence),
+          ),
+          command(
+            'capture status',
+            stats.memory.captureRequired
+              ? `required (${stats.memory.changedFiles ?? 0} changed file(s))`
+              : `ok (${stats.memory.changedFiles ?? 0} changed file(s))`,
+          ),
+        ]
+      : []),
     '',
     sectionTitle(theme, `${accent} Next`),
     command(

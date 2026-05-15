@@ -144,12 +144,12 @@ describe('kgraph knowledge', () => {
     }
   });
 
-  it('doctor flags high-confidence atoms without evidence', async () => {
+  it('rejects high-confidence conclusions without evidence', async () => {
     const repo = await copyFixture('js-ts-repo');
     try {
       await runCli(repo, ['init']);
       await runCli(repo, ['scan']);
-      await runCli(repo, [
+      const result = await runCli(repo, [
         'conclude',
         'unsupported high confidence conclusion',
         '--type',
@@ -157,6 +157,61 @@ describe('kgraph knowledge', () => {
         '--confidence',
         'high',
       ]);
+
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain(
+        'High-confidence cognition requires evidence',
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('warns on medium-confidence conclusions without evidence', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      const result = await runCli(repo, [
+        'conclude',
+        'medium confidence conclusion',
+        '--type',
+        'summary',
+        '--confidence',
+        'medium',
+      ]);
+
+      expect(result.code).toBe(0);
+      expect(result.stderr).toContain(
+        'Medium-confidence cognition has no file or symbol evidence',
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('doctor flags existing high-confidence atoms without evidence', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      const now = '2026-01-01T00:00:00.000Z';
+      await writeFile(
+        path.join(repo, '.kgraph', 'knowledge', 'atoms.jsonl'),
+        `${JSON.stringify({
+          id: 'bad-high-confidence-atom',
+          type: 'decision',
+          topic: 'unsupported high confidence conclusion',
+          claim: 'High confidence without evidence.',
+          confidence: 'high',
+          status: 'active',
+          evidenceRefs: [],
+          scopeRefs: { files: [], symbols: [], domains: [], packages: [] },
+          provenance: { sourceCommand: 'conclude', createdAt: now },
+          lifecycle: { supersedes: [] },
+        })}\n`,
+        'utf8',
+      );
 
       const doctor = await runCli(repo, ['doctor', '--quality']);
       expect(doctor.code).toBe(1);

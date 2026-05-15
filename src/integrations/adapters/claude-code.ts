@@ -1,13 +1,15 @@
 import type { IntegrationAdapter } from '../integration-registry.js';
+import { numberedWorkflow } from '../workflow-steps.js';
+
 export const claudeCodeAdapter: IntegrationAdapter = {
   name: 'claude-code',
   label: 'Claude Code',
   targetPath: 'CLAUDE.md',
   instructions: `## KGraph Workflow
 
-{{KGRAPH_CONTEXT_POLICY}} Use /kgraph for the full automated workflow. Run \`kgraph pack "<task>" --budget 8000 --json\` for a machine-readable token-budgeted context pack, \`kgraph knowledge list\` or \`kgraph knowledge get <atom-id>\` to inspect durable atoms, \`kgraph stale\` and \`kgraph blame <atom-id>\` when lifecycle/provenance matters, \`kgraph conclude\` for durable typed engineering memory, and \`kgraph compact --dry-run\` when cognition looks duplicated or stale. Run \`kgraph doctor\` when setup or generated maps look wrong. Run \`kgraph scan\`, \`kgraph update\`, and \`kgraph context\` manually only when you need one specific step.
-
-{{KGRAPH_CAPTURE_POLICY}}
+${numberedWorkflow('claude-code', {
+  sessionQualifier: 'native hooks also report session activity when configured',
+})}
 `,
   commandFiles: [
     {
@@ -21,7 +23,7 @@ export const claudeCodeAdapter: IntegrationAdapter = {
 5. Verify the change actually landed before claiming completion. Prefer a narrow read of the changed range or \`git diff -- <path>\`; if there is no diff or the expected text is missing, say the edit did not apply and fix it before summarizing.
 6. Do not run \`kgraph\` again, \`kgraph context\`, \`kgraph pack\`, \`kgraph knowledge\`, \`kgraph stale\`, \`kgraph blame\`, \`kgraph scan\`, \`kgraph update\`, \`kgraph compact\`, or \`kgraph repair\` unless the user explicitly asks for that lower-level command.
 7. Do not continue broad repository search after the target file is identified. If a path must be located, prefer \`rg --files\` and quote paths containing spaces or parentheses.
-8. At the end of repository-file changes, store durable engineering memory with \`kgraph conclude "<topic>" --type <finding|decision|gotcha|summary|relationship> --confidence <high|medium|low>\` only when the work created reusable engineering knowledge.
+8. At the end of repository-file changes, run \`kgraph "<topic>" --final\`. If KGraph reports capture-required, run \`kgraph "<topic>" --capture "<durable conclusion>" --capture-file <path> --capture-symbol <name>\`, or explicitly say "No durable knowledge created" only when there is genuinely no reusable knowledge.
 `,
     },
     {
@@ -86,7 +88,7 @@ export const claudeCodeAdapter: IntegrationAdapter = {
     },
     {
       path: '.claude/commands/kgraph-conclude.md',
-      content: `Use \`kgraph conclude "$ARGUMENTS"\` when the session produced reusable engineering knowledge. Choose one type from finding, decision, gotcha, summary, relationship, and one confidence from high, medium, low. Store only durable conclusions, not raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
+      content: `Prefer \`kgraph "<topic>" --capture "$ARGUMENTS" --capture-file <path> --capture-symbol <name>\` when the session produced reusable engineering knowledge. Use \`kgraph conclude "$ARGUMENTS"\` only when the user explicitly asks for the conclude command. Choose one type from finding, decision, gotcha, summary, relationship, and one confidence from high, medium, low. Add file or symbol evidence whenever possible; high-confidence conclusions require evidence. Store only durable conclusions, not raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
 `,
     },
     {
