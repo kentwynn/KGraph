@@ -1,4 +1,4 @@
-import { cp, readFile } from 'node:fs/promises';
+import { cp, readFile, rm } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -174,6 +174,59 @@ describe('kgraph context', () => {
       const final = await runCli(repo, ['auth refresh', '--final']);
       expect(final.code).toBe(0);
       expect(final.stdout).toContain('status        captured');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('detects non-git file-map changes during final capture checks', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await writeText(
+        repo,
+        'src/auth.ts',
+        'export function loginUser() { return refreshSession(); }\nexport function refreshSession() { return "non-git-change"; }\n',
+      );
+
+      const missing = await runCli(repo, ['auth refresh', '--final']);
+      expect(missing.code).toBe(1);
+      expect(missing.stdout).toContain('capture-required');
+      expect(missing.stdout).toContain('changed files 1');
+
+      const captured = await runCli(repo, [
+        'auth refresh',
+        '--capture',
+        'Non-git refresh behavior changed in src/auth.ts.',
+        '--capture-file',
+        'src/auth.ts',
+        '--capture-symbol',
+        'refreshSession',
+        '--capture-confidence',
+        'high',
+      ]);
+      expect(captured.code).toBe(0);
+
+      const final = await runCli(repo, ['auth refresh', '--final']);
+      expect(final.code).toBe(0);
+      expect(final.stdout).toContain('status        clean');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('detects non-git deleted files during final capture checks', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await writeText(repo, 'src/temporary.ts', 'export const temporary = true;\n');
+      await runCli(repo, ['scan']);
+      await rm(path.join(repo, 'src', 'temporary.ts'));
+
+      const missing = await runCli(repo, ['temporary cleanup', '--final']);
+      expect(missing.code).toBe(1);
+      expect(missing.stdout).toContain('capture-required');
+      expect(missing.stdout).toContain('changed files 1');
     } finally {
       await cleanupTempRepo(repo);
     }
