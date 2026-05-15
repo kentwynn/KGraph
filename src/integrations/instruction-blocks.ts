@@ -80,12 +80,15 @@ export function renderContextPolicy(mode: IntegrationMode): string {
 
 export function renderCapturePolicy(): string {
   return `Capture policy:
-- At the end of any session that changed repository files, store durable engineering memory with \`kgraph conclude "<topic>" --type <finding|decision|gotcha|summary|relationship> --confidence <high|medium|low>\` or \`kgraph session end --agent <agent> --conclude --topic "<topic>"\`.
+- At the end of any session that changed repository files, run \`kgraph "<topic>" --final\` before the final response so KGraph can enforce whether capture is required.
+- If final check reports capture-required, run \`kgraph "<topic>" --capture "<durable conclusion>" --capture-file <path> --capture-symbol <name>\` to store durable engineering memory, or explicitly say "No durable knowledge created" only when there is genuinely no reusable knowledge.
+- Low-level alternatives remain available: \`kgraph conclude "<topic>" --type <finding|decision|gotcha|summary|relationship> --confidence <high|medium|low>\` or \`kgraph session end --agent <agent> --conclude --topic "<topic>"\`.
+- Add evidence when storing cognition. High-confidence conclusions must include at least one \`--file <path>\` or \`--symbol <name>\`; medium-confidence conclusions should include evidence when possible.
 - Preserve only expensive-to-rediscover findings, decisions, gotchas, summaries, and relationships. Do not store raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
 - Use \`.kgraph/inbox/<slug>.md\` only when a longer structured note is clearer than a single \`kgraph conclude\` command.
 - A \`.kgraph/inbox/*.md\` note is KGraph runtime capture, not project documentation. It is allowed by this workflow unless the user explicitly says not to capture to KGraph.
 - Do not skip capture for meaningful UI text, button, link, route, styling, or small file edits. Skip capture only when no reusable repository knowledge was created.
-- Do not run KGraph repeatedly. Run it once at the start with \`kgraph pack "<topic>" --budget 8000 --json\` for agent-readable context. If repo files changed, write the inbox note first, then run \`kgraph\` once at the end.
+- Do not run KGraph repeatedly. Run it once at the start with \`kgraph "<topic>"\` or \`kgraph pack "<topic>" --budget 8000 --json\` for agent-readable context. If repo files changed, run \`kgraph "<topic>" --final\` once before the final answer.
 - After the final \`kgraph\` run, mention whether durable cognition was stored or processed.
 
 When using an inbox note, use this structure:

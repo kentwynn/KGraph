@@ -30,12 +30,23 @@ describe('root help', () => {
           { name: 'copilot', mode: 'always', enabled: true },
           { name: 'cursor', mode: 'off', enabled: false },
         ],
+        memory: {
+          atomsProcessed: 1,
+          pendingInbox: 0,
+          activeAtoms: 7,
+          needsReviewAtoms: 2,
+          staleAtoms: 1,
+          highConfidenceMissingEvidence: 0,
+        },
       },
       false,
     );
 
     expect(banner).toContain('integration modes');
     expect(banner).toContain('codex:smart, copilot:always, cursor:off');
+    expect(banner).toContain('Memory');
+    expect(banner).toContain('atoms processed');
+    expect(banner).toContain('active atoms');
   });
 
   it('lets subcommands own their help output', () => {

@@ -121,13 +121,14 @@ After useful AI work, assistants save durable runtime-capture notes into `.kgrap
 Normal agent flow is intentionally small:
 
 ```bash
-kgraph pack "topic" --budget 8000 --json
+kgraph "topic"
 # work normally
-# if repo files changed, write an inbox note before the final refresh
-kgraph
+kgraph "topic" --final
+# if final check requires capture:
+kgraph "topic" --capture "durable conclusion" --capture-file path/to/file.ts --capture-symbol SymbolName
 ```
 
-`kgraph "<topic>"` remains the human-readable briefing. Agents should prefer `kgraph pack "<topic>" --budget 8000 --json` because it returns the stable `ContextPack` contract with atoms, source ranges, git changes, omitted items, token estimates, and inclusion reasons.
+`kgraph "<topic>"` is the smart root workflow: it refreshes maps, processes capture notes, reports memory health, and returns focused context. Agents can still use `kgraph pack "<topic>" --budget 8000 --json` when they need the stable machine-readable `ContextPack` contract with atoms, source ranges, git changes, omitted items, token estimates, and inclusion reasons.
 
 Use `kgraph doctor` after setup and before trusting a repo's saved intelligence. It checks initialization, maps, pending inbox notes, integration targets, and actionable quality problems. Use `kgraph doctor --quality` and `kgraph repair --dry-run` when stale or noisy atom references start making context harder to trust.
 
@@ -162,6 +163,18 @@ kgraph "some topic"
 ```
 
 The normal command. Scans the repo, updates durable memory, and returns focused context for the topic.
+
+```bash
+kgraph "some topic" --final
+```
+
+End-of-work check. Refreshes intelligence and fails with `capture-required` when mapped repo files changed but no recent durable atom references those files.
+
+```bash
+kgraph "some topic" --capture "durable conclusion" --capture-file src/auth.ts --capture-symbol refreshSession
+```
+
+Stores durable cognition through the root workflow. Use `--capture-confidence high` only with file or symbol evidence.
 
 ```bash
 kgraph

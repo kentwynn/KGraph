@@ -30,7 +30,7 @@ describe('repo scanner', () => {
     }
   });
 
-  it('skips generated AI tool, Spec Kit, cache, and package artifacts by default', async () => {
+  it('skips generated AI tool, planning, cache, and package artifacts by default', async () => {
     const repo = await createTempRepo();
     try {
       await writeText(
@@ -48,7 +48,7 @@ describe('repo scanner', () => {
       await writeText(
         repo,
         '.specify/templates/spec.md',
-        'generated spec kit file\n',
+        'generated planning file\n',
       );
       await writeText(
         repo,

@@ -42,6 +42,12 @@ export async function concludeTopic(
       ? input.relatedFiles
       : await inferChangedFiles(workspace, maps);
   const relatedSymbols = input.relatedSymbols ?? [];
+  const hasEvidence = relatedFiles.length > 0 || relatedSymbols.length > 0;
+  if ((input.confidence ?? 'medium') === 'high' && !hasEvidence) {
+    throw new KGraphError(
+      'High-confidence cognition requires evidence. Add --file <path> or --symbol <name>, or use --confidence medium/low.',
+    );
+  }
   const note: CognitionNote = {
     title,
     kind: input.kind ?? 'summary',
@@ -56,7 +62,12 @@ export async function concludeTopic(
     },
     relatedFiles,
     relatedSymbols,
-    warnings: [],
+    warnings:
+      (input.confidence ?? 'medium') === 'medium' && !hasEvidence
+        ? [
+            'Medium-confidence cognition has no file or symbol evidence; add --file or --symbol when possible.',
+          ]
+        : [],
     id: `${timestamp}-${slugify(title) || 'conclusion'}`,
     sourceInboxPath: '',
     processedPath: `.kgraph/cognition/${timestamp}-${slugify(title) || 'conclusion'}.md`,

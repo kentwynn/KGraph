@@ -34,6 +34,9 @@ describe('kgraph integrate', () => {
       expect(agents).toContain('Existing Codex guidance');
       expect(agents).toContain('BEGIN KGRAPH codex');
       expect(agents).toContain('Every chat in this repository');
+      expect(agents).toContain('No durable knowledge created');
+      expect(agents).toContain('--final');
+      expect(agents).toContain('--capture-file');
       await access(path.join(repo, '.github', 'copilot-instructions.md'));
       await access(path.join(repo, '.agents', 'skills', 'kgraph', 'SKILL.md'));
       await access(

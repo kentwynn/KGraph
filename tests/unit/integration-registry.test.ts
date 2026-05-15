@@ -125,6 +125,8 @@ describe('integration registry', () => {
       );
       expect(content).toContain('Do not skip capture for meaningful UI text');
       expect(content).toContain('If repo files changed');
+      expect(content).toContain('--final');
+      expect(content).toContain('--capture-file');
     }
   });
 

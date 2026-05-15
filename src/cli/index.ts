@@ -36,10 +36,27 @@ export function createProgram(): Command {
       '[topic...]',
       'Run the default refresh workflow and optionally return context for a topic',
     )
+    .option('--final', 'Run end-of-work capture enforcement after refresh')
+    .option('--capture <text>', 'Store a durable conclusion through the root workflow')
+    .option('--capture-type <type>', 'Capture type: finding, decision, gotcha, summary, or relationship', 'summary')
+    .option('--capture-confidence <level>', 'Capture confidence: high, medium, or low', 'medium')
+    .option('--capture-domain <name>', 'Capture domain name')
+    .option('--capture-tag <tag>', 'Capture tag; repeatable', collect, [])
+    .option('--capture-file <path>', 'Capture related repo file; repeatable', collect, [])
+    .option('--capture-symbol <name>', 'Capture related symbol; repeatable', collect, [])
     .version(version)
     .helpOption(false)
-    .action(async (topicParts: string[] = []) => {
-      await runDefaultWorkflow(topicParts.join(' '));
+    .action(async (topicParts: string[] = [], options) => {
+      await runDefaultWorkflow(topicParts.join(' '), {
+        final: options.final,
+        capture: options.capture,
+        type: options.captureType,
+        confidence: options.captureConfidence,
+        domain: options.captureDomain,
+        tags: options.captureTag,
+        files: options.captureFile,
+        symbols: options.captureSymbol,
+      });
     });
 
   program.option('-h, --help', 'Show this help');
@@ -69,6 +86,11 @@ export function createProgram(): Command {
   registerRepairCommand(program);
   registerUninstallCommand(program);
   return program;
+}
+
+function collect(value: string, previous: string[]): string[] {
+  previous.push(value);
+  return previous;
 }
 
 if (isCliEntrypoint()) {

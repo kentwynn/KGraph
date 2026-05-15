@@ -1,7 +1,26 @@
 import { cp, readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
-import { cleanupTempRepo, copyFixture, runCli } from '../fixtures/helpers.js';
+import { cleanupTempRepo, copyFixture, runCli, writeText } from '../fixtures/helpers.js';
+
+const execFileAsync = promisify(execFile);
+
+async function gitInit(repoPath: string): Promise<void> {
+  await execFileAsync('git', ['init'], { cwd: repoPath });
+  await execFileAsync('git', ['config', 'user.email', 'test@kgraph.test'], {
+    cwd: repoPath,
+  });
+  await execFileAsync('git', ['config', 'user.name', 'KGraph Test'], {
+    cwd: repoPath,
+  });
+}
+
+async function gitCommitAll(repoPath: string, message: string): Promise<void> {
+  await execFileAsync('git', ['add', '-A'], { cwd: repoPath });
+  await execFileAsync('git', ['commit', '-m', message], { cwd: repoPath });
+}
 
 describe('kgraph context', () => {
   it('returns markdown and json context', async () => {
@@ -93,6 +112,8 @@ describe('kgraph context', () => {
       const result = await runCli(repo, ['auth refresh']);
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Refresh Complete');
+      expect(result.stdout).toContain('Memory');
+      expect(result.stdout).toContain('active atoms');
       expect(result.stdout).toContain('KGraph Context · auth refresh');
       expect(result.stdout).toContain('src/auth.ts');
     } finally {
@@ -109,9 +130,50 @@ describe('kgraph context', () => {
       expect(result.stdout).toContain('KGraph');
       expect(result.stdout).toContain('Refresh Complete');
       expect(result.stdout).toContain('files');
+      expect(result.stdout).toContain('pending inbox');
       expect(result.stdout).toContain('Next');
       expect(result.stdout).toContain('kgraph "auth token refresh"');
       expect(result.stdout).toContain('kgraph --help');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('enforces final capture through the root workflow', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await gitInit(repo);
+      await gitCommitAll(repo, 'initial');
+      await runCli(repo, ['init']);
+      await writeText(
+        repo,
+        'src/auth.ts',
+        'export function loginUser() { return refreshSession(); }\nexport function refreshSession() { return "changed"; }\n',
+      );
+
+      const missing = await runCli(repo, ['auth refresh', '--final']);
+      expect(missing.code).toBe(1);
+      expect(missing.stdout).toContain('KGraph Final Check');
+      expect(missing.stdout).toContain('capture-required');
+      expect(missing.stdout).toContain('kgraph "auth refresh" --capture');
+
+      const captured = await runCli(repo, [
+        'auth refresh',
+        '--capture',
+        'Refresh session behavior changed in src/auth.ts.',
+        '--capture-file',
+        'src/auth.ts',
+        '--capture-symbol',
+        'refreshSession',
+        '--capture-confidence',
+        'high',
+      ]);
+      expect(captured.code).toBe(0);
+      expect(captured.stdout).toContain('Stored summary cognition');
+
+      const final = await runCli(repo, ['auth refresh', '--final']);
+      expect(final.code).toBe(0);
+      expect(final.stdout).toContain('status        captured');
     } finally {
       await cleanupTempRepo(repo);
     }

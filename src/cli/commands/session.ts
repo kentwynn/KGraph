@@ -131,6 +131,9 @@ export function registerSessionCommand(program: Command): void {
         if (pendingConclusion) {
           const note = await concludeTopic(workspace, pendingConclusion);
           console.log(`Stored session cognition: ${note.title}`);
+          for (const warning of note.warnings) {
+            console.error(`Warning: ${warning}`);
+          }
         }
       }),
     );

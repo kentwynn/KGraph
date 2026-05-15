@@ -48,6 +48,9 @@ export function registerConcludeCommand(program: Command): void {
         console.log(`Stored ${note.kind} cognition: ${note.title}`);
         console.log(`Confidence: ${note.confidence}`);
         console.log(`Status: ${note.referencesStatus}`);
+        for (const warning of note.warnings) {
+          console.error(`Warning: ${warning}`);
+        }
       }),
     );
 }

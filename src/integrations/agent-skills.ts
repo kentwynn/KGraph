@@ -130,7 +130,7 @@ name: kgraph-conclude
 description: Store a typed durable KGraph engineering conclusion
 ---
 
-Use \`kgraph conclude "$ARGUMENTS"\` when the session produced reusable engineering knowledge. Choose one type from finding, decision, gotcha, summary, relationship, and one confidence from high, medium, low. Store only durable conclusions, not raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
+Prefer \`kgraph "<topic>" --capture "$ARGUMENTS" --capture-file <path> --capture-symbol <name>\` when the session produced reusable engineering knowledge. Use low-level \`kgraph conclude "$ARGUMENTS"\` only when the user explicitly asks for the conclude command. Choose one type from finding, decision, gotcha, summary, relationship, and one confidence from high, medium, low. Add file or symbol evidence whenever possible; high-confidence conclusions require evidence. Store only durable conclusions, not raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
 `,
   },
   {
