@@ -30,6 +30,7 @@ export const DEFAULT_CONFIG: KGraphConfig = {
     '.agents',
     '.specify',
     'specs',
+    'tmp',
     '.cursor',
     '.claude',
     '.windsurf',

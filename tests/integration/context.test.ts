@@ -232,6 +232,65 @@ describe('kgraph context', () => {
     }
   });
 
+  it('reports unresolved memory review during final checks', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, [
+        'conclude',
+        'old auth behavior',
+        '--confidence',
+        'high',
+        '--file',
+        'src/auth.ts',
+        '--symbol',
+        'refreshSession',
+        '--note',
+        'Old refreshSession behavior depends on src/auth.ts.',
+      ]);
+      await runCli(repo, [
+        'conclude',
+        'old login behavior',
+        '--confidence',
+        'high',
+        '--file',
+        'src/auth.ts',
+        '--symbol',
+        'loginUser',
+        '--note',
+        'Old loginUser behavior depends on src/auth.ts.',
+      ]);
+      await writeText(
+        repo,
+        'src/auth.ts',
+        'export function loginUser() { return refreshSession(); }\nexport function refreshSession() { return "new"; }\n',
+      );
+      await runCli(repo, [
+        'new auth behavior',
+        '--capture',
+        'New refreshSession behavior is captured for src/auth.ts.',
+        '--capture-file',
+        'src/auth.ts',
+        '--capture-symbol',
+        'refreshSession',
+        '--capture-confidence',
+        'high',
+      ]);
+
+      const final = await runCli(repo, ['new auth behavior', '--final']);
+      expect(final.code).toBe(1);
+      expect(final.stdout).toContain('memory-review-required');
+      expect(final.stdout).toContain('stale or needs-review atoms remain');
+      expect(final.stdout).toContain('review atom');
+      expect(final.stdout).toContain('review topic  needs-review: old auth behavior');
+      expect(final.stdout).toContain('kgraph knowledge supersede');
+      expect(final.stdout).toContain('review topic  needs-review: old login behavior');
+      expect(final.stdout).toContain('inspect       kgraph knowledge get');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
   it('stores direct conclusions and compacts duplicate cognition', async () => {
     const repo = await copyFixture('js-ts-repo');
     try {
