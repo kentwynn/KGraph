@@ -7,6 +7,7 @@ import { loadConfig } from '../../config/config.js';
 import { queryContext } from '../../context/context-query.js';
 import { refreshKnowledgeAtomStatuses } from '../../knowledge/atom-store.js';
 import { getWorkingTreeChanges } from '../../scanner/git-utils.js';
+import { shouldExclude } from '../../scanner/file-classifier.js';
 import { scanRepository } from '../../scanner/repo-scanner.js';
 import { listInboxNotes } from '../../storage/cognition-store.js';
 import {
@@ -107,7 +108,9 @@ export async function runDefaultWorkflow(
     const activeAtoms = atoms.filter((atom) => atom.status === 'active');
     const captureCheck = await buildCaptureCheck(workspace.rootPath, {
       topic,
-      previousFiles: previousMaps.fileMap.files,
+      previousFiles: previousMaps.fileMap.files.filter(
+        (file) => !shouldExclude(file.path, config),
+      ),
       files: scan.files,
       atoms,
     });
@@ -147,7 +150,7 @@ export async function runDefaultWorkflow(
     if (options.final) {
       console.log('');
       renderFinalCaptureCheck(captureCheck, topic);
-      if (captureCheck.required) {
+      if (captureCheck.required || captureCheck.unresolvedAtoms.length > 0) {
         process.exitCode = 1;
       }
       return;
@@ -177,6 +180,8 @@ async function buildCaptureCheck(
   changedFiles: string[];
   coveredFiles: string[];
   invalidatedAtoms: KnowledgeAtom[];
+  unresolvedAtoms: KnowledgeAtom[];
+  reviewItems: MemoryReviewItem[];
 }> {
   const knownFiles = new Set(input.files.map((file) => file.path));
   const previousByPath = new Map(
@@ -208,6 +213,13 @@ async function buildCaptureCheck(
     input.atoms,
     input.topic,
   ).filter((atom) => !isInvalidatedAtomCovered(atom, recentActiveAtoms));
+  const unresolvedAtoms = input.atoms.filter(
+    (atom) => atom.status === 'needs-review' || atom.status === 'stale',
+  );
+  const reviewItems = unresolvedAtoms.map((atom) => ({
+    atom,
+    replacement: findReplacementAtom(atom, recentActiveAtoms),
+  }));
   const covered = new Set<string>();
   for (const atom of recentActiveAtoms) {
     for (const ref of atom.evidenceRefs) {
@@ -228,36 +240,94 @@ async function buildCaptureCheck(
     changedFiles,
     coveredFiles: [...covered],
     invalidatedAtoms,
+    unresolvedAtoms,
+    reviewItems,
   };
+}
+
+interface MemoryReviewItem {
+  atom: KnowledgeAtom;
+  replacement?: KnowledgeAtom;
 }
 
 function isInvalidatedAtomCovered(
   invalidated: KnowledgeAtom,
   recentActiveAtoms: KnowledgeAtom[],
 ): boolean {
-  const invalidatedFiles = new Set(invalidated.scopeRefs.files);
-  const invalidatedSymbols = new Set(invalidated.scopeRefs.symbols);
-  for (const ref of invalidated.evidenceRefs) {
+  return recentActiveAtoms.some((atom) => atomsOverlap(invalidated, atom));
+}
+
+function findReplacementAtom(
+  invalidated: KnowledgeAtom,
+  recentActiveAtoms: KnowledgeAtom[],
+): KnowledgeAtom | undefined {
+  return recentActiveAtoms.find((atom) =>
+    atomsHaveReplacementSignal(invalidated, atom),
+  );
+}
+
+function atomsOverlap(a: KnowledgeAtom, b: KnowledgeAtom): boolean {
+  const invalidatedFiles = new Set(a.scopeRefs.files);
+  const invalidatedSymbols = new Set(a.scopeRefs.symbols);
+  for (const ref of a.evidenceRefs) {
     if (ref.type === 'file') invalidatedFiles.add(ref.path);
     if (ref.type === 'symbol') invalidatedSymbols.add(ref.name);
   }
 
-  return recentActiveAtoms.some((atom) => {
-    const atomFiles = new Set(atom.scopeRefs.files);
-    const atomSymbols = new Set(atom.scopeRefs.symbols);
-    for (const ref of atom.evidenceRefs) {
-      if (ref.type === 'file') atomFiles.add(ref.path);
-      if (ref.type === 'symbol') atomSymbols.add(ref.name);
-    }
-    const fileOverlap = [...invalidatedFiles].some((file) =>
-      atomFiles.has(file),
-    );
-    const symbolOverlap = [...invalidatedSymbols].some((symbol) =>
-      atomSymbols.has(symbol),
-    );
-    if (fileOverlap || symbolOverlap) return true;
-    return tokenOverlap(invalidated.topic, atom.topic);
-  });
+  const atomFiles = new Set(b.scopeRefs.files);
+  const atomSymbols = new Set(b.scopeRefs.symbols);
+  for (const ref of b.evidenceRefs) {
+    if (ref.type === 'file') atomFiles.add(ref.path);
+    if (ref.type === 'symbol') atomSymbols.add(ref.name);
+  }
+
+  const fileOverlap = [...invalidatedFiles].some((file) =>
+    atomFiles.has(file),
+  );
+  const symbolOverlap = [...invalidatedSymbols].some((symbol) =>
+    atomSymbols.has(symbol),
+  );
+  if (fileOverlap || symbolOverlap) return true;
+  return tokenOverlap(a.topic, b.topic);
+}
+
+function atomsHaveReplacementSignal(a: KnowledgeAtom, b: KnowledgeAtom): boolean {
+  const aSymbols = new Set(a.scopeRefs.symbols);
+  for (const ref of a.evidenceRefs) {
+    if (ref.type === 'symbol') aSymbols.add(ref.name);
+  }
+  const bSymbols = new Set(b.scopeRefs.symbols);
+  for (const ref of b.evidenceRefs) {
+    if (ref.type === 'symbol') bSymbols.add(ref.name);
+  }
+  const symbolOverlap = [...aSymbols].some((symbol) => bSymbols.has(symbol));
+  return symbolOverlap || meaningfulTopicOverlap(a.topic, b.topic);
+}
+
+function meaningfulTopicOverlap(a: string, b: string): boolean {
+  const weakTokens = new Set([
+    'add',
+    'after',
+    'behavior',
+    'change',
+    'changed',
+    'new',
+    'old',
+    'review',
+    'update',
+    'with',
+  ]);
+  const aTokens = new Set(
+    a
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length > 2 && !weakTokens.has(token)),
+  );
+  return b
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 2 && !weakTokens.has(token))
+    .some((token) => aTokens.has(token));
 }
 
 function tokenOverlap(a: string, b: string): boolean {
@@ -307,15 +377,29 @@ function renderFinalCaptureCheck(
     changedFiles: string[];
     coveredFiles: string[];
     invalidatedAtoms: KnowledgeAtom[];
+    unresolvedAtoms: KnowledgeAtom[];
+    reviewItems: MemoryReviewItem[];
   },
   topic?: string,
 ): void {
   console.log('KGraph Final Check');
+  if (!check.required && check.unresolvedAtoms.length > 0) {
+    console.log('  status        memory-review-required');
+    console.log(`  unresolved    ${check.unresolvedAtoms.length}`);
+    console.log('  conclusion    stale or needs-review atoms remain');
+    renderMemoryReviewItems(check.reviewItems);
+    return;
+  }
   if (check.changedFiles.length === 0) {
     if (check.required) {
       console.log('  status        capture-required');
       console.log('  changed files 0');
       console.log(`  invalid atoms ${check.invalidatedAtoms.length}`);
+      renderMemoryReviewItems(
+        check.reviewItems.filter((item) =>
+          check.invalidatedAtoms.some((atom) => atom.id === item.atom.id),
+        ),
+      );
       console.log('  conclusion    missing for needs-review or stale knowledge');
       console.log(
         `  next          kgraph "${topic || '<topic>'}" --capture "<durable conclusion>" --capture-file <path>`,
@@ -336,9 +420,32 @@ function renderFinalCaptureCheck(
   console.log(`  changed files ${check.changedFiles.length}`);
   if (check.invalidatedAtoms.length > 0) {
     console.log(`  invalid atoms ${check.invalidatedAtoms.length}`);
+    renderMemoryReviewItems(
+      check.reviewItems.filter((item) =>
+        check.invalidatedAtoms.some((atom) => atom.id === item.atom.id),
+      ),
+    );
   }
   console.log('  conclusion    missing for one or more changed files');
   console.log(
     `  next          kgraph "${topic || '<topic>'}" --capture "<durable conclusion>" --capture-file <path>`,
   );
+}
+
+function renderMemoryReviewItems(items: MemoryReviewItem[]): void {
+  const visible = items.slice(0, 3);
+  for (const item of visible) {
+    console.log(`  review atom   ${item.atom.id}`);
+    console.log(`  review topic  ${item.atom.status}: ${item.atom.topic}`);
+    if (item.replacement) {
+      console.log(
+        `  supersede     kgraph knowledge supersede ${item.atom.id} ${item.replacement.id}`,
+      );
+    } else {
+      console.log(`  inspect       kgraph knowledge get ${item.atom.id}`);
+    }
+  }
+  if (items.length > visible.length) {
+    console.log(`  review more   ${items.length - visible.length} more atom(s)`);
+  }
 }

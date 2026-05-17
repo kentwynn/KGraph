@@ -55,6 +55,7 @@ describe('repo scanner', () => {
         'specs/001-kgraph/spec.md',
         'generated feature spec\n',
       );
+      await writeText(repo, 'tmp/smoke/file.txt', 'temporary smoke output\n');
       await writeText(
         repo,
         '.github/copilot-instructions.md',
@@ -98,6 +99,7 @@ describe('repo scanner', () => {
           '.agents/skills/kgraph/SKILL.md',
           '.specify/templates/spec.md',
           'specs/001-kgraph/spec.md',
+          'tmp/smoke/file.txt',
           '.github/copilot-instructions.md',
           '.github/prompts/kgraph.prompt.md',
           '.cursor/rules/kgraph.mdc',
