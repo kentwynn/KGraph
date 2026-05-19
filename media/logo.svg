@@ -17,8 +17,7 @@
       <feBlend in="SourceGraphic"/>
     </filter>
   </defs>
-  <rect width="220" height="220" rx="44" fill="#020617"/>
-  <circle cx="110" cy="110" r="78" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
+  <circle cx="110" cy="110" r="78" fill="#0F172A" fill-opacity="0.82" stroke="#1E293B" stroke-width="2"/>
   <g filter="url(#glow)" stroke="url(#orbit)" stroke-width="6" stroke-linecap="round">
     <ellipse cx="110" cy="110" rx="76" ry="28" transform="rotate(-23 110 110)"/>
     <ellipse cx="110" cy="110" rx="76" ry="28" transform="rotate(23 110 110)"/>
