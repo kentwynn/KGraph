@@ -8,6 +8,7 @@
   },
   "files": [
     "dist",
+    "media/logo.svg",
     "README.md",
     "LICENSE"
   ],

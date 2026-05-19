@@ -1,6 +1,39 @@
-# KGraph
+<div align="center">
 
-Persistent repository intelligence for AI coding tools.
+<img src="media/logo.svg" alt="KGraph Atom Core Logo" width="140" height="140">
+
+# KGraph: Persistent repository intelligence for AI coding tools.
+
+<strong>atoms · evidence · context packs</strong>
+
+<p>
+  <a href="https://www.npmjs.com/package/@kentwynn/kgraph">
+    <img src="https://img.shields.io/npm/v/@kentwynn/kgraph?label=npm" alt="npm version">
+  </a>
+  <a href="https://github.com/kentwynn/KGraph/releases/latest">
+    <img src="https://img.shields.io/github/v/release/kentwynn/KGraph?label=release" alt="Latest release">
+  </a>
+  <a href="https://github.com/kentwynn/KGraph/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/kentwynn/KGraph/ci.yml?branch=main&label=ci" alt="CI">
+  </a>
+  <a href="https://github.com/kentwynn/KGraph/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/kentwynn/KGraph" alt="License">
+  </a>
+  <a href="https://nodejs.org/">
+    <img src="https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white" alt="Node.js >=20">
+  </a>
+  <a href="https://github.com/kentwynn/KGraph/security/policy">
+    <img src="https://img.shields.io/badge/security-policy-0f766e" alt="Security policy">
+  </a>
+  <a href="https://github.com/kentwynn/KGraph/wiki">
+    <img src="https://img.shields.io/badge/docs-wiki-blue" alt="Documentation">
+  </a>
+  <a href="https://github.com/kentwynn/KGraph/stargazers">
+    <img src="https://img.shields.io/github/stars/kentwynn/KGraph?style=social" alt="GitHub stars">
+  </a>
+</p>
+
+</div>
 
 KGraph gives Codex, GitHub Copilot, Cursor, Claude Code, Gemini CLI, Windsurf, and Cline a local knowledge layer for your repo: file maps, symbols, imports, relationships, and durable knowledge atoms from previous AI sessions. The goal is simple: your assistant should not spend every session re-learning the same codebase.
 

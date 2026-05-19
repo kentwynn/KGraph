@@ -1,0 +1,29 @@
+<svg width="220" height="220" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">KGraph Atom Core Logo</title>
+  <desc id="desc">Atom Core logo for KGraph, persistent repository intelligence for AI coding tools.</desc>
+  <defs>
+    <radialGradient id="core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(110 104) rotate(90) scale(88)">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.58" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </radialGradient>
+    <linearGradient id="orbit" x1="36" y1="56" x2="184" y2="164" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#C084FC"/>
+    </linearGradient>
+    <filter id="glow" x="12" y="12" width="196" height="196" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.133 0 0 0 0 0.827 0 0 0 0 0.933 0 0 0 0.42 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <circle cx="110" cy="110" r="78" fill="#0F172A" fill-opacity="0.82" stroke="#1E293B" stroke-width="2"/>
+  <g filter="url(#glow)" stroke="url(#orbit)" stroke-width="6" stroke-linecap="round">
+    <ellipse cx="110" cy="110" rx="76" ry="28" transform="rotate(-23 110 110)"/>
+    <ellipse cx="110" cy="110" rx="76" ry="28" transform="rotate(23 110 110)"/>
+    <ellipse cx="110" cy="110" rx="28" ry="76"/>
+  </g>
+  <circle cx="110" cy="110" r="19" fill="url(#core)"/>
+  <circle cx="164" cy="70" r="7" fill="#22D3EE"/>
+  <circle cx="62" cy="148" r="6" fill="#C084FC"/>
+</svg>
