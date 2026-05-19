@@ -1,8 +1,12 @@
 <div align="center">
 
+<img src="media/logo.svg" alt="KGraph Atom Core Logo" width="160" height="160">
+
 # KGraph
 
 ### Persistent repository intelligence for AI coding tools.
+
+<strong>atoms · evidence · context packs</strong>
 
 <p>
   <a href="https://www.npmjs.com/package/@kentwynn/kgraph">
