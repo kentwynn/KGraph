@@ -43,6 +43,11 @@ describe('kgraph init', () => {
         'public class App {\n  public void run() {}\n}\n',
       );
       await writeText(repo, 'config/app.yml', 'server:\n  port: 3000\n');
+      await writeText(repo, 'styles/app.scss', '.button {\n  color: red;\n}\n');
+      await writeText(repo, 'app/Controller.php', '<?php\nclass Controller {}\n');
+      await writeText(repo, 'lib/task.rb', 'class Task\nend\n');
+      await writeText(repo, 'scripts/deploy.sh', 'deploy_app() {\n  echo deploy\n}\n');
+      await writeText(repo, 'db/schema.sql', 'CREATE TABLE users (id uuid);\n');
 
       const result = await runCli(repo, ['init']);
       expect(result.code).toBe(0);
@@ -53,7 +58,12 @@ describe('kgraph init', () => {
         'TypeScript: 1 file, deep built-in extraction',
       );
       expect(result.stdout).toContain('Java: 1 file, deep built-in extraction');
-      expect(result.stdout).toContain('YAML: 1 file, generic file coverage');
+      expect(result.stdout).toContain('PHP: 1 file, deep built-in extraction');
+      expect(result.stdout).toContain('Ruby: 1 file, deep built-in extraction');
+      expect(result.stdout).toContain('Shell: 1 file, deep built-in extraction');
+      expect(result.stdout).toContain('SQL: 1 file, deep built-in extraction');
+      expect(result.stdout).toContain('YAML: 1 file, structured file extraction');
+      expect(result.stdout).toContain('SCSS: 1 file, structured file extraction');
       expect(result.stdout).toContain(
         'kgraph "topic"  Run the normal refresh and context workflow',
       );

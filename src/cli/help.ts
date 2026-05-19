@@ -27,7 +27,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('init', 'Required once: create .kgraph/ workspace'),
     command(
       'init --integrations codex,gemini',
-      'Initialize and connect AI tools',
+      'Optional: initialize and connect named AI tools',
     ),
     '',
     sectionTitle(theme, `${accent} Daily workflow`),
@@ -124,7 +124,8 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('--capture-symbol <name>', 'Attach symbol evidence to root capture'),
     '',
     sectionTitle(theme, `${accent} Examples`),
-    '  kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline',
+    '  kgraph init',
+    '  kgraph integrate add codex copilot cursor claude-code gemini windsurf cline',
     '  kgraph "blog admin token usage"',
     '  kgraph "blog admin token usage" --final',
     '  kgraph "blog admin token usage" --capture "Author filter now uses display names" --capture-file www/app/blog/page.tsx',

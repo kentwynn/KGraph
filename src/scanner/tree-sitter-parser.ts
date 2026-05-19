@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 let initPromise: Promise<void> | null = null;
 const languageCache = new Map<string, Language>();
 
-type GrammarKey =
+export type GrammarKey =
   | 'python'
   | 'java'
   | 'kotlin'
@@ -15,7 +15,18 @@ type GrammarKey =
   | 'rust'
   | 'c'
   | 'cpp'
-  | 'c_sharp';
+  | 'c_sharp'
+  | 'php'
+  | 'ruby'
+  | 'bash'
+  | 'yaml'
+  | 'json'
+  | 'html'
+  | 'css'
+  | 'lua'
+  | 'dart'
+  | 'elixir'
+  | 'scala';
 
 const GRAMMAR_PACKAGES: Record<GrammarKey, { pkg: string; wasm: string }> = {
   python: { pkg: 'tree-sitter-python', wasm: 'tree-sitter-python.wasm' },
@@ -32,6 +43,20 @@ const GRAMMAR_PACKAGES: Record<GrammarKey, { pkg: string; wasm: string }> = {
     pkg: 'tree-sitter-c-sharp',
     wasm: 'tree-sitter-c_sharp.wasm',
   },
+  php: { pkg: 'tree-sitter-php', wasm: 'tree-sitter-php.wasm' },
+  ruby: { pkg: 'tree-sitter-ruby', wasm: 'tree-sitter-ruby.wasm' },
+  bash: { pkg: 'tree-sitter-bash', wasm: 'tree-sitter-bash.wasm' },
+  yaml: {
+    pkg: '@tree-sitter-grammars/tree-sitter-yaml',
+    wasm: 'tree-sitter-yaml.wasm',
+  },
+  json: { pkg: 'tree-sitter-json', wasm: 'tree-sitter-json.wasm' },
+  html: { pkg: 'tree-sitter-html', wasm: 'tree-sitter-html.wasm' },
+  css: { pkg: 'tree-sitter-css', wasm: 'tree-sitter-css.wasm' },
+  lua: { pkg: 'tree-sitter-lua', wasm: 'tree-sitter-lua.wasm' },
+  dart: { pkg: 'tree-sitter-dart', wasm: 'tree-sitter-dart.wasm' },
+  elixir: { pkg: 'tree-sitter-elixir', wasm: 'tree-sitter-elixir.wasm' },
+  scala: { pkg: 'tree-sitter-scala', wasm: 'tree-sitter-scala.wasm' },
 };
 
 async function ensureInit(): Promise<void> {
