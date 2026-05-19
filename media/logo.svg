@@ -18,15 +18,13 @@
     </filter>
   </defs>
   <rect width="220" height="220" rx="44" fill="#020617"/>
-  <circle cx="110" cy="104" r="70" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
+  <circle cx="110" cy="110" r="78" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
   <g filter="url(#glow)" stroke="url(#orbit)" stroke-width="6" stroke-linecap="round">
-    <ellipse cx="110" cy="104" rx="70" ry="26" transform="rotate(-23 110 104)"/>
-    <ellipse cx="110" cy="104" rx="70" ry="26" transform="rotate(23 110 104)"/>
-    <ellipse cx="110" cy="104" rx="26" ry="70"/>
+    <ellipse cx="110" cy="110" rx="76" ry="28" transform="rotate(-23 110 110)"/>
+    <ellipse cx="110" cy="110" rx="76" ry="28" transform="rotate(23 110 110)"/>
+    <ellipse cx="110" cy="110" rx="28" ry="76"/>
   </g>
-  <circle cx="110" cy="104" r="17" fill="url(#core)"/>
-  <circle cx="158" cy="68" r="7" fill="#22D3EE"/>
-  <circle cx="68" cy="138" r="6" fill="#C084FC"/>
-  <text x="110" y="186" text-anchor="middle" fill="#E2E8F0" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="26" font-weight="800" letter-spacing="0">KGraph</text>
-  <text x="110" y="204" text-anchor="middle" fill="#94A3B8" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" letter-spacing="0">Atom Core</text>
+  <circle cx="110" cy="110" r="19" fill="url(#core)"/>
+  <circle cx="164" cy="70" r="7" fill="#22D3EE"/>
+  <circle cx="62" cy="148" r="6" fill="#C084FC"/>
 </svg>

@@ -1,10 +1,8 @@
 <div align="center">
 
-<img src="media/logo.svg" alt="KGraph Atom Core Logo" width="160" height="160">
+<img src="media/logo.svg" alt="KGraph Atom Core Logo" width="140" height="140">
 
-# KGraph
-
-### Persistent repository intelligence for AI coding tools.
+# KGraph: Persistent repository intelligence for AI coding tools.
 
 <strong>atoms · evidence · context packs</strong>
 
