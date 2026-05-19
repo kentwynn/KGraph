@@ -10,6 +10,10 @@ import type {
   RepositoryFile,
   ScanResult,
 } from '../types/maps.js';
+import {
+  extractBroadSymbols,
+  supportsBroadExtraction,
+} from './broad-symbol-extractor.js';
 import { extractCSymbols } from './c-symbol-extractor.js';
 import { extractCSharpSymbols } from './csharp-symbol-extractor.js';
 import {
@@ -22,17 +26,38 @@ import {
 import { getChangedFilesSince, isGitRepo } from './git-utils.js';
 import { extractGoSymbols } from './go-symbol-extractor.js';
 import { extractJvmSymbols } from './jvm-symbol-extractor.js';
+import { extractPhpSymbols } from './php-symbol-extractor.js';
 import { extractPythonSymbols } from './python-symbol-extractor.js';
+import { extractRubySymbols } from './ruby-symbol-extractor.js';
 import { extractRustSymbols } from './rust-symbol-extractor.js';
+import { extractShellSymbols } from './shell-symbol-extractor.js';
+import { extractSqlSymbols } from './sql-symbol-extractor.js';
 import { extractTsSymbols } from './ts-symbol-extractor.js';
 
 const C_EXTS = new Set(['.c', '.h', '.cpp', '.cc', '.cxx', '.hpp', '.hxx']);
 const JVM_EXTS = new Set(['.java', '.kt', '.kts']);
+const TS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts']);
 
 async function extractSymbols(text: string, repoPath: string) {
   const ext = path.extname(repoPath);
+  const language = detectLanguage(repoPath);
+  if (supportsBroadExtraction(language)) {
+    return extractBroadSymbols(text, repoPath, language);
+  }
   if (ext === '.py' || ext === '.pyw' || ext === '.pyi') {
     return extractPythonSymbols(text, repoPath);
+  }
+  if (ext === '.php') {
+    return extractPhpSymbols(text, repoPath);
+  }
+  if (ext === '.rb' || ext === '.rake' || language === 'ruby') {
+    return extractRubySymbols(text, repoPath);
+  }
+  if (['.sh', '.bash', '.zsh', '.fish'].includes(ext) || language === 'shell') {
+    return extractShellSymbols(text, repoPath);
+  }
+  if (ext === '.sql') {
+    return extractSqlSymbols(text, repoPath);
   }
   if (ext === '.go') {
     return extractGoSymbols(text, repoPath);
@@ -49,7 +74,10 @@ async function extractSymbols(text: string, repoPath: string) {
   if (ext === '.cs') {
     return extractCSharpSymbols(text, repoPath);
   }
-  return extractTsSymbols(text, repoPath);
+  if (TS_EXTS.has(ext)) {
+    return extractTsSymbols(text, repoPath);
+  }
+  return { symbols: [], dependencies: [], relationships: [], warnings: [] };
 }
 
 export async function scanRepository(
@@ -262,6 +290,15 @@ const SOURCE_EXTENSIONS = [
   '.hpp',
   '.hxx',
   '.cs',
+  '.php',
+  '.swift',
+  '.rb',
+  '.rake',
+  '.lua',
+  '.dart',
+  '.ex',
+  '.exs',
+  '.scala',
 ] as const;
 
 function resolveLocalDependencies(

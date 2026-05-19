@@ -41,22 +41,33 @@ The CLI presents this as **Atom Core**: lightweight local atoms plus determinist
 
 ## The Workflow
 
-Use KGraph in two steps:
+Use KGraph with one setup command and one normal daily command:
 
 ```bash
-# Required once per repository
-kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline
+# Required once per repository.
+# Creates .kgraph/, runs the first scan, and detects likely AI tools.
+kgraph init
 
-# Normal daily command
+# Normal daily command.
+# Refreshes maps, processes pending capture notes, and returns focused context.
 kgraph "auth token refresh"
 ```
 
-That second command runs the full practical workflow:
+AI tool integrations are optional. During `kgraph init`, KGraph detects likely local tools such as Codex, Copilot, Claude Code, and Gemini, then prompts or prints a suggested `kgraph integrate add ...` command. You can accept the recommendation, choose custom integrations, skip the step, or configure them later.
+
+If you already know exactly which integrations you want, you can pass them during init:
+
+```bash
+kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline
+```
+
+The daily command runs the full practical workflow:
 
 1. Refreshes the repository scan.
 2. Updates file, symbol, import, and relationship maps.
 3. Processes any Markdown capture notes waiting in `.kgraph/inbox/` into knowledge atoms.
-4. Returns compact context for the topic you asked about.
+4. Reports memory health and actionable next steps.
+5. Returns compact context for the topic you asked about.
 
 You can also run just:
 
@@ -134,10 +145,11 @@ KGraph's core functionality is free and local-first. It does not require account
 From the root of a repository:
 
 ```bash
-# 1. Create the local KGraph workspace
+# 1. Create the local KGraph workspace and run the first scan
 kgraph init
 
-# 2. Optional: connect AI tools so they know the KGraph workflow
+# 2. Optional: accept detected AI tool recommendations during init,
+# or add integrations later when you want KGraph-managed instructions
 kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
 
 # 3. Run the normal workflow for a topic
@@ -147,7 +159,7 @@ kgraph "auth token refresh"
 kgraph doctor
 ```
 
-`kgraph init` now scans once, then prints relevant next steps. When KGraph can detect likely AI tools on the machine, it recommends matching integrations.
+`kgraph init` scans once, prints repo language coverage, detects likely local AI tools, and recommends matching integrations. Integrations are still optional: they only write local instruction files so tools know when to run KGraph. They do not start background agents or call AI providers.
 
 After useful AI work, assistants save durable runtime-capture notes into `.kgraph/inbox/`. These notes are not project documentation; they are KGraph input files that the next `kgraph` run processes automatically. You can also process them directly with `kgraph update`.
 
@@ -183,13 +195,13 @@ This is optional. Claude Code can use generated hook scripts for automatic captu
 kgraph init
 ```
 
-Required once per repo. Creates `.kgraph/`, writes the local config, runs the first scan, and prints suggested next actions based on the detected repo languages and likely local AI tools.
+Required once per repo. Creates `.kgraph/`, writes the local config, initializes the knowledge store, runs the first scan, detects likely local AI tools, and prints suggested next actions based on repo languages and detected tools.
 
 ```bash
 kgraph init --integrations codex,copilot,cursor,claude-code,gemini,windsurf,cline
 ```
 
-Initializes KGraph and writes local instruction files for supported AI tools.
+Initializes KGraph and immediately writes local instruction files for the named AI tools. This is optional; plain `kgraph init` can detect likely tools and recommend or prompt for integrations instead.
 
 ```bash
 kgraph "some topic"
@@ -356,6 +368,10 @@ Show processed capture history. Add a query to find historical work by title, su
 
 KGraph integrations are local files. They do not start background agents, call AI providers, or send data anywhere.
 
+You do not need integrations to use KGraph manually. They are useful when you want Codex, Copilot, Cursor, Claude Code, Gemini, Windsurf, or Cline to see repo-local KGraph workflow instructions automatically.
+
+`kgraph init` detects likely local tools and recommends integrations when possible. You can also manage them explicitly:
+
 ```bash
 kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
 kgraph integrate add copilot --mode smart
@@ -424,8 +440,16 @@ KGraph deeply scans:
 - Java and Kotlin
 - C and C++
 - C#
+- PHP
+- Ruby
+- Shell
+- SQL
 
 Other languages keep practical file, import, and symbol depth without full call graph analysis. Common file types still appear in the file map with generic metadata, so context queries can still point to docs, config, SQL, CSS, HTML, YAML, and similar files.
+
+KGraph also extracts basic symbols/imports for Swift, Terraform/HCL,
+GraphQL, Protocol Buffers, Lua, Dart, Elixir, Scala, and R. Structured file extraction covers
+YAML, JSON, TOML, Dockerfile/Containerfile, Markdown/MDX, HTML, CSS, SCSS, Sass, Less, and XML.
 
 ## Visualization
 

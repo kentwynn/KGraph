@@ -157,6 +157,84 @@ describe('repo scanner', () => {
       await cleanupTempRepo(repo);
     }
   });
+
+  it('extracts broad language and structured file symbols', async () => {
+    const repo = await createTempRepo();
+    try {
+      await writeText(
+        repo,
+        'app/Controller.php',
+        "<?php\nnamespace App;\nuse Vendor\\Package;\nclass Controller {}\nfunction route() {}\n",
+      );
+      await writeText(
+        repo,
+        'ios/App.swift',
+        'import Foundation\nstruct AppView {}\nfunc render() {}\n',
+      );
+      await writeText(
+        repo,
+        'scripts/deploy.sh',
+        'source ./env.sh\ndeploy_app() {\n  echo deploy\n}\n',
+      );
+      await writeText(
+        repo,
+        'styles/app.scss',
+        '@use "theme";\n$brand: #123;\n.button { color: $brand; }\n',
+      );
+      await writeText(
+        repo,
+        'Dockerfile',
+        'FROM node:24 AS builder\nRUN npm ci\n',
+      );
+      await writeText(repo, 'schema.graphql', 'type Query {\n  status: String\n}\n');
+      await writeText(
+        repo,
+        'db/schema.sql',
+        'CREATE TABLE users (id uuid);\nCREATE TABLE api_keys (user_id uuid REFERENCES users(id));\n',
+      );
+
+      const result = await scanRepository(repo, DEFAULT_CONFIG);
+      const byPath = new Map(result.files.map((file) => [file.path, file]));
+      const symbolNames = result.symbols.map((symbol) => symbol.name);
+
+      expect(byPath.get('app/Controller.php')?.scanStatus).toBe('mapped');
+      expect(byPath.get('Dockerfile')?.language).toBe('dockerfile');
+      expect(byPath.get('Dockerfile')?.scanStatus).toBe('mapped');
+      expect(symbolNames).toEqual(
+        expect.arrayContaining([
+          'Controller',
+          'route',
+          'AppView',
+          'render',
+          'deploy_app',
+          '$brand',
+          '.button',
+          'builder',
+          'Query',
+          'users',
+          'api_keys',
+        ]),
+      );
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            fromFile: 'app/Controller.php',
+            specifier: 'Vendor\\Package',
+          }),
+          expect.objectContaining({
+            fromFile: 'scripts/deploy.sh',
+            specifier: './env.sh',
+          }),
+          expect.objectContaining({
+            fromFile: 'styles/app.scss',
+            specifier: 'theme',
+          }),
+        ]),
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
 });
 
 describe('incremental scan', () => {

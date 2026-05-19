@@ -55,6 +55,7 @@ const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   '.scss': 'scss',
   '.sass': 'sass',
   '.less': 'less',
+  '.dockerfile': 'dockerfile',
   '.vue': 'vue',
   '.svelte': 'svelte',
   // Data / Config
@@ -85,6 +86,14 @@ const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   '.tf': 'terraform',
   '.proto': 'protobuf',
   '.sql': 'sql',
+};
+
+const LANGUAGE_BY_BASENAME: Record<string, string> = {
+  Dockerfile: 'dockerfile',
+  Containerfile: 'dockerfile',
+  Makefile: 'shell',
+  Rakefile: 'ruby',
+  Gemfile: 'ruby',
 };
 
 export function shouldExclude(repoPath: string, config: KGraphConfig): boolean {
@@ -134,14 +143,23 @@ export async function readGitignorePatterns(
 }
 
 export function detectLanguage(filePath: string): string {
-  return LANGUAGE_BY_EXTENSION[path.extname(filePath)] ?? 'unknown';
+  const basename = path.basename(filePath);
+  return (
+    LANGUAGE_BY_BASENAME[basename] ??
+    LANGUAGE_BY_EXTENSION[path.extname(filePath)] ??
+    'unknown'
+  );
 }
 
 export function isPreciseLanguage(
   filePath: string,
   config: KGraphConfig,
 ): boolean {
-  return config.languages.precise.includes(path.extname(filePath));
+  const basename = path.basename(filePath);
+  return (
+    config.languages.precise.includes(path.extname(filePath)) ||
+    Object.hasOwn(LANGUAGE_BY_BASENAME, basename)
+  );
 }
 
 function matchesExcludePattern(repoPath: string, pattern: string): boolean {

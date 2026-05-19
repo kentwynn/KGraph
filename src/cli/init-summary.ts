@@ -5,7 +5,7 @@ import {
   type InitIntegrationRecommendation,
 } from './init-recommendations.js';
 
-type CoverageLevel = 'deep' | 'basic' | 'generic';
+type CoverageLevel = 'deep' | 'basic' | 'structured' | 'generic';
 
 export interface InitLanguageSummary {
   language: string;
@@ -30,16 +30,33 @@ const LANGUAGE_PRESENTATION: Record<
   c: { label: 'C', coverage: 'deep' },
   cpp: { label: 'C++', coverage: 'deep' },
   csharp: { label: 'C#', coverage: 'deep' },
-  yaml: { label: 'YAML', coverage: 'generic' },
-  json: { label: 'JSON', coverage: 'generic' },
-  toml: { label: 'TOML', coverage: 'generic' },
-  xml: { label: 'XML', coverage: 'generic' },
-  graphql: { label: 'GraphQL', coverage: 'generic' },
-  sql: { label: 'SQL', coverage: 'generic' },
-  shell: { label: 'Shell', coverage: 'generic' },
+  php: { label: 'PHP', coverage: 'deep' },
+  swift: { label: 'Swift', coverage: 'basic' },
+  ruby: { label: 'Ruby', coverage: 'deep' },
+  shell: { label: 'Shell', coverage: 'deep' },
+  lua: { label: 'Lua', coverage: 'basic' },
+  dart: { label: 'Dart', coverage: 'basic' },
+  elixir: { label: 'Elixir', coverage: 'basic' },
+  scala: { label: 'Scala', coverage: 'basic' },
+  r: { label: 'R', coverage: 'basic' },
+  sql: { label: 'SQL', coverage: 'deep' },
+  terraform: { label: 'Terraform/HCL', coverage: 'basic' },
+  graphql: { label: 'GraphQL', coverage: 'basic' },
+  protobuf: { label: 'Protocol Buffers', coverage: 'basic' },
+  yaml: { label: 'YAML', coverage: 'structured' },
+  json: { label: 'JSON', coverage: 'structured' },
+  toml: { label: 'TOML', coverage: 'structured' },
+  dockerfile: { label: 'Dockerfile', coverage: 'structured' },
+  markdown: { label: 'Markdown', coverage: 'structured' },
+  html: { label: 'HTML', coverage: 'structured' },
+  css: { label: 'CSS', coverage: 'structured' },
+  scss: { label: 'SCSS', coverage: 'structured' },
+  sass: { label: 'Sass', coverage: 'structured' },
+  less: { label: 'Less', coverage: 'structured' },
+  xml: { label: 'XML', coverage: 'structured' },
 };
 
-const EXCLUDED_LANGUAGES = new Set(['unknown', 'markdown', 'restructuredtext']);
+const EXCLUDED_LANGUAGES = new Set(['unknown', 'restructuredtext']);
 
 export function summarizeInitLanguages(
   files: RepositoryFile[],
@@ -157,6 +174,7 @@ function moreDetailedCoverage(
   const rank: Record<CoverageLevel, number> = {
     deep: 3,
     basic: 2,
+    structured: 2,
     generic: 1,
   };
   return rank[left] >= rank[right] ? left : right;
@@ -168,6 +186,8 @@ function coverageDescription(coverage: CoverageLevel): string {
       return 'deep built-in extraction';
     case 'basic':
       return 'basic built-in extraction';
+    case 'structured':
+      return 'structured file extraction';
     default:
       return 'generic file coverage';
   }
