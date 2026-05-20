@@ -105,7 +105,7 @@ export async function concludeTopic(
       agent: input.agent,
       sessionId: input.sessionId,
       createdAt: note.createdAt,
-      idSeed: note.id,
+      idSeed: title,
     },
     maps,
   );

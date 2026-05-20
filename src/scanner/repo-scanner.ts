@@ -23,7 +23,11 @@ import {
   readGitignorePatterns,
   shouldExclude,
 } from './file-classifier.js';
-import { getChangedFilesSince, isGitRepo } from './git-utils.js';
+import {
+  getChangedFilesSince,
+  getGitIgnoredFiles,
+  isGitRepo,
+} from './git-utils.js';
 import { extractGoSymbols } from './go-symbol-extractor.js';
 import { extractJvmSymbols } from './jvm-symbol-extractor.js';
 import { extractPhpSymbols } from './php-symbol-extractor.js';
@@ -88,13 +92,17 @@ export async function scanRepository(
   const gitignorePatterns = await readGitignorePatterns(rootPath);
   const allExcludes = [...config.exclude, ...gitignorePatterns];
   const mergedConfig: KGraphConfig = { ...config, exclude: allExcludes };
-  const entries = await fg(config.include, {
+  const rawEntries = await fg(config.include, {
     cwd: rootPath,
     dot: true,
     onlyFiles: true,
     unique: true,
     ignore: buildFastGlobIgnore(allExcludes),
   });
+  const gitIgnored = (await isGitRepo(rootPath))
+    ? await getGitIgnoredFiles(rootPath, rawEntries)
+    : new Set<string>();
+  const entries = rawEntries.filter((entry) => !gitIgnored.has(entry));
 
   // Build lookup maps from previous scan for incremental skip
   const prevFileByPath = new Map(
@@ -256,7 +264,14 @@ export async function scanRepository(
 
   resolveLocalDependencies(dependencies, files);
   relationships.push(...buildImportRelationships(dependencies));
-  relationships.push(...detectMovedFiles(previous?.files ?? [], files));
+  relationships.push(
+    ...detectMovedFiles(
+      (previous?.files ?? []).filter(
+        (file) => !shouldExclude(file.path, mergedConfig),
+      ),
+      files,
+    ),
+  );
   return {
     files,
     symbols,
@@ -328,6 +343,10 @@ function resolveLocalDependencyPath(
     return undefined;
   }
 
+  if (path.posix.extname(fromFile) === '.py') {
+    return resolvePythonRelativeImportPath(fromFile, specifier, filePaths);
+  }
+
   const base = path.posix.normalize(
     path.posix.join(path.posix.dirname(fromFile), specifier),
   );
@@ -339,6 +358,36 @@ function resolveLocalDependencyPath(
           path.posix.join(base, `index${extension}`),
         ),
       ];
+
+  return candidates.find((candidate) => filePaths.has(candidate));
+}
+
+function resolvePythonRelativeImportPath(
+  fromFile: string,
+  specifier: string,
+  filePaths: Set<string>,
+): string | undefined {
+  const match = specifier.match(/^(\.+)(.*)$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const [, dots, moduleName] = match;
+  const packageParts = path.posix.dirname(fromFile).split('/');
+  const levelsUp = Math.max(0, dots.length - 1);
+  const baseParts =
+    levelsUp > 0 ? packageParts.slice(0, -levelsUp) : packageParts;
+  const modulePath = moduleName
+    .split('.')
+    .filter(Boolean)
+    .join('/');
+  const base = path.posix.normalize(
+    path.posix.join(...baseParts, modulePath),
+  );
+  const candidates = [
+    `${base}.py`,
+    path.posix.join(base, '__init__.py'),
+  ];
 
   return candidates.find((candidate) => filePaths.has(candidate));
 }

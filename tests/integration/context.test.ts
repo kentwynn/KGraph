@@ -330,6 +330,9 @@ describe('kgraph context', () => {
         '--note',
         'Refresh handling belongs in src/auth.ts.',
       ]);
+      const duplicateQuality = await runCli(repo, ['doctor', '--quality']);
+      expect(duplicateQuality.stdout).toContain('Duplicate atom topics: 1');
+      expect(duplicateQuality.stdout).toContain('Duplicate compatibility note titles: 1');
       await runCli(repo, [
         'conclude',
         'auth refresh decision',

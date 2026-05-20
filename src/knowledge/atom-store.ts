@@ -537,7 +537,7 @@ function buildIndexes(atoms: KnowledgeAtom[]): KnowledgeIndexes {
   const terms: Record<string, string[]> = {};
   const refs: Record<string, string[]> = {};
   const topics: Record<string, string[]> = {};
-  for (const atom of atoms) {
+  for (const atom of atoms.filter((item) => item.status !== 'archived')) {
     for (const term of tokenize([atom.topic, atom.claim, atom.summary ?? ''].join(' '))) {
       addIndex(terms, term, atom.id);
     }
