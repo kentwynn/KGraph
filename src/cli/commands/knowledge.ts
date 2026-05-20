@@ -1,9 +1,12 @@
 import type { Command } from 'commander';
 import {
+  atomToCognitionNote,
   readKnowledgeAtoms,
   updateKnowledgeAtom,
 } from '../../knowledge/atom-store.js';
+import { rebuildDomainRecords } from '../../cognition/domain-records.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
+import { readMaps } from '../../storage/map-store.js';
 import type { KnowledgeAtom, KnowledgeAtomStatus } from '../../types/knowledge.js';
 import { KGraphError, runCommand } from '../errors.js';
 
@@ -91,6 +94,7 @@ export function registerKnowledgeCommand(program: Command): void {
           provenance: { ...current.provenance, updatedAt: now },
           lifecycle: { ...current.lifecycle, archivedAt: now },
         }));
+        await rebuildActiveDomainRecords(workspace);
         console.log(
           options.json
             ? JSON.stringify(atom, null, 2)
@@ -125,6 +129,7 @@ export function registerKnowledgeCommand(program: Command): void {
             supersedes: [...new Set([...current.lifecycle.supersedes, oldId])],
           },
         }));
+        await rebuildActiveDomainRecords(workspace);
         const result = { old: oldAtom, new: newAtom };
         console.log(
           options.json
@@ -133,6 +138,19 @@ export function registerKnowledgeCommand(program: Command): void {
         );
       }),
     );
+}
+
+async function rebuildActiveDomainRecords(
+  workspace: Awaited<ReturnType<typeof assertWorkspace>>,
+): Promise<void> {
+  const maps = await readMaps(workspace);
+  const activeNotes = (await readKnowledgeAtoms(workspace))
+    .filter((atom) => atom.status !== 'archived')
+    .map(atomToCognitionNote);
+  await rebuildDomainRecords(workspace, activeNotes, {
+    files: maps.fileMap.files,
+    symbols: maps.symbolMap.symbols,
+  });
 }
 
 async function requireAtom(

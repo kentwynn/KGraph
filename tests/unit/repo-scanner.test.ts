@@ -1,5 +1,7 @@
+import { execFile } from 'node:child_process';
 import { rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '../../src/config/config.js';
 import { scanRepository } from '../../src/scanner/repo-scanner.js';
@@ -9,6 +11,8 @@ import {
   createTempRepo,
   writeText,
 } from '../fixtures/helpers.js';
+
+const execFileAsync = promisify(execFile);
 
 describe('repo scanner', () => {
   it('scans JS/TS files and generic metadata', async () => {
@@ -118,6 +122,31 @@ describe('repo scanner', () => {
     }
   });
 
+  it('respects nested gitignore files when scanning a git repository', async () => {
+    const repo = await createTempRepo();
+    try {
+      await execFileAsync('git', ['init'], { cwd: repo });
+      await writeText(repo, 'src/app.ts', 'export const app = true;\n');
+      await writeText(repo, 'api/generated-cache/.gitignore', '*\n');
+      await writeText(
+        repo,
+        'api/generated-cache/ignored.py',
+        'def ignored():\n    return True\n',
+      );
+
+      const result = await scanRepository(repo, {
+        ...DEFAULT_CONFIG,
+        exclude: ['.git'],
+      });
+      const paths = result.files.map((file) => file.path);
+
+      expect(paths).toContain('src/app.ts');
+      expect(paths).not.toContain('api/generated-cache/ignored.py');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
   it('resolves extensionless local imports against discovered files', async () => {
     const repo = await createTempRepo();
     try {
@@ -150,6 +179,56 @@ describe('repo scanner', () => {
             targetId: 'src/view.tsx',
             relationshipType: 'import',
             confidence: 'high',
+          }),
+        ]),
+      );
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('resolves Python package-relative imports', async () => {
+    const repo = await createTempRepo();
+    try {
+      await writeText(
+        repo,
+        'api/db/__init__.py',
+        'from .models import User\nfrom .openquery.settings import Settings\n',
+      );
+      await writeText(
+        repo,
+        'api/db/models.py',
+        'class User:\n    pass\n',
+      );
+      await writeText(
+        repo,
+        'api/db/openquery/settings.py',
+        'class Settings:\n    pass\n',
+      );
+      await writeText(
+        repo,
+        'api/db/blog/models.py',
+        'from ..models import User\n',
+      );
+
+      const result = await scanRepository(repo, DEFAULT_CONFIG);
+
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            fromFile: 'api/db/__init__.py',
+            specifier: '.models',
+            resolvedFile: 'api/db/models.py',
+          }),
+          expect.objectContaining({
+            fromFile: 'api/db/__init__.py',
+            specifier: '.openquery.settings',
+            resolvedFile: 'api/db/openquery/settings.py',
+          }),
+          expect.objectContaining({
+            fromFile: 'api/db/blog/models.py',
+            specifier: '..models',
+            resolvedFile: 'api/db/models.py',
           }),
         ]),
       );

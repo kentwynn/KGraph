@@ -109,7 +109,7 @@ export async function analyzeCognitionQuality(
       maps.symbolMap,
       maps.relationshipMap,
     ),
-    duplicateTitleCount: countDuplicateAtomTopics(activeAtoms),
+    duplicateTitleCount: countDuplicateTitles(notes),
     generatedFileScanCount: countGeneratedScannedFiles(maps.fileMap),
     expensiveFileCount: countExpensiveFiles(maps.fileMap),
     highConfidenceMissingEvidenceCount:
@@ -276,9 +276,24 @@ export async function repairCognition(
 function countUnresolvedLocalImports(dependencyMap?: DependencyMap): number {
   return (
     dependencyMap?.dependencies.filter(
-      (dependency) => dependency.kind === 'local' && !dependency.resolvedFile,
+      (dependency) =>
+        dependency.kind === 'local' &&
+        !dependency.resolvedFile &&
+        isActionableUnresolvedLocalImport(dependency),
     ).length ?? 0
   );
+}
+
+function isActionableUnresolvedLocalImport(
+  dependency: DependencyMap['dependencies'][number],
+): boolean {
+  if (
+    dependency.fromFile.endsWith('/next-env.d.ts') &&
+    dependency.specifier.includes('.next/')
+  ) {
+    return false;
+  }
+  return true;
 }
 
 function countUnresolvedCalls(
@@ -292,6 +307,7 @@ function countUnresolvedCalls(
       (relationship) =>
         relationship.relationshipType === 'calls' &&
         relationship.targetType === 'symbol' &&
+        relationship.confidence !== 'low' &&
         !symbolIds.has(relationship.targetId) &&
         !symbolNames.has(relationship.targetId) &&
         ![...symbolNames].some((name) =>
@@ -317,12 +333,8 @@ function countDuplicateAtomTopics(atoms: KnowledgeAtom[]): number {
   const seen = new Set<string>();
   const duplicates = new Set<string>();
   for (const atom of atoms) {
-    const key = [
-      atom.type,
-      atom.topic.trim().toLowerCase(),
-      atom.claim.trim().toLowerCase(),
-    ].join('\0');
-    if (!atom.topic.trim()) continue;
+    const key = atom.topic.trim().toLowerCase();
+    if (!key) continue;
     if (seen.has(key)) duplicates.add(key);
     seen.add(key);
   }

@@ -75,6 +75,8 @@ describe('kgraph knowledge', () => {
 
       const firstId = list[0].id;
       const secondId = list[1].id;
+      expect(firstId).toMatch(/^\d{4}-\d{2}-\d{2}T.*-auth-atom-one$/);
+      expect(firstId).not.toMatch(/\d{4}-\d{2}-\d{2}t.*\d{4}-\d{2}-\d{2}t/);
       const get = await runCli(repo, ['knowledge', 'get', firstId]);
       expect(get.stdout).toContain('Evidence:');
       expect(get.stdout).toContain('Provenance:');
@@ -89,11 +91,36 @@ describe('kgraph knowledge', () => {
       expect(JSON.parse(supersede.stdout).old.lifecycle.supersededBy).toBe(
         secondId,
       );
+      const refsAfterSupersede = JSON.parse(
+        await readFile(
+          path.join(repo, '.kgraph', 'knowledge', 'indexes', 'refs.json'),
+          'utf8',
+        ),
+      );
+      expect(refsAfterSupersede['file:src/auth.ts']).toBeUndefined();
+      expect(refsAfterSupersede['file:src/session.ts']).toEqual([secondId]);
+      const domainAfterSupersede = await readJsonFromMarkdown(
+        path.join(repo, '.kgraph', 'domains', 'auth.md'),
+      );
+      expect(domainAfterSupersede.files).toEqual(['src/session.ts']);
+      expect(domainAfterSupersede.cognitionNotes).toEqual([secondId]);
 
       const archived = JSON.parse(
         (await runCli(repo, ['knowledge', 'archive', secondId, '--json'])).stdout,
       );
       expect(archived.status).toBe('archived');
+      const refsAfterArchive = JSON.parse(
+        await readFile(
+          path.join(repo, '.kgraph', 'knowledge', 'indexes', 'refs.json'),
+          'utf8',
+        ),
+      );
+      expect(refsAfterArchive['file:src/session.ts']).toBeUndefined();
+      const domainAfterArchive = await readJsonFromMarkdown(
+        path.join(repo, '.kgraph', 'domains', 'auth.md'),
+      );
+      expect(domainAfterArchive.files).toEqual([]);
+      expect(domainAfterArchive.cognitionNotes).toEqual([]);
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -375,3 +402,10 @@ describe('kgraph knowledge', () => {
     }
   });
 });
+
+async function readJsonFromMarkdown(filePath: string): Promise<any> {
+  const raw = await readFile(filePath, 'utf8');
+  const match = raw.match(/```json\n([\s\S]*?)\n```/);
+  if (!match) throw new Error(`Missing metadata JSON in ${filePath}`);
+  return JSON.parse(match[1]);
+}

@@ -14,6 +14,10 @@ export const DEFAULT_CONFIG: KGraphConfig = {
   exclude: [
     '.git',
     'node_modules',
+    'venv',
+    '.venv',
+    '__pycache__',
+    '.pytest_cache',
     'dist',
     'build',
     '.next',

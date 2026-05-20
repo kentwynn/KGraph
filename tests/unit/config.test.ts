@@ -30,6 +30,10 @@ describe('config', () => {
     expect(config.exclude).toEqual(
       expect.arrayContaining([
         '.kgraph',
+        'venv',
+        '.venv',
+        '__pycache__',
+        '.pytest_cache',
         '.agents',
         '.specify',
         '.github/prompts',

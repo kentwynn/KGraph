@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -56,6 +56,49 @@ export async function getChangedFilesSince(
   } catch {
     return [];
   }
+}
+
+/**
+ * Returns the subset of paths ignored by Git, including nested .gitignore rules.
+ * Falls back to an empty set when Git is unavailable or the directory is not a repo.
+ */
+export async function getGitIgnoredFiles(
+  rootPath: string,
+  paths: string[],
+): Promise<Set<string>> {
+  if (paths.length === 0) {
+    return new Set();
+  }
+
+  return new Promise((resolve) => {
+    const child = spawn('git', ['check-ignore', '--stdin'], {
+      cwd: rootPath,
+      stdio: ['pipe', 'pipe', 'ignore'],
+    });
+    let stdout = '';
+
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.on('error', () => resolve(new Set()));
+    child.on('close', (code) => {
+      if (code !== 0 && code !== 1) {
+        resolve(new Set());
+        return;
+      }
+      resolve(
+        new Set(
+          stdout
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean),
+        ),
+      );
+    });
+
+    child.stdin.end(`${paths.join('\n')}\n`);
+  });
 }
 
 /**
