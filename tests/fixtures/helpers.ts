@@ -16,7 +16,12 @@ export async function copyFixture(name: string): Promise<string> {
 }
 
 export async function cleanupTempRepo(repoPath: string): Promise<void> {
-  await rm(repoPath, { recursive: true, force: true });
+  await rm(repoPath, {
+    recursive: true,
+    force: true,
+    maxRetries: 3,
+    retryDelay: 200,
+  });
 }
 
 export async function runCli(

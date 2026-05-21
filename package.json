@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "clean": "node scripts/clean-dist.mjs",
-    "build": "npm run clean && tsc -p tsconfig.json",
+    "build": "npm run clean && tsc -p tsconfig.json && node scripts/bundle-grammars.mjs",
     "postbuild": "node -e \"try{require('child_process').execSync('chmod +x dist/cli/index.js')}catch{}\"",
     "test": "vitest run",
     "kgraph": "tsx src/cli/index.ts",
@@ -44,11 +44,19 @@
   "homepage": "https://github.com/kentwynn/KGraph#readme",
   "dependencies": {
     "@clack/prompts": "^1.3.0",
-    "@tree-sitter-grammars/tree-sitter-kotlin": "^1.1.0",
-    "@tree-sitter-grammars/tree-sitter-yaml": "^0.7.1",
     "chalk": "^5.6.2",
     "commander": "^12.1.0",
     "fast-glob": "^3.3.2",
+    "typescript": "^5.9.3",
+    "web-tree-sitter": "^0.26.8",
+    "yaml": "^2.5.1"
+  },
+  "devDependencies": {
+    "@release-it/conventional-changelog": "^11.0.0",
+    "@tree-sitter-grammars/tree-sitter-kotlin": "^1.1.0",
+    "@tree-sitter-grammars/tree-sitter-yaml": "^0.7.1",
+    "@types/node": "^20.17.10",
+    "release-it": "^20.0.1",
     "tree-sitter-bash": "^0.25.1",
     "tree-sitter-c": "^0.24.1",
     "tree-sitter-c-sharp": "^0.23.5",
@@ -66,14 +74,7 @@
     "tree-sitter-ruby": "^0.23.1",
     "tree-sitter-rust": "^0.24.0",
     "tree-sitter-scala": "^0.24.0",
-    "typescript": "^5.9.3",
-    "web-tree-sitter": "^0.26.8",
-    "yaml": "^2.5.1"
-  },
-  "devDependencies": {
-    "@release-it/conventional-changelog": "^11.0.0",
-    "@types/node": "^20.17.10",
-    "release-it": "^20.0.1",
+    "tree-sitter-wasms": "^0.1.13",
     "tsx": "^4.19.2",
     "vitest": "^3.2.4"
   },
