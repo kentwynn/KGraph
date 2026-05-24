@@ -84,7 +84,7 @@ export async function addIntegrations(
         workspace.rootPath,
         adapter.targetPath,
         adapter.name,
-        applyContextPolicy(adapter.instructions, mode),
+        applyContextPolicy(adapter.instructions, mode, adapter.name),
       );
       const deduped = (adapter.commandFiles ?? []).filter(
         (file) => !writtenCommandFiles.has(file.path),
@@ -93,7 +93,7 @@ export async function addIntegrations(
         workspace.rootPath,
         deduped.map((file) => ({
           ...file,
-          content: applyContextPolicy(file.content, mode),
+          content: applyContextPolicy(file.content, mode, adapter.name),
         })),
       );
       for (const file of adapter.commandFiles ?? []) {

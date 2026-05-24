@@ -22,10 +22,12 @@ describe("instruction blocks", () => {
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "smart")).toContain("For repo-specific coding");
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "always")).toContain("Every chat in this repository");
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "manual")).toContain("Do not run KGraph automatically");
+    expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "always", "codex")).toContain("--agent codex");
+    expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "smart", "codex")).toContain("only when KGraph is actually used");
   });
 
   it("renders shared capture policy", () => {
-    const content = applyContextPolicy("Capture: {{KGRAPH_CAPTURE_POLICY}}", "always");
+    const content = applyContextPolicy("Capture: {{KGRAPH_CAPTURE_POLICY}}", "always", "codex");
     expect(content).toContain("KGraph runtime capture, not project documentation");
     expect(content).toContain("kgraph conclude");
     expect(content).toContain('No durable knowledge created');
@@ -33,6 +35,7 @@ describe("instruction blocks", () => {
     expect(content).toContain('--capture-file');
     expect(content).toContain('High-confidence conclusions must include');
     expect(content).toContain("Do not skip capture for meaningful UI text");
+    expect(content).toContain('--final --agent codex');
     expect(content).toContain("When using an inbox note, use this structure");
   });
 });

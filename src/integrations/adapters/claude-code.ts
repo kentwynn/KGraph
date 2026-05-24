@@ -14,16 +14,16 @@ ${numberedWorkflow('claude-code', {
   commandFiles: [
     {
       path: '.claude/commands/kgraph.md',
-      content: `Use KGraph persistent repo intelligence through the single normal \`kgraph "<topic>"\` entry point.
+      content: `Use KGraph persistent repo intelligence through the single normal \`kgraph "<topic>" --agent claude-code\` entry point.
 
 1. Infer a concise topic from the user's request.
-2. Run exactly one command from the repository root: \`kgraph "<topic>"\`.
+2. Run exactly one command from the repository root: \`kgraph "<topic>" --agent claude-code\`.
 3. Treat the returned files, symbols, relationships, atoms, and warnings as the first-pass source of truth.
 4. If the user asked for an edit, inspect only the returned candidate file or the smallest necessary range, then make the edit.
 5. Verify the change actually landed before claiming completion. Prefer a narrow read of the changed range or \`git diff -- <path>\`; if there is no diff or the expected text is missing, say the edit did not apply and fix it before summarizing.
 6. Do not run \`kgraph\` again, \`kgraph context\`, \`kgraph pack\`, \`kgraph knowledge\`, \`kgraph stale\`, \`kgraph blame\`, \`kgraph scan\`, \`kgraph update\`, \`kgraph compact\`, or \`kgraph repair\` unless the user explicitly asks for that lower-level command.
 7. Do not continue broad repository search after the target file is identified. If a path must be located, prefer \`rg --files\` and quote paths containing spaces or parentheses.
-8. At the end of repository-file changes, run \`kgraph "<topic>" --final\`. If KGraph reports capture-required, run \`kgraph "<topic>" --capture "<durable conclusion>" --capture-file <path> --capture-symbol <name>\`, or explicitly say "No durable knowledge created" only when there is genuinely no reusable knowledge.
+8. At the end of repository-file changes, run \`kgraph "<topic>" --final --agent claude-code\`. If KGraph reports capture-required, run \`kgraph "<topic>" --capture "<durable conclusion>" --capture-file <path> --capture-symbol <name> --agent claude-code\`, or explicitly say "No durable knowledge created" only when there is genuinely no reusable knowledge.
 `,
     },
     {
@@ -43,7 +43,7 @@ ${numberedWorkflow('claude-code', {
     },
     {
       path: '.claude/commands/kgraph-pack.md',
-      content: `Run \`kgraph pack "$ARGUMENTS" --budget 8000 --json\` to build a machine-readable context pack. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons.
+      content: `Run \`kgraph pack "$ARGUMENTS" --budget 8000 --json --agent claude-code\` to build a machine-readable context pack and record lightweight session context. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons.
 `,
     },
     {

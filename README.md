@@ -168,12 +168,12 @@ Normal agent flow is intentionally small:
 ```bash
 kgraph "topic"
 # work normally
-kgraph "topic" --final
+kgraph "topic" --final --agent codex
 # if final check requires capture:
-kgraph "topic" --capture "durable conclusion" --capture-file path/to/file.ts --capture-symbol SymbolName
+kgraph "topic" --capture "durable conclusion" --capture-file path/to/file.ts --capture-symbol SymbolName --agent codex
 ```
 
-`kgraph "<topic>"` is the smart root workflow: it refreshes maps, processes capture notes, reports memory health, and returns focused context. Agents can still use `kgraph pack "<topic>" --budget 8000 --json` when they need the stable machine-readable `ContextPack` contract with atoms, source ranges, git changes, omitted items, token estimates, and inclusion reasons.
+`kgraph "<topic>"` is the smart root workflow: it refreshes maps, processes capture notes, reports memory health, and returns focused context. Agents can pass `--agent <name>` to record a lightweight session context event. Agents can still use `kgraph pack "<topic>" --budget 8000 --json --agent <name>` when they need the stable machine-readable `ContextPack` contract with atoms, source ranges, git changes, omitted items, token estimates, and inclusion reasons.
 
 Use `kgraph doctor` after setup and before trusting a repo's saved intelligence. It checks initialization, maps, pending inbox notes, integration targets, and actionable quality problems. Use `kgraph doctor --quality` and `kgraph repair --dry-run` when stale or noisy atom references start making context harder to trust.
 
@@ -187,7 +187,7 @@ kgraph session end --agent codex --conclude --topic "auth session work"
 kgraph session
 ```
 
-This is optional. Claude Code can use generated hook scripts for automatic capture; other agents use the same commands through their managed instructions, rules, or prompts.
+This is optional for manual read/write tracking. Generated `always` and `smart` workflows use `--agent <name>` on `kgraph pack` and root/final commands to record lightweight session context automatically; Claude Code can also use generated hook scripts for file read/write capture.
 
 ## Main Commands
 
@@ -307,9 +307,10 @@ Refresh atom lifecycle status against the current scan and inspect atom provenan
 ```bash
 kgraph pack "auth token refresh" --budget 8000
 kgraph pack "auth token refresh" --budget 8000 --json
+kgraph pack "auth token refresh" --budget 8000 --json --agent codex
 ```
 
-Build a budget-aware context pack from files, source ranges, symbols, relationships, git changes, session history, and knowledge atoms. JSON output is the stable machine-readable contract for agents; text output is an Atom Core briefing for humans.
+Build a budget-aware context pack from files, source ranges, symbols, relationships, git changes, session history, and knowledge atoms. Add `--agent <name>` to record a lightweight automatic session context event. JSON output is the stable machine-readable contract for agents; text output is an Atom Core briefing for humans.
 
 ```bash
 kgraph compact --dry-run

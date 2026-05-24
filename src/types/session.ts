@@ -1,7 +1,7 @@
 import type { IntegrationName } from './config.js';
 
 export type SessionAgent = IntegrationName;
-export type SessionEventType = 'start' | 'read' | 'write' | 'end';
+export type SessionEventType = 'start' | 'context' | 'read' | 'write' | 'end';
 export type SessionCaptureSource = 'automatic' | 'agent-reported' | 'manual';
 
 export interface SessionEvent {

@@ -43,13 +43,13 @@ export function registerSessionCommand(program: Command): void {
 
   session
     .command('start')
-    .requiredOption('--agent <name>', 'KGraph integration agent name')
+    .option('--agent <name>', 'KGraph integration agent name')
     .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
-    .action((options: SessionOptions) =>
+    .action((options: SessionOptions, command: Command) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
         const event = await recordSessionEvent(workspace, {
-          agent: requireAgent(options.agent),
+          agent: requireAgent(options, command),
           type: 'start',
           captureSource: normalizeSource(options.source),
         });
@@ -59,14 +59,14 @@ export function registerSessionCommand(program: Command): void {
 
   session
     .command('read <path>')
-    .requiredOption('--agent <name>', 'KGraph integration agent name')
+    .option('--agent <name>', 'KGraph integration agent name')
     .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
-    .action((filePath: string, options: SessionOptions) =>
+    .action((filePath: string, options: SessionOptions, command: Command) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
         const maps = await readMaps(workspace);
         const event = await recordSessionEvent(workspace, {
-          agent: requireAgent(options.agent),
+          agent: requireAgent(options, command),
           type: 'read',
           path: filePath,
           captureSource: normalizeSource(options.source),
@@ -80,14 +80,14 @@ export function registerSessionCommand(program: Command): void {
 
   session
     .command('write <path>')
-    .requiredOption('--agent <name>', 'KGraph integration agent name')
+    .option('--agent <name>', 'KGraph integration agent name')
     .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
-    .action((filePath: string, options: SessionOptions) =>
+    .action((filePath: string, options: SessionOptions, command: Command) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
         const maps = await readMaps(workspace);
         const event = await recordSessionEvent(workspace, {
-          agent: requireAgent(options.agent),
+          agent: requireAgent(options, command),
           type: 'write',
           path: filePath,
           captureSource: normalizeSource(options.source),
@@ -99,23 +99,24 @@ export function registerSessionCommand(program: Command): void {
 
   session
     .command('end')
-    .requiredOption('--agent <name>', 'KGraph integration agent name')
+    .option('--agent <name>', 'KGraph integration agent name')
     .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
     .option('--conclude', 'Store a durable typed summary for this session')
     .option('--topic <topic>', 'Conclusion topic when using --conclude')
     .option('--type <type>', 'finding, decision, gotcha, summary, or relationship', 'summary')
     .option('--confidence <level>', 'high, medium, or low', 'medium')
     .option('--note <text>', 'Concise durable conclusion text')
-    .action((options: SessionOptions) =>
+    .action((options: SessionOptions, command: Command) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
+        const agent = requireAgent(options, command);
         let pendingConclusion: ConclusionInput | undefined;
         if (options.conclude) {
           pendingConclusion = await buildActiveSessionConclusion(
             workspace,
-            requireAgent(options.agent),
+            agent,
             {
-              topic: options.topic ?? `${options.agent} session summary`,
+              topic: options.topic ?? `${agent} session summary`,
               body: options.note,
               kind: normalizeKind(options.type),
               confidence: normalizeConfidence(options.confidence),
@@ -123,7 +124,7 @@ export function registerSessionCommand(program: Command): void {
           );
         }
         const event = await recordSessionEvent(workspace, {
-          agent: requireAgent(options.agent),
+          agent,
           type: 'end',
           captureSource: normalizeSource(options.source),
         });
@@ -169,11 +170,32 @@ export function renderSessionReport(report: Awaited<ReturnType<typeof buildSessi
   return lines.join('\n');
 }
 
-function requireAgent(value: string | undefined) {
+function requireAgent(options: SessionOptions, command?: Command) {
+  const value =
+    options.agent ??
+    (command?.getOptionValue('agent') as string | undefined) ??
+    findCommandOption(command, 'agent');
   if (!value) {
     throw new KGraphError('--agent is required.');
   }
   return assertSessionAgent(value);
+}
+
+function findCommandOption(
+  command: Command | undefined,
+  name: string,
+): string | undefined {
+  let current = command?.parent;
+  while (current) {
+    const value =
+      (current.getOptionValue(name) as string | undefined) ??
+      current.opts<Record<string, string | undefined>>()[name];
+    if (value) {
+      return value;
+    }
+    current = current.parent;
+  }
+  return undefined;
 }
 
 function normalizeSource(value: string | undefined): SessionCaptureSource {
