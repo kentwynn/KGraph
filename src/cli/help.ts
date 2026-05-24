@@ -66,6 +66,10 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('compact', 'Merge duplicate atoms and archive stale noise'),
     command('knowledge list', 'Inspect canonical knowledge atoms'),
     command('pack "auth task" --budget 8000', 'Build a budget-aware context pack'),
+    command(
+      'pack "auth task" --agent codex',
+      'Record lightweight agent session context while building a pack',
+    ),
     command('stale', 'Show atoms invalidated by changed or missing refs'),
     command('blame <atom-id>', 'Show atom provenance and evidence'),
     command(
@@ -122,6 +126,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('--capture <text>', 'Store a durable conclusion in the root workflow'),
     command('--capture-file <path>', 'Attach file evidence to root capture'),
     command('--capture-symbol <name>', 'Attach symbol evidence to root capture'),
+    command('--agent <name>', 'Record lightweight agent session context'),
     '',
     sectionTitle(theme, `${accent} Examples`),
     '  kgraph init',

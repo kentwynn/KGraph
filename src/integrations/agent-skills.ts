@@ -48,7 +48,7 @@ name: kgraph-pack
 description: Build a budget-aware KGraph context pack
 ---
 
-Run \`kgraph pack "$ARGUMENTS" --budget 8000 --json\` to build a machine-readable context pack. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons.
+Run \`kgraph pack "$ARGUMENTS" --budget 8000 --json --agent $AGENT\` to build a machine-readable context pack and record lightweight session context. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons.
 `,
   },
   {
@@ -185,6 +185,9 @@ Workflow:
 ${numberedWorkflow(agentName)}
 `,
     },
-    ...SHARED_AGENT_SKILLS,
+    ...SHARED_AGENT_SKILLS.map((file) => ({
+      ...file,
+      content: file.content.replaceAll('$AGENT', agentName),
+    })),
   ];
 }

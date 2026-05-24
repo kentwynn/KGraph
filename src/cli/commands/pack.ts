@@ -2,6 +2,10 @@ import type { Command } from 'commander';
 import { buildContextPack } from '../../context/context-pack.js';
 import { queryContext } from '../../context/context-query.js';
 import { loadConfig } from '../../config/config.js';
+import {
+  assertSessionAgent,
+  recordSessionEvent,
+} from '../../session/session-store.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { mapsExist, readMaps } from '../../storage/map-store.js';
 import type { ContextPack, ContextPackItem } from '../../types/knowledge.js';
@@ -10,6 +14,7 @@ import { KGraphError, runCommand } from '../errors.js';
 interface PackOptions {
   budget?: string;
   json?: boolean;
+  agent?: string;
 }
 
 export function registerPackCommand(program: Command): void {
@@ -18,7 +23,8 @@ export function registerPackCommand(program: Command): void {
     .description('Build a budget-aware KGraph context pack for a task')
     .option('--budget <tokens>', 'Maximum estimated tokens to include', '8000')
     .option('--json', 'Print JSON output')
-    .action((task: string, options: PackOptions) =>
+    .option('--agent <name>', 'Record an automatic KGraph session context event for this integration agent')
+    .action((task: string, options: PackOptions, command: Command) =>
       runCommand(async () => {
         if (!task.trim()) throw new KGraphError('Task cannot be empty.');
         const budget = Number.parseInt(options.budget ?? '8000', 10);
@@ -28,6 +34,17 @@ export function registerPackCommand(program: Command): void {
         const workspace = await assertWorkspace(process.cwd());
         if (!(await mapsExist(workspace))) {
           throw new KGraphError('KGraph maps are missing. Run `kgraph scan` first.');
+        }
+        const agent =
+          options.agent ??
+          (command.getOptionValue('agent') as string | undefined) ??
+          findCommandOption(command, 'agent');
+        if (agent) {
+          await recordSessionEvent(workspace, {
+            agent: assertSessionAgent(agent),
+            type: 'context',
+            captureSource: 'automatic',
+          });
         }
         const [config, maps] = await Promise.all([
           loadConfig(workspace),
@@ -42,6 +59,23 @@ export function registerPackCommand(program: Command): void {
         console.log(renderPackText(pack));
       }),
     );
+}
+
+function findCommandOption(
+  command: Command | undefined,
+  name: string,
+): string | undefined {
+  let current = command?.parent;
+  while (current) {
+    const value =
+      (current.getOptionValue(name) as string | undefined) ??
+      current.opts<Record<string, string | undefined>>()[name];
+    if (value) {
+      return value;
+    }
+    current = current.parent;
+  }
+  return undefined;
 }
 
 export function renderPackText(pack: ContextPack): string {

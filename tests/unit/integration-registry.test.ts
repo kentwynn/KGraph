@@ -93,12 +93,13 @@ describe('integration registry', () => {
   it('teaches integrations to prefer the one-command workflow and doctor', () => {
     for (const adapter of listIntegrationAdapters()) {
       const content = [
-        applyContextPolicy(adapter.instructions, 'smart'),
+        applyContextPolicy(adapter.instructions, 'smart', adapter.name),
         ...(adapter.commandFiles ?? []).map((file) =>
-          applyContextPolicy(file.content, 'smart'),
+          applyContextPolicy(file.content, 'smart', adapter.name),
         ),
       ].join('\n');
       expect(content).toContain('kgraph pack "<topic>" --budget 8000 --json');
+      expect(content).toContain(`--agent ${adapter.name}`);
       expect(content).toContain('kgraph doctor');
       expect(content).toContain('kgraph pack');
       expect(content).toContain('kgraph knowledge list');
@@ -141,10 +142,10 @@ describe('integration registry', () => {
       (file) => file.path === '.claude/commands/kgraph.md',
     );
     expect(command?.content).toContain(
-      'single normal `kgraph "<topic>"` entry point',
+      'single normal `kgraph "<topic>" --agent claude-code` entry point',
     );
     expect(command?.content).toContain('Run exactly one command');
-    expect(command?.content).toContain('`kgraph "<topic>"`');
+    expect(command?.content).toContain('`kgraph "<topic>" --agent claude-code`');
     expect(command?.content).toContain('Verify the change actually landed');
     expect(command?.content).toContain('Do not run `kgraph` again');
     expect(command?.content).not.toContain('Run `kgraph pack');

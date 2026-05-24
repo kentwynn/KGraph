@@ -9,6 +9,10 @@ import { refreshKnowledgeAtomStatuses } from '../../knowledge/atom-store.js';
 import { getWorkingTreeChanges } from '../../scanner/git-utils.js';
 import { shouldExclude } from '../../scanner/file-classifier.js';
 import { scanRepository } from '../../scanner/repo-scanner.js';
+import {
+  assertSessionAgent,
+  recordSessionEvent,
+} from '../../session/session-store.js';
 import { listInboxNotes } from '../../storage/cognition-store.js';
 import {
   assertWorkspace,
@@ -32,6 +36,7 @@ export interface DefaultWorkflowOptions {
   tags?: string[];
   files?: string[];
   symbols?: string[];
+  agent?: string;
 }
 
 export async function runDefaultWorkflow(
@@ -48,6 +53,16 @@ export async function runDefaultWorkflow(
 
     const workspace = await assertWorkspace(process.cwd());
     const config = await loadConfig(workspace);
+    const sessionAgent = options.agent
+      ? assertSessionAgent(options.agent)
+      : undefined;
+    if (sessionAgent) {
+      await recordSessionEvent(workspace, {
+        agent: sessionAgent,
+        type: 'context',
+        captureSource: 'automatic',
+      });
+    }
     const previousMaps = await readMaps(workspace);
     const scan = await scanRepository(workspace.rootPath, config, {
       files: previousMaps.fileMap.files,

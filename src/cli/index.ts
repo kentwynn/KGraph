@@ -44,6 +44,7 @@ export function createProgram(): Command {
     .option('--capture-tag <tag>', 'Capture tag; repeatable', collect, [])
     .option('--capture-file <path>', 'Capture related repo file; repeatable', collect, [])
     .option('--capture-symbol <name>', 'Capture related symbol; repeatable', collect, [])
+    .option('--agent <name>', 'Record an automatic KGraph session context event for this integration agent')
     .version(version)
     .helpOption(false)
     .action(async (topicParts: string[] = [], options) => {
@@ -56,6 +57,7 @@ export function createProgram(): Command {
         tags: options.captureTag,
         files: options.captureFile,
         symbols: options.captureSymbol,
+        agent: options.agent,
       });
     });
 

@@ -38,6 +38,64 @@ describe('kgraph session', () => {
     }
   });
 
+  it('records automatic context events from pack and root workflows', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+
+      const pack = await runCli(repo, [
+        'pack',
+        'auth refresh',
+        '--json',
+        '--agent',
+        'codex',
+      ]);
+      expect(pack.code).toBe(0);
+      expect(JSON.parse(pack.stdout).task).toBe('auth refresh');
+
+      let state = await readJson<SessionState>(
+        repo,
+        '.kgraph/sessions/current.json',
+      );
+      expect(state.active.codex?.agent).toBe('codex');
+      expect(state.events).toMatchObject([
+        {
+          agent: 'codex',
+          type: 'context',
+          captureSource: 'automatic',
+        },
+      ]);
+
+      const root = await runCli(repo, ['auth refresh', '--agent', 'codex']);
+      expect(root.code).toBe(0);
+      expect(root.stdout).toContain('KGraph Context');
+
+      state = await readJson<SessionState>(
+        repo,
+        '.kgraph/sessions/current.json',
+      );
+      expect(state.events.filter((event) => event.type === 'context')).toHaveLength(2);
+      expect(state.events.some((event) => event.type === 'read')).toBe(false);
+
+      const status = await runCli(repo, ['session']);
+      expect(status.stdout).toContain('Active agents: codex');
+      expect(status.stdout).toContain('codex context [automatic]');
+
+      expect((await runCli(repo, ['session', 'end', '--agent', 'codex'])).code).toBe(0);
+      const ledger = await readJson<SessionLedgerEntry[]>(
+        repo,
+        '.kgraph/sessions/ledger.json',
+      );
+      expect(ledger[0]).toMatchObject({
+        agent: 'codex',
+        readCount: 0,
+        writeCount: 0,
+      });
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
   it('stores durable cognition when ending with --conclude', async () => {
     const repo = await copyFixture('js-ts-repo');
     try {
