@@ -1,5 +1,9 @@
 import type { Command } from 'commander';
-import { loadConfig, writeDefaultConfig } from '../../config/config.js';
+import {
+  loadConfig,
+  saveConfig,
+  writeDefaultConfig,
+} from '../../config/config.js';
 import { normalizeIntegrationNames } from '../../integrations/integration-registry.js';
 import { addIntegrations } from '../../integrations/integration-store.js';
 import { ensureKnowledgeStore } from '../../knowledge/atom-store.js';
@@ -10,6 +14,8 @@ import type { IntegrationMode } from '../../types/config.js';
 import { KGraphError, runCommand } from '../errors.js';
 import {
   promptForInitIntegrations,
+  promptScopeConfirmation,
+  promptWorkspaceSetup,
   shouldPromptForInitIntegrations,
 } from '../init-prompt.js';
 import {
@@ -17,6 +23,7 @@ import {
   recommendedIntegrationsForInit,
 } from '../init-recommendations.js';
 import { renderInitSummary } from '../init-summary.js';
+import { countScopeFiles, detectWorkspaces } from '../workspace-detection.js';
 
 interface InitOptions {
   integration?: string[];
@@ -67,6 +74,31 @@ export function registerInitCommand(program: Command): void {
         }
 
         let config = await loadConfig(workspace);
+
+        // Workspace detection — only for fresh init, non-destructive
+        const workspaceInfo = await detectWorkspaces(workspace.rootPath);
+        if (workspaceInfo && Object.keys(config.domainHints).length === 0) {
+          const result = await promptWorkspaceSetup(workspaceInfo);
+          if (result.applyDomains && result.domainHints) {
+            config = { ...config, domainHints: result.domainHints };
+            await saveConfig(workspace, config);
+          }
+        }
+
+        // Pre-scan scope check — fast file count before heavy scan
+        const fileCount = await countScopeFiles(workspace.rootPath, config);
+        const scopeResult = await promptScopeConfirmation(fileCount);
+        if (!scopeResult.proceed) {
+          console.log(
+            'Init cancelled. Edit .kgraph/config.yaml to adjust scope, then run `kgraph init` again.',
+          );
+          return;
+        }
+        if (scopeResult.narrowedInclude) {
+          config = { ...config, include: scopeResult.narrowedInclude };
+          await saveConfig(workspace, config);
+        }
+
         const previousMaps = await readMaps(workspace);
         const result = await scanRepository(workspace.rootPath, config, {
           files: previousMaps.fileMap.files,
