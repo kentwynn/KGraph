@@ -9,8 +9,11 @@ const REPAIR_STEP = `Run \`kgraph repair --dry-run\` before cleanup when stale/n
 const COMPACT_STEP = `Run \`kgraph compact --dry-run\` when cognition looks duplicated, noisy, or stale. Run \`kgraph compact\` only when the user asks to merge/archive cognition.`;
 const HISTORY_STEP = `Run \`kgraph history\` or \`kgraph history "<topic>"\` to review past cognition sessions with git author attribution.`;
 const KNOWLEDGE_STEP = `Run \`kgraph knowledge list --topic "<topic>"\` or \`kgraph knowledge get <atom-id>\` when the user asks what KGraph remembers or atom provenance/lifecycle matters.`;
+function inboxStep(agentName: string): string {
+  return `If the previous command output contains "pending inbox" or a \`pendingInbox\` field with count > 0, you MUST run \`kgraph "<topic>" --agent ${agentName}\` or \`kgraph update\` immediately before proceeding. Do not skip this step.`;
+}
 function packStep(agentName: string): string {
-  return `For normal coding context, treat \`kgraph pack "<task>" --budget 8000 --json --agent ${agentName}\` as the machine-readable context contract: use atoms, source ranges, git changes, omitted items, and inclusion reasons from the ContextPack before reading files. If the pack reports pending inbox notes, run \`kgraph "<topic>" --agent ${agentName}\` or \`kgraph update\` before relying on history or newly captured atoms.`;
+  return `For normal coding context, treat \`kgraph pack "<task>" --budget 8000 --json --agent ${agentName}\` as the machine-readable context contract: use atoms, source ranges, git changes, omitted items, and inclusion reasons from the ContextPack before reading files.`;
 }
 function smartRootStep(agentName: string): string {
   return `Use the root workflow when refresh or memory processing matters: run \`kgraph "<topic>" --agent ${agentName}\` to refresh maps, process inbox notes, and return a briefing; run \`kgraph "<topic>" --final --agent ${agentName}\` before the final answer when repository files changed; run \`kgraph "<topic>" --capture "<durable conclusion>" --capture-file <path> --capture-symbol <name> --agent ${agentName}\` when the final check requires durable knowledge.`;
@@ -40,24 +43,25 @@ export function numberedWorkflow(
 ): string {
   return `1. Infer the topic from the user's request.
 2. {{KGRAPH_CONTEXT_POLICY}}
-3. ${ROUTING_STEP}
-4. Use the returned files, symbols, relationships, and cognition before broad exploration.
-5. ${EXPLORATION_BOUNDARY_STEP}
-6. ${VERIFY_EDIT_STEP}
-7. ${smartRootStep(agentName)}
-8. ${packStep(agentName)}
-9. ${KNOWLEDGE_STEP}
-10. ${DOCTOR_STEP}
-11. ${STALE_STEP}
-12. ${sessionStep(agentName, options.sessionQualifier)}
-13. ${IMPACT_STEP}
+3. ${inboxStep(agentName)}
+4. ${ROUTING_STEP}
+5. Use the returned files, symbols, relationships, and cognition before broad exploration.
+6. ${EXPLORATION_BOUNDARY_STEP}
+7. ${VERIFY_EDIT_STEP}
+8. ${smartRootStep(agentName)}
+9. ${packStep(agentName)}
+10. ${KNOWLEDGE_STEP}
+11. ${DOCTOR_STEP}
+12. ${STALE_STEP}
+13. ${sessionStep(agentName, options.sessionQualifier)}
+14. ${IMPACT_STEP}
 
 {{KGRAPH_CAPTURE_POLICY}}
 
-14. ${REPAIR_STEP}
-15. ${COMPACT_STEP}
-16. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
-17. ${HISTORY_STEP}`;
+15. ${REPAIR_STEP}
+16. ${COMPACT_STEP}
+17. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph at http://localhost:4242 with PNG export.
+18. ${HISTORY_STEP}`;
 }
 
 /**
@@ -69,6 +73,7 @@ export function bulletWorkflow(
   options: WorkflowOptions = {},
 ): string {
   return `- {{KGRAPH_CONTEXT_POLICY}}
+- ${inboxStep(agentName)}
 - ${ROUTING_STEP}
 - ${EXPLORATION_BOUNDARY_STEP}
 - ${VERIFY_EDIT_STEP}

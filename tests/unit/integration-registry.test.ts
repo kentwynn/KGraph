@@ -106,6 +106,7 @@ describe('integration registry', () => {
       expect(content).toContain('Command routing comes first');
       expect(content).toContain('kgraph history "<topic>"');
       expect(content).toContain('kgraph update');
+      expect(content).toContain('pending inbox');
       expect(content).toContain('kgraph stale');
       expect(content).toContain('kgraph blame');
       expect(content).toContain('kgraph session');
@@ -134,26 +135,36 @@ describe('integration registry', () => {
     }
   });
 
-  it('does not generate a Copilot custom agent', () => {
-    expect(
-      getIntegrationAdapter('copilot').commandFiles?.map((file) => file.path),
-    ).not.toContain('.github/agents/kgraph.agent.md');
+  it('generates a Copilot custom agent with the full numbered workflow', () => {
+    const paths = getIntegrationAdapter('copilot').commandFiles?.map(
+      (file) => file.path,
+    );
+    expect(paths).toContain('.github/agents/kgraph.agent.md');
+    const agent = getIntegrationAdapter('copilot').commandFiles?.find(
+      (file) => file.path === '.github/agents/kgraph.agent.md',
+    );
+    expect(agent?.content).toContain('--agent copilot');
+    expect(agent?.content).toContain('{{KGRAPH_CONTEXT_POLICY}}');
+    expect(agent?.content).toContain('{{KGRAPH_CAPTURE_POLICY}}');
+    expect(agent?.content).toContain('kgraph doctor');
+    expect(agent?.content).toContain('kgraph pack');
+    expect(agent?.content).toContain('kgraph history');
+    expect(agent?.content).toMatch(/[Vv]erify the change actually landed/);
+    expect(agent?.content).toContain('--final');
   });
 
-  it('keeps the Claude generic kgraph command focused on the single normal entry point', () => {
+  it('generates the Claude kgraph command with the full numbered workflow', () => {
     const command = getIntegrationAdapter('claude-code').commandFiles?.find(
       (file) => file.path === '.claude/commands/kgraph.md',
     );
-    expect(command?.content).toContain(
-      'single normal `kgraph "<topic>" --agent claude-code` entry point',
-    );
-    expect(command?.content).toContain('Run exactly one command');
-    expect(command?.content).toContain('`kgraph "<topic>" --agent claude-code`');
-    expect(command?.content).toContain('Verify the change actually landed');
-    expect(command?.content).toContain('Do not run `kgraph` again');
-    expect(command?.content).not.toContain('Run `kgraph pack');
-    expect(command?.content).not.toContain('Run `kgraph doctor');
-    expect(command?.content).not.toContain('{{KGRAPH_CONTEXT_POLICY}}');
+    expect(command?.content).toContain('--agent claude-code');
+    expect(command?.content).toContain('{{KGRAPH_CONTEXT_POLICY}}');
+    expect(command?.content).toContain('{{KGRAPH_CAPTURE_POLICY}}');
+    expect(command?.content).toContain('kgraph doctor');
+    expect(command?.content).toContain('kgraph pack');
+    expect(command?.content).toContain('kgraph history');
+    expect(command?.content).toMatch(/[Vv]erify the change actually landed/);
+    expect(command?.content).toContain('--final');
   });
 
   it('adds Claude Code hook files for automatic session capture', () => {

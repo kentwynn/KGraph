@@ -68,25 +68,18 @@ describe('kgraph uninstall', () => {
     }
   });
 
-  it('removes legacy generated Copilot agent files during full uninstall', async () => {
+  it('removes generated Copilot agent files during full uninstall', async () => {
     const repo = await createTempRepo();
     try {
       await runCli(repo, ['init', '--integration', 'copilot']);
-      await writeText(
-        repo,
-        '.github/agents/kgraph.agent.md',
-        'old Copilot custom agent\n',
-      );
+      // Agent file should be generated during init
+      await expect(
+        access(path.join(repo, '.github', 'agents', 'kgraph.agent.md')),
+      ).resolves.toBeUndefined();
 
       const apply = await runCli(repo, ['uninstall', '--yes']);
       expect(apply.code).toBe(0);
       await expect(access(path.join(repo, '.kgraph'))).rejects.toThrow();
-      await expect(
-        access(path.join(repo, '.github', 'agents', 'kgraph.agent.md')),
-      ).rejects.toThrow();
-
-      const initAgain = await runCli(repo, ['init']);
-      expect(initAgain.code).toBe(0);
       await expect(
         access(path.join(repo, '.github', 'agents', 'kgraph.agent.md')),
       ).rejects.toThrow();
@@ -100,7 +93,11 @@ describe('kgraph uninstall', () => {
     try {
       await runCli(repo, ['init']);
       await runCli(repo, ['integrate', 'add', 'codex']);
-      await writeText(repo, '.agents/generated/kgraph.md', 'legacy generated\n');
+      await writeText(
+        repo,
+        '.agents/generated/kgraph.md',
+        'legacy generated\n',
+      );
 
       const apply = await runCli(repo, ['uninstall', '--yes']);
       expect(apply.code).toBe(0);
@@ -124,10 +121,12 @@ describe('kgraph uninstall', () => {
       await expect(
         access(path.join(repo, '.cursor', 'rules', 'kgraph.mdc')),
       ).rejects.toThrow();
-      await expect(access(path.join(repo, '.cursor', 'rules'))).rejects.toThrow();
-      expect(await readFile(path.join(repo, '.cursor', 'user', 'keep.md'), 'utf8')).toBe(
-        'keep me\n',
-      );
+      await expect(
+        access(path.join(repo, '.cursor', 'rules')),
+      ).rejects.toThrow();
+      expect(
+        await readFile(path.join(repo, '.cursor', 'user', 'keep.md'), 'utf8'),
+      ).toBe('keep me\n');
     } finally {
       await cleanupTempRepo(repo);
     }
