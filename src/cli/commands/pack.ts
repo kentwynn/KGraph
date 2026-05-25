@@ -1,14 +1,14 @@
 import type { Command } from 'commander';
 import path from 'node:path';
+import { loadConfig } from '../../config/config.js';
 import { buildContextPack } from '../../context/context-pack.js';
 import { queryContext } from '../../context/context-query.js';
-import { loadConfig } from '../../config/config.js';
 import {
   assertSessionAgent,
   recordSessionEvent,
 } from '../../session/session-store.js';
-import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { listInboxNotes } from '../../storage/cognition-store.js';
+import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { mapsExist, readMaps } from '../../storage/map-store.js';
 import type { ContextPack, ContextPackItem } from '../../types/knowledge.js';
 import { KGraphError, runCommand } from '../errors.js';
@@ -25,7 +25,10 @@ export function registerPackCommand(program: Command): void {
     .description('Build a budget-aware KGraph context pack for a task')
     .option('--budget <tokens>', 'Maximum estimated tokens to include', '8000')
     .option('--json', 'Print JSON output')
-    .option('--agent <name>', 'Record an automatic KGraph session context event for this integration agent')
+    .option(
+      '--agent <name>',
+      'Record an automatic KGraph session context event for this integration agent',
+    )
     .action((task: string, options: PackOptions, command: Command) =>
       runCommand(async () => {
         if (!task.trim()) throw new KGraphError('Task cannot be empty.');
@@ -35,7 +38,9 @@ export function registerPackCommand(program: Command): void {
         }
         const workspace = await assertWorkspace(process.cwd());
         if (!(await mapsExist(workspace))) {
-          throw new KGraphError('KGraph maps are missing. Run `kgraph scan` first.');
+          throw new KGraphError(
+            'KGraph maps are missing. Run `kgraph scan` first.',
+          );
         }
         const agent =
           options.agent ??
@@ -54,8 +59,9 @@ export function registerPackCommand(program: Command): void {
         ]);
         const response = await queryContext(workspace, config, maps, task);
         const pack = buildContextPack(response, budget, workspace.rootPath);
-        const pendingInboxFiles = (await listInboxNotes(workspace)).map((file) =>
-          path.relative(workspace.rootPath, file),
+        const pendingInboxFiles = (await listInboxNotes(workspace)).map(
+          (file) =>
+            path.relative(workspace.rootPath, file).split(path.sep).join('/'),
         );
         if (pendingInboxFiles.length > 0) {
           pack.pendingInbox = {
@@ -114,12 +120,36 @@ export function renderPackText(pack: ContextPack): string {
     );
   }
 
-  appendGroup(lines, 'Atoms', pack.items.filter((item) => item.kind === 'atom'));
-  appendGroup(lines, 'Git Changes', pack.items.filter((item) => item.kind === 'git-change'));
-  appendGroup(lines, 'Source Ranges', pack.items.filter((item) => item.kind === 'file-range'));
-  appendGroup(lines, 'Symbols', pack.items.filter((item) => item.kind === 'symbol'));
-  appendGroup(lines, 'Files', pack.items.filter((item) => item.kind === 'file'));
-  appendGroup(lines, 'Graph', pack.items.filter((item) => item.kind === 'relationship'));
+  appendGroup(
+    lines,
+    'Atoms',
+    pack.items.filter((item) => item.kind === 'atom'),
+  );
+  appendGroup(
+    lines,
+    'Git Changes',
+    pack.items.filter((item) => item.kind === 'git-change'),
+  );
+  appendGroup(
+    lines,
+    'Source Ranges',
+    pack.items.filter((item) => item.kind === 'file-range'),
+  );
+  appendGroup(
+    lines,
+    'Symbols',
+    pack.items.filter((item) => item.kind === 'symbol'),
+  );
+  appendGroup(
+    lines,
+    'Files',
+    pack.items.filter((item) => item.kind === 'file'),
+  );
+  appendGroup(
+    lines,
+    'Graph',
+    pack.items.filter((item) => item.kind === 'relationship'),
+  );
 
   lines.push(`● Omitted`);
   const omitted = pack.omitted.slice(0, 8);
@@ -127,18 +157,30 @@ export function renderPackText(pack: ContextPack): string {
     lines.push('- None');
   } else {
     for (const item of omitted) {
-      lines.push(`  ◌ ${item.kind} ${item.title} (~${item.tokenEstimate} tokens)`);
+      lines.push(
+        `  ◌ ${item.kind} ${item.title} (~${item.tokenEstimate} tokens)`,
+      );
     }
     if (pack.omitted.length > omitted.length) {
-      lines.push(`  ◌ ${pack.omitted.length - omitted.length} more omitted items`);
+      lines.push(
+        `  ◌ ${pack.omitted.length - omitted.length} more omitted items`,
+      );
     }
   }
 
-  lines.push('', '● Next', '  agents should consume this command with --json for the full ContextPack contract');
+  lines.push(
+    '',
+    '● Next',
+    '  agents should consume this command with --json for the full ContextPack contract',
+  );
   return lines.join('\n');
 }
 
-function appendGroup(lines: string[], title: string, items: ContextPackItem[]): void {
+function appendGroup(
+  lines: string[],
+  title: string,
+  items: ContextPackItem[],
+): void {
   lines.push(`● ${title}`);
   if (items.length === 0) {
     lines.push('- None', '');
@@ -148,13 +190,31 @@ function appendGroup(lines: string[], title: string, items: ContextPackItem[]): 
     lines.push(`  ● ${item.title} (~${item.tokenEstimate} tokens)`);
     lines.push(`    because ${formatReasons(item.reasons)}`);
     if (item.kind === 'file-range') {
-      const data = item.data as { path?: string; startLine?: number; endLine?: number };
+      const data = item.data as {
+        path?: string;
+        startLine?: number;
+        endLine?: number;
+      };
       if (data.path && data.startLine != null && data.endLine != null) {
         lines.push(`    range ${data.path}:${data.startLine}-${data.endLine}`);
       }
     }
+    if (item.kind === 'symbol') {
+      const data = item.data as {
+        filePath?: string;
+        startLine?: number;
+        endLine?: number;
+        excerpt?: string;
+      };
+      if (data.filePath && data.startLine != null && data.endLine != null) {
+        lines.push(`    ${data.filePath}:${data.startLine}-${data.endLine}`);
+      }
+    }
   }
-  if (items.length > 6) lines.push(`  ◌ ${items.length - 6} more ${title.toLowerCase()} omitted from display`);
+  if (items.length > 6)
+    lines.push(
+      `  ◌ ${items.length - 6} more ${title.toLowerCase()} omitted from display`,
+    );
   lines.push('');
 }
 
@@ -162,5 +222,7 @@ function formatReasons(reasons: string[]): string {
   if (reasons.length === 0) return 'included by pack ranking';
   const shown = reasons.slice(0, 3);
   const remaining = reasons.length - shown.length;
-  return remaining > 0 ? `${shown.join('; ')}; and ${remaining} more` : shown.join('; ');
+  return remaining > 0
+    ? `${shown.join('; ')}; and ${remaining} more`
+    : shown.join('; ');
 }

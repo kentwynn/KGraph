@@ -1,14 +1,17 @@
 import type { Command } from 'commander';
+import { rebuildDomainRecords } from '../../cognition/domain-records.js';
 import {
   atomToCognitionNote,
   readKnowledgeAtoms,
   updateKnowledgeAtom,
   updateKnowledgeAtoms,
 } from '../../knowledge/atom-store.js';
-import { rebuildDomainRecords } from '../../cognition/domain-records.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { readMaps } from '../../storage/map-store.js';
-import type { KnowledgeAtom, KnowledgeAtomStatus } from '../../types/knowledge.js';
+import type {
+  KnowledgeAtom,
+  KnowledgeAtomStatus,
+} from '../../types/knowledge.js';
 import { KGraphError, runCommand } from '../errors.js';
 
 interface KnowledgeListOptions {
@@ -27,7 +30,10 @@ export function registerKnowledgeCommand(program: Command): void {
     .command('list')
     .option('--type <type>', 'Filter by atom type')
     .option('--topic <topic>', 'Filter by topic substring')
-    .option('--status <status>', 'Filter by active, stale, needs-review, or archived')
+    .option(
+      '--status <status>',
+      'Filter by active, stale, needs-review, or archived',
+    )
     .option('--json', 'Print JSON output')
     .action((options: KnowledgeListOptions) =>
       runCommand(async () => {
@@ -89,12 +95,16 @@ export function registerKnowledgeCommand(program: Command): void {
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
         const now = new Date().toISOString();
-        const atom = await updateKnowledgeAtom(workspace, atomId, (current) => ({
-          ...current,
-          status: 'archived',
-          provenance: { ...current.provenance, updatedAt: now },
-          lifecycle: { ...current.lifecycle, archivedAt: now },
-        }));
+        const atom = await updateKnowledgeAtom(
+          workspace,
+          atomId,
+          (current) => ({
+            ...current,
+            status: 'archived',
+            provenance: { ...current.provenance, updatedAt: now },
+            lifecycle: { ...current.lifecycle, archivedAt: now },
+          }),
+        );
         await rebuildActiveDomainRecords(workspace);
         console.log(
           options.json
@@ -137,7 +147,10 @@ export function registerKnowledgeCommand(program: Command): void {
             lifecycle: {
               ...nextAtoms[newIndex].lifecycle,
               supersedes: [
-                ...new Set([...nextAtoms[newIndex].lifecycle.supersedes, oldId]),
+                ...new Set([
+                  ...nextAtoms[newIndex].lifecycle.supersedes,
+                  oldId,
+                ]),
               ],
             },
           };
@@ -186,17 +199,18 @@ function filterAtoms(
 ): KnowledgeAtom[] {
   return atoms.filter((atom) => {
     if (options.type && atom.type !== options.type) return false;
-    if (
-      options.status &&
-      atom.status !== normalizeStatus(options.status)
-    ) {
+    if (options.status && atom.status !== normalizeStatus(options.status)) {
       return false;
     }
-    if (
-      options.topic &&
-      !atom.topic.toLowerCase().includes(options.topic.toLowerCase())
-    ) {
-      return false;
+    if (options.topic) {
+      const q = options.topic.toLowerCase();
+      const matches =
+        atom.topic.toLowerCase().includes(q) ||
+        atom.claim.toLowerCase().includes(q) ||
+        (atom.summary?.toLowerCase().includes(q) ?? false) ||
+        atom.scopeRefs.files.some((f) => f.toLowerCase().includes(q)) ||
+        atom.scopeRefs.symbols.some((s) => s.toLowerCase().includes(q));
+      if (!matches) return false;
     }
     return true;
   });
@@ -211,5 +225,7 @@ function normalizeStatus(value: string): KnowledgeAtomStatus {
   ) {
     return value;
   }
-  throw new KGraphError('--status must be active, stale, needs-review, or archived.');
+  throw new KGraphError(
+    '--status must be active, stale, needs-review, or archived.',
+  );
 }

@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { KGraphError } from '../cli/errors.js';
@@ -88,7 +95,9 @@ export function parseAtomsJsonl(raw: string): KnowledgeAtom[] {
       atoms.push(JSON.parse(line) as KnowledgeAtom);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new KGraphError(`Invalid atoms.jsonl line ${index + 1}: ${message}`);
+      throw new KGraphError(
+        `Invalid atoms.jsonl line ${index + 1}: ${message}`,
+      );
     }
   }
   return atoms;
@@ -135,7 +144,8 @@ export async function createKnowledgeAtom(
   maps?: { fileMap: FileMap; symbolMap: SymbolMap },
 ): Promise<KnowledgeAtom> {
   const createdAt = input.createdAt ?? new Date().toISOString();
-  const commit = input.commit ?? (await getCurrentCommit(workspace.rootPath)) ?? undefined;
+  const commit =
+    input.commit ?? (await getCurrentCommit(workspace.rootPath)) ?? undefined;
   const evidenceRefs = buildEvidenceRefs(input, maps);
   const status = evaluateAtomStatus(evidenceRefs, maps);
   const atom: KnowledgeAtom = {
@@ -200,8 +210,7 @@ export async function migrateLegacyCognitionToAtoms(
           !currentIds.has(atom.id) &&
           !current.some(
             (existing) =>
-              existing.topic === atom.topic &&
-              existing.claim === atom.claim,
+              existing.topic === atom.topic && existing.claim === atom.claim,
           ),
       );
       if (nextMigrated.length > 0) {
@@ -258,7 +267,11 @@ export async function refreshKnowledgeAtomStatuses(
   const nextAtoms = atoms.map((atom) => {
     if (atom.status === 'archived') return atom;
     const health = evaluateAtomHealth(atom.evidenceRefs, maps);
-    const nextConfidence = computeConfidence(atom.confidence, health.status, atom);
+    const nextConfidence = computeConfidence(
+      atom.confidence,
+      health.status,
+      atom,
+    );
     const nextLifecycle: KnowledgeAtom['lifecycle'] = {
       ...atom.lifecycle,
       ...(health.reasons.length > 0 ? { invalidatedBy: health.reasons } : {}),
@@ -305,10 +318,15 @@ export async function validateKnowledgeStore(
 ): Promise<KnowledgeValidationIssue[]> {
   const issues: KnowledgeValidationIssue[] = [];
   if (!(await pathExists(schemaPath(workspace)))) {
-    issues.push({ code: 'missing-schema', message: 'missing knowledge/schema.json' });
+    issues.push({
+      code: 'missing-schema',
+      message: 'missing knowledge/schema.json',
+    });
   } else {
     try {
-      const schema = JSON.parse(await readFile(schemaPath(workspace), 'utf8')) as KnowledgeSchema;
+      const schema = JSON.parse(
+        await readFile(schemaPath(workspace), 'utf8'),
+      ) as KnowledgeSchema;
       if (schema.version < KNOWLEDGE_SCHEMA_VERSION) {
         issues.push({
           code: 'old-schema',
@@ -317,7 +335,10 @@ export async function validateKnowledgeStore(
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      issues.push({ code: 'missing-schema', message: `invalid knowledge schema: ${message}` });
+      issues.push({
+        code: 'missing-schema',
+        message: `invalid knowledge schema: ${message}`,
+      });
     }
   }
 
@@ -333,9 +354,15 @@ export async function validateKnowledgeStore(
   }
 
   if (maps) {
-    const fileByPath = new Map(maps.fileMap.files.map((file) => [file.path, file]));
-    const symbolNames = new Set(maps.symbolMap.symbols.map((symbol) => symbol.name));
-    const symbolIds = new Set(maps.symbolMap.symbols.map((symbol) => symbol.id));
+    const fileByPath = new Map(
+      maps.fileMap.files.map((file) => [file.path, file]),
+    );
+    const symbolNames = new Set(
+      maps.symbolMap.symbols.map((symbol) => symbol.name),
+    );
+    const symbolIds = new Set(
+      maps.symbolMap.symbols.map((symbol) => symbol.id),
+    );
     for (const atom of atoms) {
       if (atom.status === 'archived') continue;
       for (const ref of atom.evidenceRefs) {
@@ -348,11 +375,15 @@ export async function validateKnowledgeStore(
               message: `${atom.id} references missing file ${ref.path}`,
             });
           } else if (ref.contentHash && ref.contentHash !== file.contentHash) {
-            issues.push({
-              code: 'stale-file-hash',
-              atomId: atom.id,
-              message: `${atom.id} references changed file ${ref.path}`,
-            });
+            // Only report if the atom hasn't already been moved to needs-review;
+            // needs-review atoms are already caught by the quality gate.
+            if (atom.status !== 'needs-review') {
+              issues.push({
+                code: 'stale-file-hash',
+                atomId: atom.id,
+                message: `${atom.id} references changed file ${ref.path}; run \`kgraph stale\` to update atom status`,
+              });
+            }
           }
         }
         if (ref.type === 'symbol') {
@@ -430,7 +461,9 @@ function buildEvidenceRefs(
   input: AtomInput,
   maps?: { fileMap: FileMap; symbolMap: SymbolMap },
 ): KnowledgeEvidenceRef[] {
-  const fileByPath = new Map(maps?.fileMap.files.map((file) => [file.path, file]) ?? []);
+  const fileByPath = new Map(
+    maps?.fileMap.files.map((file) => [file.path, file]) ?? [],
+  );
   const symbolsByName = new Map(
     maps?.symbolMap.symbols.map((symbol) => [symbol.name, symbol]) ?? [],
   );
@@ -458,7 +491,11 @@ function buildEvidenceRefs(
     refs.push({ type: 'git', commit: input.commit });
   }
   if (input.sessionId || input.agent) {
-    refs.push({ type: 'session', sessionId: input.sessionId, agent: input.agent });
+    refs.push({
+      type: 'session',
+      sessionId: input.sessionId,
+      agent: input.agent,
+    });
   }
   return refs;
 }
@@ -475,8 +512,12 @@ function evaluateAtomHealth(
   maps?: { fileMap: FileMap; symbolMap: SymbolMap },
 ): { status: KnowledgeAtom['status']; reasons: string[] } {
   if (!maps || refs.length === 0) return { status: 'active', reasons: [] };
-  const fileByPath = new Map(maps.fileMap.files.map((file) => [file.path, file]));
-  const symbolNames = new Set(maps.symbolMap.symbols.map((symbol) => symbol.name));
+  const fileByPath = new Map(
+    maps.fileMap.files.map((file) => [file.path, file]),
+  );
+  const symbolNames = new Set(
+    maps.symbolMap.symbols.map((symbol) => symbol.name),
+  );
   const symbolIds = new Set(maps.symbolMap.symbols.map((symbol) => symbol.id));
   let stale = false;
   let needsReview = false;
@@ -494,7 +535,8 @@ function evaluateAtomHealth(
     }
     if (ref.type === 'symbol') {
       const exists =
-        (ref.symbolId && symbolIds.has(ref.symbolId)) || symbolNames.has(ref.name);
+        (ref.symbolId && symbolIds.has(ref.symbolId)) ||
+        symbolNames.has(ref.name);
       if (!exists) {
         stale = true;
         reasons.push(`missing symbol:${ref.name}`);
@@ -514,7 +556,10 @@ function computeConfidence(
   if (atom?.lifecycle.supersededBy || atom?.status === 'archived') return 'low';
   if (status === 'stale') return 'low';
   if (status === 'needs-review' && initial === 'high') return 'medium';
-  if (atom?.provenance.sourceCommand === 'legacy-migration' && initial === 'high') {
+  if (
+    atom?.provenance.sourceCommand === 'legacy-migration' &&
+    initial === 'high'
+  ) {
     return 'medium';
   }
   return initial;
@@ -537,11 +582,15 @@ function legacyNoteToAtom(note: CognitionNote, id: string): KnowledgeAtom {
             ? 'stale'
             : 'needs-review',
     evidenceRefs: [
-      ...note.relatedFiles.map((file): KnowledgeEvidenceRef => ({ type: 'file', path: file })),
-      ...note.relatedSymbols.map((symbol): KnowledgeEvidenceRef => ({
-        type: 'symbol',
-        name: symbol,
-      })),
+      ...note.relatedFiles.map(
+        (file): KnowledgeEvidenceRef => ({ type: 'file', path: file }),
+      ),
+      ...note.relatedSymbols.map(
+        (symbol): KnowledgeEvidenceRef => ({
+          type: 'symbol',
+          name: symbol,
+        }),
+      ),
     ],
     scopeRefs: {
       files: note.relatedFiles,
@@ -572,9 +621,18 @@ async function writeKnowledgeIndexes(
   await mkdir(indexesPath(workspace), { recursive: true });
   const indexes = buildIndexes(atoms);
   await Promise.all([
-    atomicWriteFile(path.join(indexesPath(workspace), 'terms.json'), JSON.stringify(indexes.terms, null, 2) + '\n'),
-    atomicWriteFile(path.join(indexesPath(workspace), 'refs.json'), JSON.stringify(indexes.refs, null, 2) + '\n'),
-    atomicWriteFile(path.join(indexesPath(workspace), 'topics.json'), JSON.stringify(indexes.topics, null, 2) + '\n'),
+    atomicWriteFile(
+      path.join(indexesPath(workspace), 'terms.json'),
+      JSON.stringify(indexes.terms, null, 2) + '\n',
+    ),
+    atomicWriteFile(
+      path.join(indexesPath(workspace), 'refs.json'),
+      JSON.stringify(indexes.refs, null, 2) + '\n',
+    ),
+    atomicWriteFile(
+      path.join(indexesPath(workspace), 'topics.json'),
+      JSON.stringify(indexes.topics, null, 2) + '\n',
+    ),
   ]);
 }
 
@@ -583,17 +641,25 @@ function buildIndexes(atoms: KnowledgeAtom[]): KnowledgeIndexes {
   const refs: Record<string, string[]> = {};
   const topics: Record<string, string[]> = {};
   for (const atom of atoms.filter((item) => item.status !== 'archived')) {
-    for (const term of tokenize([atom.topic, atom.claim, atom.summary ?? ''].join(' '))) {
+    for (const term of tokenize(
+      [atom.topic, atom.claim, atom.summary ?? ''].join(' '),
+    )) {
       addIndex(terms, term, atom.id);
     }
     addIndex(topics, atom.topic.toLowerCase(), atom.id);
-    for (const file of atom.scopeRefs.files) addIndex(refs, `file:${file}`, atom.id);
-    for (const symbol of atom.scopeRefs.symbols) addIndex(refs, `symbol:${symbol}`, atom.id);
+    for (const file of atom.scopeRefs.files)
+      addIndex(refs, `file:${file}`, atom.id);
+    for (const symbol of atom.scopeRefs.symbols)
+      addIndex(refs, `symbol:${symbol}`, atom.id);
   }
   return { terms, refs, topics };
 }
 
-function addIndex(index: Record<string, string[]>, key: string, atomId: string): void {
+function addIndex(
+  index: Record<string, string[]>,
+  key: string,
+  atomId: string,
+): void {
   const values = index[key] ?? [];
   if (!values.includes(atomId)) values.push(atomId);
   index[key] = values;
@@ -607,9 +673,13 @@ async function touchSchema(workspace: KGraphWorkspace): Promise<void> {
   });
 }
 
-async function readSchema(workspace: KGraphWorkspace): Promise<KnowledgeSchema> {
+async function readSchema(
+  workspace: KGraphWorkspace,
+): Promise<KnowledgeSchema> {
   await ensureKnowledgeStore(workspace);
-  return JSON.parse(await readFile(schemaPath(workspace), 'utf8')) as KnowledgeSchema;
+  return JSON.parse(
+    await readFile(schemaPath(workspace), 'utf8'),
+  ) as KnowledgeSchema;
 }
 
 async function writeSchema(
@@ -617,7 +687,10 @@ async function writeSchema(
   schema: KnowledgeSchema,
 ): Promise<void> {
   await mkdir(workspace.knowledgePath, { recursive: true });
-  await atomicWriteFile(schemaPath(workspace), JSON.stringify(schema, null, 2) + '\n');
+  await atomicWriteFile(
+    schemaPath(workspace),
+    JSON.stringify(schema, null, 2) + '\n',
+  );
 }
 
 function buildAtomId(createdAt: string, seed: string): string {
@@ -656,14 +729,44 @@ function indexesPath(workspace: KGraphWorkspace): string {
   return path.join(workspace.knowledgePath, 'indexes');
 }
 
-async function atomicWriteFile(targetPath: string, content: string): Promise<void> {
+async function atomicWriteFile(
+  targetPath: string,
+  content: string,
+): Promise<void> {
   await mkdir(path.dirname(targetPath), { recursive: true });
   const tempPath = path.join(
     path.dirname(targetPath),
     `.${path.basename(targetPath)}.${process.pid}.${randomUUID()}.tmp`,
   );
   await writeFile(tempPath, content, 'utf8');
-  await rename(tempPath, targetPath);
+  // On Windows, rename over an existing file can transiently fail with EPERM
+  // when another handle was recently released. Retry with short delays.
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await rename(tempPath, targetPath);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if ((code === 'EPERM' || code === 'EACCES') && attempt < 2) {
+        lastError = error;
+        await delay(20 * (attempt + 1));
+        continue;
+      }
+      try {
+        await unlink(tempPath);
+      } catch {
+        /* best-effort cleanup */
+      }
+      throw error;
+    }
+  }
+  try {
+    await unlink(tempPath);
+  } catch {
+    /* best-effort cleanup */
+  }
+  throw lastError;
 }
 
 async function withKnowledgeWriteLock<T>(
@@ -679,7 +782,9 @@ async function withKnowledgeWriteLock<T>(
       break;
     } catch (error) {
       if (Date.now() - startedAt > 10_000) {
-        throw new KGraphError('Timed out waiting for KGraph knowledge write lock.');
+        throw new KGraphError(
+          'Timed out waiting for KGraph knowledge write lock.',
+        );
       }
       await delay(50);
     }
