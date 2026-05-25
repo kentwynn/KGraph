@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.31](https://github.com/kentwynn/KGraph/compare/v0.2.30...v0.2.31) (2026-05-25)
+
+### ### Added
+
+* inline source excerpts in symbol pack items to reduce agent token spend ([d45db82](https://github.com/kentwynn/KGraph/commit/d45db82b014af1bcf1f9980fb7ed8a8985f9655d))
+
 ## [0.2.30](https://github.com/kentwynn/KGraph/compare/v0.2.29...v0.2.30) (2026-05-25)
 
 ### ### Added
