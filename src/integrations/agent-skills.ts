@@ -48,7 +48,7 @@ name: kgraph-pack
 description: Build a budget-aware KGraph context pack
 ---
 
-Run \`kgraph pack "$ARGUMENTS" --budget 8000 --json --agent $AGENT\` to build a machine-readable context pack and record lightweight session context. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons.
+Run \`kgraph pack "<topic>" --budget 8000 --json --agent $AGENT\` to build a machine-readable context pack and record lightweight session context. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons. When a symbol item includes an \`excerpt\` field, you already have the source — do not read that file for the symbol.
 `,
   },
   {
@@ -78,7 +78,7 @@ name: kgraph-blame
 description: Show KGraph atom provenance and evidence
 ---
 
-Run \`kgraph blame "$ARGUMENTS"\` to show who or what created a knowledge atom, the source command/session/commit, evidence refs, and lifecycle links.
+Run \`kgraph blame <atom-id>\` to show who or what created a knowledge atom, the source command/session/commit, evidence refs, and lifecycle links.
 `,
   },
   {
@@ -130,7 +130,7 @@ name: kgraph-conclude
 description: Store a typed durable KGraph engineering conclusion
 ---
 
-Prefer \`kgraph "<topic>" --capture "$ARGUMENTS" --capture-file <path> --capture-symbol <name>\` when the session produced reusable engineering knowledge. Use low-level \`kgraph conclude "$ARGUMENTS"\` only when the user explicitly asks for the conclude command. Choose one type from finding, decision, gotcha, summary, relationship, and one confidence from high, medium, low. Add file or symbol evidence whenever possible; high-confidence conclusions require evidence. Store only durable conclusions, not raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
+Prefer \`kgraph "<topic>" --capture "<durable conclusion>" --capture-file <path> --capture-symbol <name>\` when the session produced reusable engineering knowledge. Use low-level \`kgraph conclude "<topic>" --note "<conclusion>"\` only when the user explicitly asks for the conclude command. Choose one type from finding, decision, gotcha, summary, relationship, and one confidence from high, medium, low. Add file or symbol evidence whenever possible; high-confidence conclusions require evidence. Store only durable conclusions, not raw chain-of-thought, temporary reasoning, speculative exploration, or low-value observations.
 `,
   },
   {
@@ -140,7 +140,7 @@ name: kgraph-impact
 description: Show KGraph change impact for a file, symbol, or topic
 ---
 
-Run \`kgraph impact "$ARGUMENTS"\` to show matched files/symbols, import users, callers, callees, related knowledge atoms, and risk hints.
+Run \`kgraph impact "<file-or-symbol>"\` to show matched files/symbols, import users, callers, callees, related knowledge atoms, and risk hints.
 `,
   },
   {
@@ -160,7 +160,7 @@ name: kgraph-history
 description: Show timeline of KGraph cognition sessions with git attribution
 ---
 
-Run \`kgraph history\` or \`kgraph history "$ARGUMENTS"\` to display processed cognition sessions. Summarize who contributed what and when. Use \`--last <n>\` to limit entries.
+Run \`kgraph history\` or \`kgraph history "<topic>"\` to display processed cognition sessions. Summarize who contributed what and when. Use \`--last <n>\` to limit entries.
 `,
   },
 ];

@@ -37,14 +37,38 @@ export function createProgram(): Command {
       'Run the default refresh workflow and optionally return context for a topic',
     )
     .option('--final', 'Run end-of-work capture enforcement after refresh')
-    .option('--capture <text>', 'Store a durable conclusion through the root workflow')
-    .option('--capture-type <type>', 'Capture type: finding, decision, gotcha, summary, or relationship', 'summary')
-    .option('--capture-confidence <level>', 'Capture confidence: high, medium, or low', 'medium')
+    .option(
+      '--capture <text>',
+      'Store a durable conclusion through the root workflow',
+    )
+    .option(
+      '--capture-type <type>',
+      'Capture type: finding, decision, gotcha, summary, or relationship',
+      'summary',
+    )
+    .option(
+      '--capture-confidence <level>',
+      'Capture confidence: high, medium, or low',
+      'medium',
+    )
     .option('--capture-domain <name>', 'Capture domain name')
     .option('--capture-tag <tag>', 'Capture tag; repeatable', collect, [])
-    .option('--capture-file <path>', 'Capture related repo file; repeatable', collect, [])
-    .option('--capture-symbol <name>', 'Capture related symbol; repeatable', collect, [])
-    .option('--agent <name>', 'Record an automatic KGraph session context event for this integration agent')
+    .option(
+      '--capture-file <path>',
+      'Capture related repo file; repeatable',
+      collect,
+      [],
+    )
+    .option(
+      '--capture-symbol <name>',
+      'Capture related symbol; repeatable',
+      collect,
+      [],
+    )
+    .option(
+      '--agent <name>',
+      'Record an automatic KGraph session context event for this integration agent',
+    )
     .version(version)
     .helpOption(false)
     .action(async (topicParts: string[] = [], options) => {
@@ -152,6 +176,10 @@ function isCliEntrypoint(): boolean {
       realpathSync(process.argv[1])
     );
   } catch {
-    return import.meta.url === `file://${process.argv[1]}`;
+    const argv1 = process.argv[1].replace(/\\/g, '/');
+    return (
+      import.meta.url === `file://${argv1}` ||
+      import.meta.url === `file:///${argv1}`
+    );
   }
 }

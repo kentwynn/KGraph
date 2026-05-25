@@ -1,7 +1,7 @@
 import type { GraphData } from './graph-builder.js';
 
 export function renderHtml(graphData: GraphData, rootPath: string): string {
-  const repoName = escAttr(rootPath.split('/').pop() ?? 'Repository');
+  const repoName = escAttr(rootPath.split(/[\\/]/).pop() ?? 'Repository');
   const { meta } = graphData;
   // Prevent </script> tag injection from embedded JSON
   const safeData = JSON.stringify(graphData).replace(

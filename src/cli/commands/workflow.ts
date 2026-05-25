@@ -6,8 +6,8 @@ import { concludeTopic } from '../../cognition/conclusion.js';
 import { loadConfig } from '../../config/config.js';
 import { queryContext } from '../../context/context-query.js';
 import { refreshKnowledgeAtomStatuses } from '../../knowledge/atom-store.js';
-import { getWorkingTreeChanges } from '../../scanner/git-utils.js';
 import { shouldExclude } from '../../scanner/file-classifier.js';
+import { getWorkingTreeChanges } from '../../scanner/git-utils.js';
 import { scanRepository } from '../../scanner/repo-scanner.js';
 import {
   assertSessionAgent,
@@ -145,8 +145,9 @@ export async function runDefaultWorkflow(
           atomsProcessed: update.processed.length,
           pendingInbox: pendingInbox.length,
           activeAtoms: activeAtoms.length,
-          needsReviewAtoms: atoms.filter((atom) => atom.status === 'needs-review')
-            .length,
+          needsReviewAtoms: atoms.filter(
+            (atom) => atom.status === 'needs-review',
+          ).length,
           staleAtoms: atoms.filter((atom) => atom.status === 'stale').length,
           highConfidenceMissingEvidence: activeAtoms.filter(
             (atom) =>
@@ -296,9 +297,7 @@ function atomsOverlap(a: KnowledgeAtom, b: KnowledgeAtom): boolean {
     if (ref.type === 'symbol') atomSymbols.add(ref.name);
   }
 
-  const fileOverlap = [...invalidatedFiles].some((file) =>
-    atomFiles.has(file),
-  );
+  const fileOverlap = [...invalidatedFiles].some((file) => atomFiles.has(file));
   const symbolOverlap = [...invalidatedSymbols].some((symbol) =>
     atomSymbols.has(symbol),
   );
@@ -306,7 +305,10 @@ function atomsOverlap(a: KnowledgeAtom, b: KnowledgeAtom): boolean {
   return tokenOverlap(a.topic, b.topic);
 }
 
-function atomsHaveReplacementSignal(a: KnowledgeAtom, b: KnowledgeAtom): boolean {
+function atomsHaveReplacementSignal(
+  a: KnowledgeAtom,
+  b: KnowledgeAtom,
+): boolean {
   const aSymbols = new Set(a.scopeRefs.symbols);
   for (const ref of a.evidenceRefs) {
     if (ref.type === 'symbol') aSymbols.add(ref.name);
@@ -337,17 +339,33 @@ function meaningfulTopicOverlap(a: string, b: string): boolean {
   const weakTokens = new Set([
     'add',
     'after',
+    'and',
     'behavior',
     'change',
     'changed',
+    'check',
+    'code',
+    'current',
+    'file',
+    'fix',
+    'for',
+    'from',
+    'get',
+    'into',
     'new',
+    'not',
     'old',
     'review',
-    'check',
-    'current',
+    'run',
     'session',
+    'set',
     'smoke',
+    'test',
+    'that',
+    'the',
+    'this',
     'update',
+    'use',
     'with',
   ]);
   const aTokens = new Set(
@@ -368,13 +386,14 @@ function tokenOverlap(a: string, b: string): boolean {
     a
       .toLowerCase()
       .split(/[^a-z0-9]+/)
-      .filter(Boolean),
+      .filter((token) => token.length >= 4),
   );
-  return b
+  if (aTokens.size === 0) return false;
+  const matches = b
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter(Boolean)
-    .some((token) => aTokens.has(token));
+    .filter((token) => token.length >= 4 && aTokens.has(token));
+  return matches.length >= 2;
 }
 
 function matchingInvalidatedAtoms(
@@ -433,14 +452,18 @@ function renderFinalCaptureCheck(
           check.invalidatedAtoms.some((atom) => atom.id === item.atom.id),
         ),
       );
-      console.log('  conclusion    missing for needs-review or stale knowledge');
+      console.log(
+        '  conclusion    missing for needs-review or stale knowledge',
+      );
       console.log(
         `  next          kgraph "${topic || '<topic>'}" --capture "<durable conclusion>" --capture-file <path>`,
       );
       return;
     }
     console.log('  status        clean');
-    console.log('  reason        no mapped repo files changed or invalidated matching atoms');
+    console.log(
+      '  reason        no mapped repo files changed or invalidated matching atoms',
+    );
     return;
   }
   if (!check.required) {
@@ -479,6 +502,8 @@ function renderMemoryReviewItems(items: MemoryReviewItem[]): void {
     }
   }
   if (items.length > visible.length) {
-    console.log(`  review more   ${items.length - visible.length} more atom(s)`);
+    console.log(
+      `  review more   ${items.length - visible.length} more atom(s)`,
+    );
   }
 }
