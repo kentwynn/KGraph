@@ -199,6 +199,7 @@ async function removeIntegrationInstructions(
   const next = removeManagedBlock(existing, integrationName);
   if (next.trim().length === 0) {
     await rm(fullPath, { force: true });
+    await pruneEmptyParents(rootPath, path.dirname(fullPath));
     return;
   }
   await writeFile(fullPath, next, 'utf8');
@@ -223,17 +224,20 @@ async function removeIntegrationCommandFiles(
     const filePath = typeof file === 'string' ? file : file.path;
     const fullPath = path.join(rootPath, filePath);
     await rm(fullPath, { force: true, recursive: true });
-    // Remove empty parent directories up to (but not including) rootPath
-    let dir = path.dirname(fullPath);
-    while (dir !== rootPath && dir.startsWith(rootPath)) {
-      try {
-        const entries = await readdir(dir);
-        if (entries.length > 0) break;
-        await rmdir(dir);
-        dir = path.dirname(dir);
-      } catch {
-        break;
-      }
+    await pruneEmptyParents(rootPath, path.dirname(fullPath));
+  }
+}
+
+async function pruneEmptyParents(rootPath: string, startDir: string): Promise<void> {
+  let dir = startDir;
+  while (dir !== rootPath && dir.startsWith(rootPath)) {
+    try {
+      const entries = await readdir(dir);
+      if (entries.length > 0) break;
+      await rmdir(dir);
+      dir = path.dirname(dir);
+    } catch {
+      break;
     }
   }
 }

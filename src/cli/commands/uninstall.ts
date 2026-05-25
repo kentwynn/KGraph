@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { rm } from 'node:fs/promises';
+import { readdir, rm, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { loadConfig } from '../../config/config.js';
 import { removeIntegrations } from '../../integrations/integration-store.js';
@@ -8,6 +8,7 @@ import type { IntegrationName } from '../../types/config.js';
 import { runCommand } from '../errors.js';
 
 const LEGACY_GENERATED_FILES = [
+  '.agents/generated/kgraph.md',
   '.github/agents/kgraph.agent.md',
   '.github/kgraph.agent.md',
 ];
@@ -68,11 +69,25 @@ export function registerUninstallCommand(program: Command): void {
 }
 
 async function removeLegacyGeneratedFiles(rootPath: string): Promise<void> {
-  await Promise.all(
-    LEGACY_GENERATED_FILES.map((filePath) =>
-      rm(path.join(rootPath, filePath), { force: true }),
-    ),
-  );
+  for (const filePath of LEGACY_GENERATED_FILES) {
+    const fullPath = path.join(rootPath, filePath);
+    await rm(fullPath, { force: true });
+    await pruneEmptyParents(rootPath, path.dirname(fullPath));
+  }
+}
+
+async function pruneEmptyParents(rootPath: string, startDir: string): Promise<void> {
+  let dir = startDir;
+  while (dir !== rootPath && dir.startsWith(rootPath)) {
+    try {
+      const entries = await readdir(dir);
+      if (entries.length > 0) break;
+      await rmdir(dir);
+      dir = path.dirname(dir);
+    } catch {
+      break;
+    }
+  }
 }
 
 function printUninstallPreview(input: {
