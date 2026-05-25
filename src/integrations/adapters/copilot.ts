@@ -10,6 +10,19 @@ export const copilotAdapter: IntegrationAdapter = {
 
 ${numberedWorkflow('copilot')}
 `,
-  commandFiles: agentSkillFiles('copilot'),
+  commandFiles: [
+    ...agentSkillFiles('copilot'),
+    {
+      path: '.github/agents/kgraph.agent.md',
+      content: `---
+description: Use KGraph persistent repo intelligence — runs kgraph before answering to provide file maps, symbols, relationships, and durable knowledge atoms.
+---
+
+## KGraph Workflow
+
+${numberedWorkflow('copilot')}
+`,
+    },
+  ],
   obsoleteCommandFiles: [],
 };
