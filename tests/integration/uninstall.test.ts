@@ -1,4 +1,4 @@
-import { access, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -90,6 +90,44 @@ describe('kgraph uninstall', () => {
       await expect(
         access(path.join(repo, '.github', 'agents', 'kgraph.agent.md')),
       ).rejects.toThrow();
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('prunes empty generated integration directories during full uninstall', async () => {
+    const repo = await createTempRepo();
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['integrate', 'add', 'codex']);
+      await writeText(repo, '.agents/generated/kgraph.md', 'legacy generated\n');
+
+      const apply = await runCli(repo, ['uninstall', '--yes']);
+      expect(apply.code).toBe(0);
+      await expect(access(path.join(repo, '.kgraph'))).rejects.toThrow();
+      await expect(access(path.join(repo, '.agents'))).rejects.toThrow();
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('preserves non-KGraph files while pruning empty KGraph rule directories', async () => {
+    const repo = await createTempRepo();
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['integrate', 'add', 'cursor']);
+      await mkdir(path.join(repo, '.cursor', 'user'), { recursive: true });
+      await writeText(repo, '.cursor/user/keep.md', 'keep me\n');
+
+      const apply = await runCli(repo, ['uninstall', '--yes']);
+      expect(apply.code).toBe(0);
+      await expect(
+        access(path.join(repo, '.cursor', 'rules', 'kgraph.mdc')),
+      ).rejects.toThrow();
+      await expect(access(path.join(repo, '.cursor', 'rules'))).rejects.toThrow();
+      expect(await readFile(path.join(repo, '.cursor', 'user', 'keep.md'), 'utf8')).toBe(
+        'keep me\n',
+      );
     } finally {
       await cleanupTempRepo(repo);
     }
