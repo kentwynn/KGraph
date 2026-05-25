@@ -1,5 +1,5 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
@@ -67,8 +67,15 @@ describe('kgraph knowledge', () => {
       ]);
 
       const list = JSON.parse(
-        (await runCli(repo, ['knowledge', 'list', '--topic', 'auth atom', '--json']))
-          .stdout,
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'auth atom',
+            '--json',
+          ])
+        ).stdout,
       );
       expect(list).toHaveLength(2);
       expect(list[0].evidenceRefs.length).toBeGreaterThan(0);
@@ -107,7 +114,8 @@ describe('kgraph knowledge', () => {
       expect(domainAfterSupersede.cognitionNotes).toEqual([secondId]);
 
       const archived = JSON.parse(
-        (await runCli(repo, ['knowledge', 'archive', secondId, '--json'])).stdout,
+        (await runCli(repo, ['knowledge', 'archive', secondId, '--json']))
+          .stdout,
       );
       expect(archived.status).toBe('archived');
       const refsAfterArchive = JSON.parse(
@@ -280,12 +288,26 @@ describe('kgraph knowledge', () => {
       );
 
       const first = JSON.parse(
-        (await runCli(repo, ['knowledge', 'list', '--topic', 'Old Auth', '--json']))
-          .stdout,
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'Old Auth',
+            '--json',
+          ])
+        ).stdout,
       );
       const second = JSON.parse(
-        (await runCli(repo, ['knowledge', 'list', '--topic', 'Old Auth', '--json']))
-          .stdout,
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'Old Auth',
+            '--json',
+          ])
+        ).stdout,
       );
       expect(first).toHaveLength(1);
       expect(second).toHaveLength(1);
@@ -313,16 +335,28 @@ describe('kgraph knowledge', () => {
         'Auth pack atom should appear in context packs.',
       ]);
       const pack = JSON.parse(
-        (await runCli(repo, ['pack', 'auth pack atom', '--budget', '800', '--json']))
-          .stdout,
+        (
+          await runCli(repo, [
+            'pack',
+            'auth pack atom',
+            '--budget',
+            '800',
+            '--json',
+          ])
+        ).stdout,
       );
       expect(pack.usedTokens).toBeLessThanOrEqual(800);
-      expect(pack.items.some((item: { kind: string }) => item.kind === 'atom')).toBe(
-        true,
-      );
+      expect(
+        pack.items.some((item: { kind: string }) => item.kind === 'atom'),
+      ).toBe(true);
       expect(pack.items[0].reasons.length).toBeGreaterThan(0);
 
-      const text = await runCli(repo, ['pack', 'auth pack atom', '--budget', '800']);
+      const text = await runCli(repo, [
+        'pack',
+        'auth pack atom',
+        '--budget',
+        '800',
+      ]);
       expect(text.stdout).toContain('KGraph Pack · auth pack atom');
       expect(text.stdout).toContain('● Budget');
       expect(text.stdout).toContain('● Atoms');
@@ -373,12 +407,16 @@ Pack should warn when inbox notes are pending because history does not see them 
       });
       expect(pack.warnings).toEqual(
         expect.arrayContaining([
-          expect.stringContaining('Pending inbox notes are not processed by pack'),
+          expect.stringContaining(
+            'Pending inbox notes are not processed by pack',
+          ),
         ]),
       );
 
       const historyBefore = await runCli(repo, ['history', 'History Routing']);
-      expect(historyBefore.stdout).toContain('No processed cognition notes found');
+      expect(historyBefore.stdout).toContain(
+        'No processed cognition notes found',
+      );
 
       const text = await runCli(repo, [
         'pack',
@@ -415,8 +453,15 @@ Pack should warn when inbox notes are pending because history does not see them 
         'Auth stale atom tracks auth.ts evidence.',
       ]);
       const atoms = JSON.parse(
-        (await runCli(repo, ['knowledge', 'list', '--topic', 'auth stale atom', '--json']))
-          .stdout,
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'auth stale atom',
+            '--json',
+          ])
+        ).stdout,
       );
       await writeFile(
         path.join(repo, 'src', 'auth.ts'),
@@ -425,21 +470,25 @@ Pack should warn when inbox notes are pending because history does not see them 
       );
       await runCli(repo, ['scan']);
 
-      const stale = JSON.parse((await runCli(repo, ['stale', '--json'])).stdout);
+      const stale = JSON.parse(
+        (await runCli(repo, ['stale', '--json'])).stdout,
+      );
       const staleAtom = stale.atoms.find(
         (atom: { id: string }) => atom.id === atoms[0].id,
       );
       expect(staleAtom.status).toBe('needs-review');
       expect(staleAtom.confidence).toBe('medium');
-      expect(staleAtom.lifecycle.invalidatedBy).toContain('changed file:src/auth.ts');
+      expect(staleAtom.lifecycle.invalidatedBy).toContain(
+        'changed file:src/auth.ts',
+      );
 
       const blame = JSON.parse(
         (await runCli(repo, ['blame', atoms[0].id, '--json'])).stdout,
       );
       expect(blame.provenance.sourceCommand).toBe('conclude');
-      expect(blame.evidenceRefs.some((ref: { type: string }) => ref.type === 'file')).toBe(
-        true,
-      );
+      expect(
+        blame.evidenceRefs.some((ref: { type: string }) => ref.type === 'file'),
+      ).toBe(true);
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -463,6 +512,177 @@ Pack should warn when inbox notes are pending because history does not see them 
         'utf8',
       );
       expect(raw).toBe('{bad json}\n');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('knowledge list --topic matches claim, summary, and scopeRefs, not just topic string', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      await runCli(repo, [
+        'conclude',
+        'token refresh pattern',
+        '--type',
+        'finding',
+        '--confidence',
+        'medium',
+        '--file',
+        'src/auth.ts',
+        '--symbol',
+        'AuthService',
+        '--note',
+        'AuthService.refresh regenerates tokens on every call which is wasteful.',
+      ]);
+
+      // topic string does not contain "AuthService" directly — only scopeRefs and claim do
+      const bySymbol = JSON.parse(
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'AuthService',
+            '--json',
+          ])
+        ).stdout,
+      );
+      expect(bySymbol).toHaveLength(1);
+      expect(bySymbol[0].topic).toBe('token refresh pattern');
+
+      // matching by file path fragment
+      const byFile = JSON.parse(
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'auth.ts',
+            '--json',
+          ])
+        ).stdout,
+      );
+      expect(byFile).toHaveLength(1);
+
+      // matching by claim keyword
+      const byClaim = JSON.parse(
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'wasteful',
+            '--json',
+          ])
+        ).stdout,
+      );
+      expect(byClaim).toHaveLength(1);
+
+      // non-matching topic returns nothing
+      const noMatch = JSON.parse(
+        (
+          await runCli(repo, [
+            'knowledge',
+            'list',
+            '--topic',
+            'nonexistentxyz',
+            '--json',
+          ])
+        ).stdout,
+      );
+      expect(noMatch).toHaveLength(0);
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('doctor knowledge check passes when needs-review atoms already cover changed-file refs', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      await runCli(repo, [
+        'conclude',
+        'auth file ref atom',
+        '--type',
+        'finding',
+        '--confidence',
+        'medium',
+        '--file',
+        'src/auth.ts',
+        '--note',
+        'Auth file ref atom tracks auth.ts.',
+      ]);
+
+      // change the file so the stored content hash no longer matches
+      await writeFile(
+        path.join(repo, 'src', 'auth.ts'),
+        `${await readFile(path.join(repo, 'src', 'auth.ts'), 'utf8')}\nexport const changedForDoctorTest = true;\n`,
+        'utf8',
+      );
+      await runCli(repo, ['scan']);
+
+      // move atom to needs-review; quality gate now owns this signal
+      await runCli(repo, ['stale']);
+
+      const doctor = await runCli(repo, ['doctor']);
+      // knowledge check should pass — stale-file-hash is suppressed for needs-review atoms
+      expect(doctor.stdout).toContain('OK  knowledge');
+      expect(doctor.stdout).not.toMatch(/FAIL\s+knowledge/);
+      // quality gate should still catch the needs-review atom
+      expect(doctor.stdout).toMatch(/FAIL\s+quality gate/);
+      expect(doctor.stdout).toContain('needs-review atom');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('symbol items in context packs include source excerpt so agents do not need to re-read files', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+
+      const pack = JSON.parse(
+        (
+          await runCli(repo, [
+            'pack',
+            'auth AuthService',
+            '--budget',
+            '800',
+            '--json',
+          ])
+        ).stdout,
+      );
+
+      const symbolItems = pack.items.filter(
+        (item: { kind: string }) => item.kind === 'symbol',
+      );
+      expect(symbolItems.length).toBeGreaterThan(0);
+
+      // Every symbol item that has startLine/endLine must have an excerpt
+      for (const item of symbolItems) {
+        const data = item.data as {
+          startLine?: number;
+          endLine?: number;
+          excerpt?: string;
+        };
+        if (data.startLine != null && data.endLine != null) {
+          expect(data.excerpt).toBeDefined();
+          expect(typeof data.excerpt).toBe('string');
+          expect((data.excerpt as string).length).toBeGreaterThan(0);
+        }
+      }
+
+      // Token estimate should reflect actual source length, not the old flat 20
+      const authServiceItem = symbolItems.find(
+        (item: { title: string }) => item.title === 'AuthService',
+      );
+      if (authServiceItem) {
+        expect(authServiceItem.tokenEstimate).toBeGreaterThan(20);
+      }
     } finally {
       await cleanupTempRepo(repo);
     }
