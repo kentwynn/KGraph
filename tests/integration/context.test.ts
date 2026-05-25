@@ -291,6 +291,57 @@ describe('kgraph context', () => {
     }
   });
 
+  it('does not suggest unrelated supersede targets that only share weak topic words', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await writeText(
+        repo,
+        '.kgraph/inbox/history-smoke-check.md',
+        `---
+type: finding
+confidence: medium
+---
+# History Smoke Check
+
+## Summary
+History smoke check is unrelated to calculator range memory.
+
+## Key Files
+- \`src/auth.ts\` - broad workflow evidence
+`,
+      );
+      await runCli(repo, ['update']);
+      await runCli(repo, [
+        'conclude',
+        'calculator range current smoke',
+        '--confidence',
+        'high',
+        '--file',
+        'src/auth.ts',
+        '--symbol',
+        'loginUser',
+        '--note',
+        'Calculator range memory is intentionally unrelated to the history smoke check.',
+      ]);
+      await writeText(
+        repo,
+        'src/auth.ts',
+        'export function loginUser() { return "changed"; }\n',
+      );
+
+      const final = await runCli(repo, ['calculator range current smoke', '--final']);
+      expect(final.code).toBe(1);
+      expect(final.stdout).toContain(
+        'review topic  needs-review: calculator range current smoke',
+      );
+      expect(final.stdout).toContain('inspect       kgraph knowledge get');
+      expect(final.stdout).not.toContain('kgraph knowledge supersede');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
   it('stores direct conclusions and compacts duplicate cognition', async () => {
     const repo = await copyFixture('js-ts-repo');
     try {

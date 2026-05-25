@@ -60,4 +60,38 @@ describe('kgraph repair', () => {
       await cleanupTempRepo(repo);
     }
   });
+
+  it('does not label partially valid stale atoms as orphaned', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      await runCli(repo, [
+        'conclude',
+        'partial stale atom',
+        '--type',
+        'finding',
+        '--confidence',
+        'medium',
+        '--file',
+        'src/auth.ts',
+        '--symbol',
+        'MissingWidget',
+        '--note',
+        'One file ref is valid, but one symbol ref is missing.',
+      ]);
+
+      const quality = await runCli(repo, ['doctor', '--quality']);
+      expect(quality.code).toBe(1);
+      expect(quality.stdout).toContain('Stale atoms: 1');
+      expect(quality.stdout).toContain('Orphaned atoms (all refs dead): 0');
+      expect(quality.stdout).not.toContain('run `kgraph repair` to archive');
+
+      const repair = await runCli(repo, ['repair']);
+      expect(repair.stdout).toContain('Stale atoms: 1');
+      expect(repair.stdout).toContain('Orphaned atoms (all refs dead): 0');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
 });

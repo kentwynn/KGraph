@@ -83,7 +83,7 @@ export async function analyzeCognitionQuality(
         change.removedSymbolRefs.length > 0,
     );
   const orphanedNoteCount = notes.filter(
-    (note) => note.referencesStatus === 'stale',
+    (note) => analyzeNote(note, maps).nextStatus === 'stale',
   ).length;
 
   return {
@@ -172,53 +172,55 @@ export async function repairCognition(
     (note) => note.referencesStatus === 'stale',
   );
 
-  if (!dryRun && (changes.length > 0 || orphanedNotes.length > 0)) {
-    const now = new Date().toISOString();
-    const nextAtoms = atoms.map((atom) => {
-      if (atom.status === 'archived') return atom;
-      const change = changesById.get(atom.id);
-      if (!change && !orphanedNotes.some((note) => note.id === atom.id)) {
-        return atom;
-      }
-      if (orphanedNotes.some((note) => note.id === atom.id)) {
-        return {
-          ...atom,
-          status: 'archived' as const,
-          confidence: 'low' as const,
-          lifecycle: { ...atom.lifecycle, archivedAt: now },
-          provenance: { ...atom.provenance, updatedAt: now },
-        };
-      }
-      const removedFiles = new Set(change?.removedFileRefs ?? []);
-      const removedSymbols = new Set(change?.removedSymbolRefs ?? []);
-      const nextStatus = atomStatusFromReferenceStatus(change?.nextStatus ?? 'current');
+  const now = new Date().toISOString();
+  const orphanedNoteIds = new Set(orphanedNotes.map((note) => note.id));
+  const nextAtoms = atoms.map((atom) => {
+    if (atom.status === 'archived') return atom;
+    const change = changesById.get(atom.id);
+    if (!change && !orphanedNoteIds.has(atom.id)) {
+      return atom;
+    }
+    if (orphanedNoteIds.has(atom.id)) {
       return {
         ...atom,
-        status: nextStatus,
-        confidence:
-          atom.confidence === 'low' && atom.status === 'stale' && nextStatus !== 'stale'
-            ? 'medium'
-            : atom.confidence,
-        scopeRefs: {
-          ...atom.scopeRefs,
-          files: atom.scopeRefs.files.filter((file) => !removedFiles.has(file)),
-          symbols: atom.scopeRefs.symbols.filter((symbol) => !removedSymbols.has(symbol)),
-        },
-        evidenceRefs: atom.evidenceRefs.filter((ref) => {
-          if (ref.type === 'file') return !removedFiles.has(ref.path);
-          if (ref.type === 'symbol') return !removedSymbols.has(ref.name);
-          return true;
-        }),
-        lifecycle: {
-          ...atom.lifecycle,
-          invalidatedBy:
-            change?.nextStatus === 'current'
-              ? undefined
-              : atom.lifecycle.invalidatedBy,
-        },
+        status: 'archived' as const,
+        confidence: 'low' as const,
+        lifecycle: { ...atom.lifecycle, archivedAt: now },
         provenance: { ...atom.provenance, updatedAt: now },
       };
-    });
+    }
+    const removedFiles = new Set(change?.removedFileRefs ?? []);
+    const removedSymbols = new Set(change?.removedSymbolRefs ?? []);
+    const nextStatus = atomStatusFromReferenceStatus(change?.nextStatus ?? 'current');
+    return {
+      ...atom,
+      status: nextStatus,
+      confidence:
+        atom.confidence === 'low' && atom.status === 'stale' && nextStatus !== 'stale'
+          ? 'medium'
+          : atom.confidence,
+      scopeRefs: {
+        ...atom.scopeRefs,
+        files: atom.scopeRefs.files.filter((file) => !removedFiles.has(file)),
+        symbols: atom.scopeRefs.symbols.filter((symbol) => !removedSymbols.has(symbol)),
+      },
+      evidenceRefs: atom.evidenceRefs.filter((ref) => {
+        if (ref.type === 'file') return !removedFiles.has(ref.path);
+        if (ref.type === 'symbol') return !removedSymbols.has(ref.name);
+        return true;
+      }),
+      lifecycle: {
+        ...atom.lifecycle,
+        invalidatedBy:
+          change?.nextStatus === 'current'
+            ? undefined
+            : atom.lifecycle.invalidatedBy,
+      },
+      provenance: { ...atom.provenance, updatedAt: now },
+    };
+  });
+
+  if (!dryRun && (changes.length > 0 || orphanedNotes.length > 0)) {
     await writeKnowledgeAtoms(workspace, nextAtoms);
     // Exclude fully-orphaned notes from domain records — they are being archived
     await repairDomainRecords(
@@ -239,9 +241,9 @@ export async function repairCognition(
 
   return {
     atomCount: activeAtoms.length,
-    staleAtomCount: nextNotes.filter((note) => note.referencesStatus === 'stale').length,
-    needsReviewAtomCount: nextNotes.filter((note) => note.referencesStatus === 'mixed').length,
-    archivedAtomCount: atoms.filter((atom) => atom.status === 'archived').length + orphanedNoteCount,
+    staleAtomCount: nextAtoms.filter((atom) => atom.status === 'stale').length,
+    needsReviewAtomCount: nextAtoms.filter((atom) => atom.status === 'needs-review').length,
+    archivedAtomCount: nextAtoms.filter((atom) => atom.status === 'archived').length,
     duplicateAtomTopicCount: countDuplicateTitles(nextNotes),
     noteCount: notes.length,
     mixedOrStaleCount: nextNotes.filter((note) =>

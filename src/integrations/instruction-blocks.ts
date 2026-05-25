@@ -72,16 +72,26 @@ export function renderContextPolicy(
   const packCommand = agentName
     ? `kgraph pack "<topic>" --budget 8000 --json --agent ${agentName}`
     : 'kgraph pack "<topic>" --budget 8000 --json';
+  const rootCommand = agentName
+    ? `kgraph "<topic>" --agent ${agentName}`
+    : 'kgraph "<topic>"';
+  const routing = [
+    'Command routing comes first.',
+    'If the user asks about prior work, previous decisions, timeline, or history, run `kgraph history "<topic>"` instead of pack.',
+    'If the user asks what KGraph remembers, atom provenance, or durable knowledge, run `kgraph knowledge list --topic "<topic>"` or `kgraph knowledge get <atom-id>` instead of pack.',
+    `If the user asks to process inbox notes, pending capture, refresh memory, or update cognition, run \`${rootCommand}\` or low-level \`kgraph update\` instead of pack.`,
+    'If the user asks for setup, health, broken integrations, or quality, run `kgraph doctor` or `kgraph doctor --quality` instead of pack.',
+  ].join(' ');
   switch (mode) {
     case 'always':
-      return `Every chat in this repository must start by running \`${packCommand}\` before answering or exploring files. Infer the topic from the user's message; no exceptions, including simple or conversational requests. This records a lightweight KGraph session context event for the agent. Use \`kgraph "<topic>"\` only when a human-readable briefing is explicitly needed. ${useResultBoundary}`;
+      return `Every chat in this repository must use the correct KGraph command before answering or exploring files. ${routing} For normal repo context, code navigation, debugging, review, or edits, run \`${packCommand}\`. If that pack reports pending inbox notes, run \`${rootCommand}\` or \`kgraph update\` before relying on history or newly captured atoms. Infer the topic from the user's message. This records a lightweight KGraph session context event for the agent. ${useResultBoundary}`;
     case 'manual':
-      return 'Do not run KGraph automatically. Run `kgraph pack "<topic>" --budget 8000 --json` only when the user explicitly asks for KGraph context, invokes KGraph, or needs a machine-readable repo-memory pack.';
+      return 'Do not run KGraph automatically. Run `kgraph pack "<topic>" --budget 8000 --json` only when the user explicitly asks for KGraph context, invokes KGraph, or needs a machine-readable repo-memory pack. If the user explicitly asks for KGraph history, inbox/update, knowledge, or doctor, run that specific KGraph command instead of pack.';
     case 'off':
       return 'KGraph is disabled for this integration.';
     case 'smart':
     default:
-      return `For repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests, run \`${packCommand}\` before broad repository exploration. Infer the topic from the user's message. This records a lightweight KGraph session context event only when KGraph is actually used. Skip KGraph for simple conversational requests that do not depend on repo knowledge. Use \`kgraph "<topic>"\` only when a human-readable briefing is explicitly needed. ${useResultBoundary}`;
+      return `For repo-specific coding, debugging, architecture, refactor, review, file-exploration, history, inbox/update, knowledge, or health requests, run the matching KGraph command before broad repository exploration. ${routing} For normal repo context, code navigation, debugging, review, or edits, run \`${packCommand}\`. If that pack reports pending inbox notes, run \`${rootCommand}\` or \`kgraph update\` before relying on history or newly captured atoms. Infer the topic from the user's message. This records a lightweight KGraph session context event only when KGraph is actually used. Skip KGraph for simple conversational requests that do not depend on repo knowledge. ${useResultBoundary}`;
   }
 }
 
@@ -101,7 +111,7 @@ export function renderCapturePolicy(agentName?: string): string {
 - Use \`.kgraph/inbox/<slug>.md\` only when a longer structured note is clearer than a single \`kgraph conclude\` command.
 - A \`.kgraph/inbox/*.md\` note is KGraph runtime capture, not project documentation. It is allowed by this workflow unless the user explicitly says not to capture to KGraph.
 - Do not skip capture for meaningful UI text, button, link, route, styling, or small file edits. Skip capture only when no reusable repository knowledge was created.
-- Do not run KGraph repeatedly. Run it once at the start with \`kgraph pack "<topic>" --budget 8000 --json${agentName ? ` --agent ${agentName}` : ''}\` for agent-readable context. If repo files changed, run \`${finalCommand}\` once before the final answer.
+- Do not run KGraph repeatedly. At the start, run the one KGraph command that matches the request: \`kgraph history "<topic>"\` for history, \`kgraph update\` or \`kgraph "<topic>"${agentName ? ` --agent ${agentName}` : ''}\` for inbox/update, and \`kgraph pack "<topic>" --budget 8000 --json${agentName ? ` --agent ${agentName}` : ''}\` for normal coding context. If repo files changed, run \`${finalCommand}\` once before the final answer.
 - After the final \`kgraph\` run, mention whether durable cognition was stored or processed.
 
 When using an inbox note, use this structure:

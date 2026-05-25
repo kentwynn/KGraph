@@ -103,6 +103,9 @@ describe('integration registry', () => {
       expect(content).toContain('kgraph doctor');
       expect(content).toContain('kgraph pack');
       expect(content).toContain('kgraph knowledge list');
+      expect(content).toContain('Command routing comes first');
+      expect(content).toContain('kgraph history "<topic>"');
+      expect(content).toContain('kgraph update');
       expect(content).toContain('kgraph stale');
       expect(content).toContain('kgraph blame');
       expect(content).toContain('kgraph session');

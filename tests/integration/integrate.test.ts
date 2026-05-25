@@ -137,7 +137,10 @@ describe('kgraph integrate', () => {
       const gemini = await readFile(path.join(repo, 'GEMINI.md'), 'utf8');
       expect(gemini).toContain('Existing Gemini guidance');
       expect(gemini).toContain('BEGIN KGRAPH gemini');
-      expect(gemini).toContain('Every chat in this repository must start');
+      expect(gemini).toContain('Every chat in this repository must use the correct KGraph command');
+      expect(gemini).toContain('Command routing comes first');
+      expect(gemini).toContain('kgraph history "<topic>"');
+      expect(gemini).toContain('kgraph update');
       await access(path.join(repo, '.windsurf', 'rules', 'kgraph.md'));
       await access(path.join(repo, '.clinerules', 'kgraph.md'));
 

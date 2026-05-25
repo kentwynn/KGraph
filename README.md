@@ -163,10 +163,12 @@ kgraph doctor
 
 After useful AI work, assistants save durable runtime-capture notes into `.kgraph/inbox/`. These notes are not project documentation; they are KGraph input files that the next `kgraph` run processes automatically. You can also process them directly with `kgraph update`.
 
-Normal agent flow is intentionally small:
+Normal agent flow is intentionally small. For coding context, agents use the
+machine-readable pack. When memory refresh or inbox processing matters, they use
+the root workflow or `kgraph update`.
 
 ```bash
-kgraph "topic"
+kgraph pack "topic" --budget 8000 --json --agent codex
 # work normally
 kgraph "topic" --final --agent codex
 # if final check requires capture:
@@ -174,6 +176,10 @@ kgraph "topic" --capture "durable conclusion" --capture-file path/to/file.ts --c
 ```
 
 `kgraph "<topic>"` is the smart root workflow: it refreshes maps, processes capture notes, reports memory health, and returns focused context. Agents can pass `--agent <name>` to record a lightweight session context event. Agents can still use `kgraph pack "<topic>" --budget 8000 --json --agent <name>` when they need the stable machine-readable `ContextPack` contract with atoms, source ranges, git changes, omitted items, token estimates, and inclusion reasons.
+
+`pack` does not process `.kgraph/inbox/`. If a pack reports pending inbox notes,
+run `kgraph "<topic>" --agent <name>` or `kgraph update` before relying on
+`kgraph history` or newly captured atoms.
 
 Use `kgraph doctor` after setup and before trusting a repo's saved intelligence. It checks initialization, maps, pending inbox notes, integration targets, and actionable quality problems. Use `kgraph doctor --quality` and `kgraph repair --dry-run` when stale or noisy atom references start making context harder to trust.
 
@@ -381,12 +387,12 @@ kgraph integrate list
 kgraph integrate remove cursor
 ```
 
-New integrations default to `always` mode, so every chat in the repository starts with `kgraph "<topic>"`. Use `--mode smart` to run KGraph only for repo-specific work, or `--mode manual` to run only when explicitly asked.
+New integrations default to `always` mode, so every chat in the repository starts with the matching KGraph command. Use `--mode smart` to run KGraph only for repo-specific work, or `--mode manual` to run only when explicitly asked.
 
 | Mode     | Behavior                                                                                                                                                                                                |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `always` | Every chat in the repository starts with `kgraph "<topic>"`, even simple or conversational requests.                                                                                                    |
-| `smart`  | Runs KGraph automatically for repo-specific coding, debugging, architecture, refactor, review, or file-exploration requests. Skips simple conversational requests that do not depend on repo knowledge. |
+| `always` | Every chat in the repository starts with the matching KGraph command. Normal coding context uses `kgraph pack`; history, inbox/update, knowledge, and doctor requests route to their specific commands. |
+| `smart`  | Runs the matching KGraph command automatically for repo-specific coding, debugging, architecture, refactor, review, history, inbox/update, knowledge, health, or file-exploration requests. Skips simple conversational requests that do not depend on repo knowledge. |
 | `manual` | Exposes KGraph commands and instructions, but the agent runs KGraph only when the user explicitly asks.                                                                                                 |
 | `off`    | Disables that integration and removes generated KGraph instruction blocks/command files.                                                                                                                |
 

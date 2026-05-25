@@ -316,7 +316,21 @@ function atomsHaveReplacementSignal(a: KnowledgeAtom, b: KnowledgeAtom): boolean
     if (ref.type === 'symbol') bSymbols.add(ref.name);
   }
   const symbolOverlap = [...aSymbols].some((symbol) => bSymbols.has(symbol));
-  return symbolOverlap || meaningfulTopicOverlap(a.topic, b.topic);
+  if (symbolOverlap) return true;
+  if (!atomsShareFile(a, b)) return false;
+  return meaningfulTopicOverlap(a.topic, b.topic);
+}
+
+function atomsShareFile(a: KnowledgeAtom, b: KnowledgeAtom): boolean {
+  const aFiles = new Set(a.scopeRefs.files);
+  for (const ref of a.evidenceRefs) {
+    if (ref.type === 'file') aFiles.add(ref.path);
+  }
+  const bFiles = new Set(b.scopeRefs.files);
+  for (const ref of b.evidenceRefs) {
+    if (ref.type === 'file') bFiles.add(ref.path);
+  }
+  return [...aFiles].some((file) => bFiles.has(file));
 }
 
 function meaningfulTopicOverlap(a: string, b: string): boolean {
@@ -329,6 +343,10 @@ function meaningfulTopicOverlap(a: string, b: string): boolean {
     'new',
     'old',
     'review',
+    'check',
+    'current',
+    'session',
+    'smoke',
     'update',
     'with',
   ]);
