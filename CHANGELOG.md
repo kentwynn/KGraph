@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.32](https://github.com/kentwynn/KGraph/compare/v0.2.31...v0.2.32) (2026-05-25)
+
+### ### Fixed
+
+* cross-platform fixes, workflow streamlining, and agent.md cleanup ([1a118a1](https://github.com/kentwynn/KGraph/commit/1a118a1dbfa046c0e70b43354d9b7b9b9dfba845))
+
 ## [0.2.31](https://github.com/kentwynn/KGraph/compare/v0.2.30...v0.2.31) (2026-05-25)
 
 ### ### Added
