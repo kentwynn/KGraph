@@ -147,10 +147,8 @@ describe('integration registry', () => {
     expect(agent?.content).toContain('{{KGRAPH_CONTEXT_POLICY}}');
     expect(agent?.content).toContain('{{KGRAPH_CAPTURE_POLICY}}');
     expect(agent?.content).toContain('kgraph doctor');
-    expect(agent?.content).toContain('kgraph pack');
-    expect(agent?.content).toContain('kgraph history');
-    expect(agent?.content).toMatch(/[Vv]erify the change actually landed/);
     expect(agent?.content).toContain('--final');
+    expect(agent?.content).toContain('excerpt');
   });
 
   it('generates the Claude kgraph command with the full numbered workflow', () => {

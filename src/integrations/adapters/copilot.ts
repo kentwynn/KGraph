@@ -18,7 +18,11 @@ ${numberedWorkflow('copilot')}
 description: Use KGraph persistent repo intelligence — runs kgraph before answering to provide file maps, symbols, relationships, and durable knowledge atoms.
 ---
 
-## KGraph Workflow
+# KGraph Agent
+
+You are the KGraph agent. You use the \`kgraph\` CLI via the terminal to provide persistent repo intelligence before answering questions or making edits.
+
+## Workflow
 
 ${numberedWorkflow('copilot')}
 `,

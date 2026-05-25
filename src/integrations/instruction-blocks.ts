@@ -16,7 +16,7 @@ export function upsertManagedBlock(
   if (pattern.test(content)) {
     return content.replace(pattern, block);
   }
-  return normalized ? `${block}\n\n${normalized}\n` : `${block}\n`;
+  return normalized ? `${normalized}\n\n${block}\n` : `${block}\n`;
 }
 
 export function removeManagedBlock(
@@ -44,7 +44,7 @@ function renderManagedBlock(
 
 function managedBlockPattern(integrationName: string): RegExp {
   return new RegExp(
-    `${escapeRegExp(MARKER_PREFIX)} BEGIN KGRAPH ${escapeRegExp(integrationName)} ${escapeRegExp(MARKER_SUFFIX)}[\\s\\S]*?${escapeRegExp(MARKER_PREFIX)} END KGRAPH ${escapeRegExp(integrationName)} ${escapeRegExp(MARKER_SUFFIX)}\\n?`,
+    `${escapeRegExp(MARKER_PREFIX)} BEGIN KGRAPH ${escapeRegExp(integrationName)} ${escapeRegExp(MARKER_SUFFIX)}[\\s\\S]*?${escapeRegExp(MARKER_PREFIX)} END KGRAPH ${escapeRegExp(integrationName)} ${escapeRegExp(MARKER_SUFFIX)}\\r?\\n?`,
     'm',
   );
 }
@@ -59,8 +59,14 @@ export function applyContextPolicy(
   agentName?: string,
 ): string {
   return content
-    .replaceAll(KGRAPH_CONTEXT_POLICY_PLACEHOLDER, renderContextPolicy(mode, agentName))
-    .replaceAll(KGRAPH_CAPTURE_POLICY_PLACEHOLDER, renderCapturePolicy(agentName));
+    .replaceAll(
+      KGRAPH_CONTEXT_POLICY_PLACEHOLDER,
+      renderContextPolicy(mode, agentName),
+    )
+    .replaceAll(
+      KGRAPH_CAPTURE_POLICY_PLACEHOLDER,
+      renderCapturePolicy(agentName),
+    );
 }
 
 export function renderContextPolicy(

@@ -89,7 +89,7 @@ export async function readAtomsFile(
 
 export function parseAtomsJsonl(raw: string): KnowledgeAtom[] {
   const atoms: KnowledgeAtom[] = [];
-  for (const [index, line] of raw.split('\n').entries()) {
+  for (const [index, line] of raw.split(/\r?\n/).entries()) {
     if (!line.trim()) continue;
     try {
       atoms.push(JSON.parse(line) as KnowledgeAtom);
