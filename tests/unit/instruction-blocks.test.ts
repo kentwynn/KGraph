@@ -21,6 +21,9 @@ describe("instruction blocks", () => {
   it("renders context policy by integration mode", () => {
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "smart")).toContain("For repo-specific coding");
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "always")).toContain("Every chat in this repository");
+    expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "always")).toContain("Command routing comes first");
+    expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "always")).toContain('kgraph history "<topic>"');
+    expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "always")).toContain("kgraph update");
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "manual")).toContain("Do not run KGraph automatically");
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "always", "codex")).toContain("--agent codex");
     expect(applyContextPolicy("Mode: {{KGRAPH_CONTEXT_POLICY}}", "smart", "codex")).toContain("only when KGraph is actually used");

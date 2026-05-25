@@ -7,6 +7,7 @@ import {
   cleanupTempRepo,
   copyFixture,
   runCli,
+  writeText,
 } from '../fixtures/helpers.js';
 
 const execFileAsync = promisify(execFile);
@@ -326,6 +327,71 @@ describe('kgraph knowledge', () => {
       expect(text.stdout).toContain('● Budget');
       expect(text.stdout).toContain('● Atoms');
       expect(text.stdout).toContain('machine contract: --json');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('surfaces pending inbox notes in context packs without processing them', async () => {
+    const repo = await copyFixture('js-ts-repo');
+    try {
+      await runCli(repo, ['init']);
+      await runCli(repo, ['scan']);
+      await writeText(
+        repo,
+        '.kgraph/inbox/history-routing.md',
+        `---
+type: finding
+confidence: medium
+---
+# History Routing Smoke
+
+## Summary
+Pack should warn when inbox notes are pending because history does not see them until update processes them.
+
+## Key Files
+- \`src/auth.ts\` - smoke evidence
+`,
+      );
+
+      const pack = JSON.parse(
+        (
+          await runCli(repo, [
+            'pack',
+            'history routing smoke',
+            '--budget',
+            '800',
+            '--json',
+            '--agent',
+            'copilot',
+          ])
+        ).stdout,
+      );
+      expect(pack.pendingInbox).toEqual({
+        count: 1,
+        files: ['.kgraph/inbox/history-routing.md'],
+      });
+      expect(pack.warnings).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('Pending inbox notes are not processed by pack'),
+        ]),
+      );
+
+      const historyBefore = await runCli(repo, ['history', 'History Routing']);
+      expect(historyBefore.stdout).toContain('No processed cognition notes found');
+
+      const text = await runCli(repo, [
+        'pack',
+        'history routing smoke',
+        '--budget',
+        '800',
+      ]);
+      expect(text.stdout).toContain('Pending Inbox');
+      expect(text.stdout).toContain('pack does not process inbox notes');
+
+      await runCli(repo, ['update']);
+      const historyAfter = await runCli(repo, ['history', 'History Routing']);
+      expect(historyAfter.stdout).toContain('History Routing Smoke');
     } finally {
       await cleanupTempRepo(repo);
     }

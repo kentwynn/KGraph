@@ -1,4 +1,5 @@
 import type { Command } from 'commander';
+import path from 'node:path';
 import { buildContextPack } from '../../context/context-pack.js';
 import { queryContext } from '../../context/context-query.js';
 import { loadConfig } from '../../config/config.js';
@@ -7,6 +8,7 @@ import {
   recordSessionEvent,
 } from '../../session/session-store.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
+import { listInboxNotes } from '../../storage/cognition-store.js';
 import { mapsExist, readMaps } from '../../storage/map-store.js';
 import type { ContextPack, ContextPackItem } from '../../types/knowledge.js';
 import { KGraphError, runCommand } from '../errors.js';
@@ -52,6 +54,19 @@ export function registerPackCommand(program: Command): void {
         ]);
         const response = await queryContext(workspace, config, maps, task);
         const pack = buildContextPack(response, budget, workspace.rootPath);
+        const pendingInboxFiles = (await listInboxNotes(workspace)).map((file) =>
+          path.relative(workspace.rootPath, file),
+        );
+        if (pendingInboxFiles.length > 0) {
+          pack.pendingInbox = {
+            count: pendingInboxFiles.length,
+            files: pendingInboxFiles,
+          };
+          pack.warnings = [
+            ...pack.warnings,
+            `Pending inbox notes are not processed by pack. Run \`kgraph "${task}"${agent ? ` --agent ${agent}` : ''}\` or \`kgraph update\` before relying on history or newly captured atoms.`,
+          ];
+        }
         if (options.json) {
           console.log(JSON.stringify(pack, null, 2));
           return;
@@ -89,6 +104,15 @@ export function renderPackText(pack: ContextPack): string {
     `  omitted     ${pack.omitted.length}`,
     ``,
   ];
+
+  if (pack.pendingInbox && pack.pendingInbox.count > 0) {
+    lines.push(
+      `● Pending Inbox`,
+      `  ${pack.pendingInbox.count} note${pack.pendingInbox.count === 1 ? '' : 's'} waiting; pack does not process inbox notes`,
+      `  run kgraph "${pack.task}" or kgraph update before relying on history/new atoms`,
+      ``,
+    );
+  }
 
   appendGroup(lines, 'Atoms', pack.items.filter((item) => item.kind === 'atom'));
   appendGroup(lines, 'Git Changes', pack.items.filter((item) => item.kind === 'git-change'));

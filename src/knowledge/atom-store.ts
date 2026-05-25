@@ -1,5 +1,7 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { KGraphError } from '../cli/errors.js';
 import { getCurrentCommit } from '../scanner/git-utils.js';
 import { readCognitionNotes } from '../storage/cognition-store.js';
@@ -59,7 +61,7 @@ export async function ensureKnowledgeStore(
     });
   }
   if (!(await pathExists(atomsPath(workspace)))) {
-    await writeFile(atomsPath(workspace), '', 'utf8');
+    await atomicWriteFile(atomsPath(workspace), '');
   }
 }
 
@@ -96,12 +98,20 @@ export async function writeKnowledgeAtoms(
   workspace: KGraphWorkspace,
   atoms: KnowledgeAtom[],
 ): Promise<void> {
+  await withKnowledgeWriteLock(workspace, () =>
+    writeKnowledgeAtomsUnlocked(workspace, atoms),
+  );
+}
+
+async function writeKnowledgeAtomsUnlocked(
+  workspace: KGraphWorkspace,
+  atoms: KnowledgeAtom[],
+): Promise<void> {
   await ensureKnowledgeStore(workspace);
-  await writeFile(
+  await atomicWriteFile(
     atomsPath(workspace),
     atoms.map((atom) => JSON.stringify(atom)).join('\n') +
       (atoms.length > 0 ? '\n' : ''),
-    'utf8',
   );
   await writeKnowledgeIndexes(workspace, atoms);
   await touchSchema(workspace);
@@ -111,9 +121,11 @@ export async function appendKnowledgeAtom(
   workspace: KGraphWorkspace,
   atom: KnowledgeAtom,
 ): Promise<KnowledgeAtom> {
-  const atoms = await readAtomsFile(workspace);
-  atoms.push(atom);
-  await writeKnowledgeAtoms(workspace, atoms);
+  await withKnowledgeWriteLock(workspace, async () => {
+    const atoms = await readAtomsFile(workspace);
+    atoms.push(atom);
+    await writeKnowledgeAtomsUnlocked(workspace, atoms);
+  });
   return atom;
 }
 
@@ -172,8 +184,7 @@ export async function migrateLegacyCognitionToAtoms(
       existing.some(
         (atom) =>
           atom.topic === note.title &&
-          atom.claim === (note.summary ?? note.title) &&
-          atom.provenance.createdAt === note.createdAt,
+          atom.claim === (note.summary ?? note.title),
       )
     ) {
       continue;
@@ -181,7 +192,25 @@ export async function migrateLegacyCognitionToAtoms(
     migrated.push(legacyNoteToAtom(note, id));
   }
   if (migrated.length > 0) {
-    await writeKnowledgeAtoms(workspace, [...existing, ...migrated]);
+    await withKnowledgeWriteLock(workspace, async () => {
+      const current = await readAtomsFile(workspace);
+      const currentIds = new Set(current.map((atom) => atom.id));
+      const nextMigrated = migrated.filter(
+        (atom) =>
+          !currentIds.has(atom.id) &&
+          !current.some(
+            (existing) =>
+              existing.topic === atom.topic &&
+              existing.claim === atom.claim,
+          ),
+      );
+      if (nextMigrated.length > 0) {
+        await writeKnowledgeAtomsUnlocked(workspace, [
+          ...current,
+          ...nextMigrated,
+        ]);
+      }
+    });
   } else {
     await writeKnowledgeIndexes(workspace, existing);
   }
@@ -192,14 +221,30 @@ export async function updateKnowledgeAtom(
   atomId: string,
   updater: (atom: KnowledgeAtom) => KnowledgeAtom,
 ): Promise<KnowledgeAtom> {
-  const atoms = await readKnowledgeAtoms(workspace);
-  const index = atoms.findIndex((atom) => atom.id === atomId);
-  if (index === -1) {
-    throw new KGraphError(`Knowledge atom not found: ${atomId}`);
-  }
-  atoms[index] = updater(atoms[index]);
-  await writeKnowledgeAtoms(workspace, atoms);
-  return atoms[index];
+  await migrateLegacyCognitionToAtoms(workspace);
+  return withKnowledgeWriteLock(workspace, async () => {
+    const atoms = await readAtomsFile(workspace);
+    const index = atoms.findIndex((atom) => atom.id === atomId);
+    if (index === -1) {
+      throw new KGraphError(`Knowledge atom not found: ${atomId}`);
+    }
+    atoms[index] = updater(atoms[index]);
+    await writeKnowledgeAtomsUnlocked(workspace, atoms);
+    return atoms[index];
+  });
+}
+
+export async function updateKnowledgeAtoms<T>(
+  workspace: KGraphWorkspace,
+  updater: (atoms: KnowledgeAtom[]) => { atoms: KnowledgeAtom[]; result: T },
+): Promise<T> {
+  await migrateLegacyCognitionToAtoms(workspace);
+  return withKnowledgeWriteLock(workspace, async () => {
+    const current = await readAtomsFile(workspace);
+    const { atoms, result } = updater(current);
+    await writeKnowledgeAtomsUnlocked(workspace, atoms);
+    return result;
+  });
 }
 
 export async function refreshKnowledgeAtomStatuses(
@@ -527,9 +572,9 @@ async function writeKnowledgeIndexes(
   await mkdir(indexesPath(workspace), { recursive: true });
   const indexes = buildIndexes(atoms);
   await Promise.all([
-    writeFile(path.join(indexesPath(workspace), 'terms.json'), JSON.stringify(indexes.terms, null, 2) + '\n', 'utf8'),
-    writeFile(path.join(indexesPath(workspace), 'refs.json'), JSON.stringify(indexes.refs, null, 2) + '\n', 'utf8'),
-    writeFile(path.join(indexesPath(workspace), 'topics.json'), JSON.stringify(indexes.topics, null, 2) + '\n', 'utf8'),
+    atomicWriteFile(path.join(indexesPath(workspace), 'terms.json'), JSON.stringify(indexes.terms, null, 2) + '\n'),
+    atomicWriteFile(path.join(indexesPath(workspace), 'refs.json'), JSON.stringify(indexes.refs, null, 2) + '\n'),
+    atomicWriteFile(path.join(indexesPath(workspace), 'topics.json'), JSON.stringify(indexes.topics, null, 2) + '\n'),
   ]);
 }
 
@@ -572,7 +617,7 @@ async function writeSchema(
   schema: KnowledgeSchema,
 ): Promise<void> {
   await mkdir(workspace.knowledgePath, { recursive: true });
-  await writeFile(schemaPath(workspace), JSON.stringify(schema, null, 2) + '\n', 'utf8');
+  await atomicWriteFile(schemaPath(workspace), JSON.stringify(schema, null, 2) + '\n');
 }
 
 function buildAtomId(createdAt: string, seed: string): string {
@@ -609,4 +654,39 @@ function schemaPath(workspace: KGraphWorkspace): string {
 
 function indexesPath(workspace: KGraphWorkspace): string {
   return path.join(workspace.knowledgePath, 'indexes');
+}
+
+async function atomicWriteFile(targetPath: string, content: string): Promise<void> {
+  await mkdir(path.dirname(targetPath), { recursive: true });
+  const tempPath = path.join(
+    path.dirname(targetPath),
+    `.${path.basename(targetPath)}.${process.pid}.${randomUUID()}.tmp`,
+  );
+  await writeFile(tempPath, content, 'utf8');
+  await rename(tempPath, targetPath);
+}
+
+async function withKnowledgeWriteLock<T>(
+  workspace: KGraphWorkspace,
+  operation: () => Promise<T>,
+): Promise<T> {
+  await mkdir(workspace.knowledgePath, { recursive: true });
+  const lockPath = path.join(workspace.knowledgePath, '.write.lock');
+  const startedAt = Date.now();
+  while (true) {
+    try {
+      await mkdir(lockPath);
+      break;
+    } catch (error) {
+      if (Date.now() - startedAt > 10_000) {
+        throw new KGraphError('Timed out waiting for KGraph knowledge write lock.');
+      }
+      await delay(50);
+    }
+  }
+  try {
+    return await operation();
+  } finally {
+    await rm(lockPath, { recursive: true, force: true });
+  }
 }

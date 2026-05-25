@@ -114,4 +114,8 @@ export interface ContextPack {
   items: ContextPackItem[];
   omitted: ContextPackItem[];
   warnings: string[];
+  pendingInbox?: {
+    count: number;
+    files: string[];
+  };
 }

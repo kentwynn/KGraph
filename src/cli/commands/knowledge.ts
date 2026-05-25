@@ -3,6 +3,7 @@ import {
   atomToCognitionNote,
   readKnowledgeAtoms,
   updateKnowledgeAtom,
+  updateKnowledgeAtoms,
 } from '../../knowledge/atom-store.js';
 import { rebuildDomainRecords } from '../../cognition/domain-records.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
@@ -109,28 +110,43 @@ export function registerKnowledgeCommand(program: Command): void {
     .action((oldId: string, newId: string, options: { json?: boolean }) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
-        await requireAtom(workspace, newId);
         const now = new Date().toISOString();
-        const oldAtom = await updateKnowledgeAtom(workspace, oldId, (current) => ({
-          ...current,
-          status: 'archived',
-          provenance: { ...current.provenance, updatedAt: now },
-          lifecycle: {
-            ...current.lifecycle,
-            supersededBy: newId,
-            archivedAt: now,
-          },
-        }));
-        const newAtom = await updateKnowledgeAtom(workspace, newId, (current) => ({
-          ...current,
-          provenance: { ...current.provenance, updatedAt: now },
-          lifecycle: {
-            ...current.lifecycle,
-            supersedes: [...new Set([...current.lifecycle.supersedes, oldId])],
-          },
-        }));
+        const result = await updateKnowledgeAtoms(workspace, (atoms) => {
+          const oldIndex = atoms.findIndex((atom) => atom.id === oldId);
+          const newIndex = atoms.findIndex((atom) => atom.id === newId);
+          if (oldIndex === -1) {
+            throw new KGraphError(`Knowledge atom not found: ${oldId}`);
+          }
+          if (newIndex === -1) {
+            throw new KGraphError(`Knowledge atom not found: ${newId}`);
+          }
+          const nextAtoms = [...atoms];
+          nextAtoms[oldIndex] = {
+            ...nextAtoms[oldIndex],
+            status: 'archived',
+            provenance: { ...nextAtoms[oldIndex].provenance, updatedAt: now },
+            lifecycle: {
+              ...nextAtoms[oldIndex].lifecycle,
+              supersededBy: newId,
+              archivedAt: now,
+            },
+          };
+          nextAtoms[newIndex] = {
+            ...nextAtoms[newIndex],
+            provenance: { ...nextAtoms[newIndex].provenance, updatedAt: now },
+            lifecycle: {
+              ...nextAtoms[newIndex].lifecycle,
+              supersedes: [
+                ...new Set([...nextAtoms[newIndex].lifecycle.supersedes, oldId]),
+              ],
+            },
+          };
+          return {
+            atoms: nextAtoms,
+            result: { old: nextAtoms[oldIndex], new: nextAtoms[newIndex] },
+          };
+        });
         await rebuildActiveDomainRecords(workspace);
-        const result = { old: oldAtom, new: newAtom };
         console.log(
           options.json
             ? JSON.stringify(result, null, 2)
