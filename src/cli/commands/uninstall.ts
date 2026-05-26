@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import { readdir, rm, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { loadConfig } from '../../config/config.js';
+import { removeCopilotMemory } from '../../integrations/copilot-memory.js';
 import { removeIntegrations } from '../../integrations/integration-store.js';
 import { pathExists, resolveWorkspace } from '../../storage/kgraph-paths.js';
 import type { IntegrationName } from '../../types/config.js';
@@ -16,16 +17,24 @@ const LEGACY_GENERATED_FILES = [
 interface UninstallOptions {
   yes?: boolean;
   keepIntegrations?: boolean;
+  memory?: boolean;
 }
 
 export function registerUninstallCommand(program: Command): void {
   program
     .command('uninstall')
     .description('Remove KGraph from this repository')
-    .option('--yes', 'Apply the uninstall after previewing what will be removed')
+    .option(
+      '--yes',
+      'Apply the uninstall after previewing what will be removed',
+    )
     .option(
       '--keep-integrations',
       'Remove only .kgraph/ and preserve generated AI tool instruction files',
+    )
+    .option(
+      '--memory',
+      'Also remove the global Copilot memory entry for this repo',
     )
     .action((options: UninstallOptions) =>
       runCommand(async () => {
@@ -41,6 +50,7 @@ export function registerUninstallCommand(program: Command): void {
           initialized,
           integrations: configuredIntegrations,
           keepIntegrations: options.keepIntegrations === true,
+          removeMemory: options.memory === true,
           applying: options.yes === true,
         });
 
@@ -61,6 +71,14 @@ export function registerUninstallCommand(program: Command): void {
           await rm(workspace.kgraphPath, { recursive: true, force: true });
         }
 
+        // Remove Copilot memory entry only if --memory flag is set
+        if (options.memory) {
+          const memoryRemoved = await removeCopilotMemory();
+          if (memoryRemoved) {
+            console.log('Removed Copilot memory rule.');
+          }
+        }
+
         console.log('');
         console.log('KGraph uninstall complete.');
         console.log('Run `kgraph init` to set up this repository again.');
@@ -76,7 +94,10 @@ async function removeLegacyGeneratedFiles(rootPath: string): Promise<void> {
   }
 }
 
-async function pruneEmptyParents(rootPath: string, startDir: string): Promise<void> {
+async function pruneEmptyParents(
+  rootPath: string,
+  startDir: string,
+): Promise<void> {
   let dir = startDir;
   while (dir !== rootPath && dir.startsWith(rootPath)) {
     try {
@@ -94,6 +115,7 @@ function printUninstallPreview(input: {
   initialized: boolean;
   integrations: IntegrationName[];
   keepIntegrations: boolean;
+  removeMemory: boolean;
   applying: boolean;
 }): void {
   console.log('KGraph Uninstall Preview');
@@ -115,6 +137,10 @@ function printUninstallPreview(input: {
     }
   }
 
+  if (input.removeMemory) {
+    console.log('- Copilot memory rule for this repo');
+  }
+
   console.log('');
   console.log('Will preserve:');
   console.log('- Repository source files');
@@ -125,6 +151,8 @@ function printUninstallPreview(input: {
 
   if (!input.applying) {
     console.log('');
-    console.log('No files were removed. Run `kgraph uninstall --yes` to apply.');
+    console.log(
+      'No files were removed. Run `kgraph uninstall --yes` to apply.',
+    );
   }
 }

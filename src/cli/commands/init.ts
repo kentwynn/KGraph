@@ -4,6 +4,7 @@ import {
   saveConfig,
   writeDefaultConfig,
 } from '../../config/config.js';
+import { installCopilotMemory } from '../../integrations/copilot-memory.js';
 import { normalizeIntegrationNames } from '../../integrations/integration-registry.js';
 import { addIntegrations } from '../../integrations/integration-store.js';
 import { ensureKnowledgeStore } from '../../knowledge/atom-store.js';
@@ -144,6 +145,12 @@ export function registerInitCommand(program: Command): void {
               detectedIntegrations: detectedMachineIntegrations,
             });
           }
+        }
+
+        // Install Copilot memory entry
+        const installed = await installCopilotMemory();
+        if (installed) {
+          console.log('Copilot memory rule installed.');
         }
 
         console.log('');

@@ -1,4 +1,5 @@
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -127,6 +128,37 @@ describe('kgraph uninstall', () => {
       expect(
         await readFile(path.join(repo, '.cursor', 'user', 'keep.md'), 'utf8'),
       ).toBe('keep me\n');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
+  it('keeps Copilot memory by default, removes with --memory flag', async () => {
+    const repo = await createTempRepo();
+    try {
+      await writeText(repo, 'src/index.ts', 'export const x = 1;\n');
+      await runCli(repo, ['init']);
+
+      const memoryDir = path.join(
+        os.tmpdir(),
+        'kgraph-memory-test-' + path.basename(repo),
+      );
+      const memoryFile = path.join(memoryDir, 'kgraph.md');
+      await access(memoryFile);
+
+      // Normal uninstall keeps memory
+      const normal = await runCli(repo, ['uninstall', '--yes']);
+      expect(normal.code).toBe(0);
+      expect(normal.stdout).not.toContain('Removed Copilot memory rule');
+      await access(memoryFile); // still exists
+
+      // Re-init to test --memory flag
+      await runCli(repo, ['init']);
+
+      const withMemory = await runCli(repo, ['uninstall', '--yes', '--memory']);
+      expect(withMemory.code).toBe(0);
+      expect(withMemory.stdout).toContain('Removed Copilot memory rule');
+      await expect(access(memoryFile)).rejects.toThrow();
     } finally {
       await cleanupTempRepo(repo);
     }

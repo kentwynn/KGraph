@@ -16,7 +16,10 @@ export function renderRootHelp(useColor = supportsColor()): string {
       ['purpose', 'durable engineering memory for AI coding tools'],
       ['storage', '.kgraph/ atoms, maps, indexes, and session history'],
       ['stance', 'local-first · deterministic-first · inspectable'],
-      ['agents', 'Codex · Copilot · Cursor · Claude Code · Gemini · Windsurf · Cline'],
+      [
+        'agents',
+        'Codex · Copilot · Cursor · Claude Code · Gemini · Windsurf · Cline',
+      ],
     ]),
     '',
     sectionTitle(theme, `${accent} Usage`),
@@ -65,7 +68,10 @@ export function renderRootHelp(useColor = supportsColor()): string {
     ),
     command('compact', 'Merge duplicate atoms and archive stale noise'),
     command('knowledge list', 'Inspect canonical knowledge atoms'),
-    command('pack "auth task" --budget 8000', 'Build a budget-aware context pack'),
+    command(
+      'pack "auth task" --budget 8000',
+      'Build a budget-aware context pack',
+    ),
     command(
       'pack "auth task" --agent codex',
       'Record lightweight agent session context while building a pack',
@@ -80,16 +86,14 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'impact "Button"',
       'Show imports, callers, calls, knowledge, and risk',
     ),
-    command(
-      'update',
-      'Optional: process only .kgraph/inbox capture notes',
-    ),
+    command('update', 'Optional: process only .kgraph/inbox capture notes'),
     command('doctor', 'Check workspace health and next actions'),
     command('doctor --quality', 'Report stale/noisy atom references'),
     command('repair --dry-run', 'Preview atom reference cleanup'),
     command('repair', 'Clean noisy stale atom references'),
     command('uninstall', 'Preview repo-local KGraph removal'),
     command('uninstall --yes', 'Remove .kgraph/ and managed integrations'),
+    command('uninstall --yes --memory', 'Also remove Copilot memory rule'),
     command(
       'visualize',
       'Interactive dependency graph at http://localhost:4242',
@@ -123,9 +127,15 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command('-V, --version', 'Show version'),
     command('-h, --help', 'Show this help'),
     command('--final', 'Run final capture enforcement in the root workflow'),
-    command('--capture <text>', 'Store a durable conclusion in the root workflow'),
+    command(
+      '--capture <text>',
+      'Store a durable conclusion in the root workflow',
+    ),
     command('--capture-file <path>', 'Attach file evidence to root capture'),
-    command('--capture-symbol <name>', 'Attach symbol evidence to root capture'),
+    command(
+      '--capture-symbol <name>',
+      'Attach symbol evidence to root capture',
+    ),
     command('--agent <name>', 'Record lightweight agent session context'),
     '',
     sectionTitle(theme, `${accent} Examples`),
@@ -244,7 +254,9 @@ export function renderWorkflowBanner(
 function renderAtomLogo(theme: Theme): string {
   const title = `${theme.hex('#38bdf8').bold('KGraph')} ${theme.dim('·')} ${theme.hex('#c084fc').bold('Atom Core')}`;
   const atom = theme.hex('#22d3ee').bold('⚛');
-  const memory = theme.hex('#a78bfa')('persistent repo intelligence for AI coding tools');
+  const memory = theme.hex('#a78bfa')(
+    'persistent repo intelligence for AI coding tools',
+  );
   return [
     `  ${atom}  ${theme.dim('atoms · evidence · context packs')}`,
     `     ${title}`,
@@ -252,7 +264,10 @@ function renderAtomLogo(theme: Theme): string {
   ].join('\n');
 }
 
-function renderSignalPanel(theme: Theme, rows: Array<[string, string]>): string {
+function renderSignalPanel(
+  theme: Theme,
+  rows: Array<[string, string]>,
+): string {
   const labelWidth = Math.max(...rows.map(([label]) => label.length));
   return rows
     .map(
