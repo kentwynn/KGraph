@@ -3,6 +3,26 @@
  * Update here once instead of in each adapter file.
  */
 
+const DECISION_CONTEXT = `## Feature intent — choose based on the situation
+
+**Sessions** exist to preserve the journey when exploration, evaluation, or multi-step reasoning produced knowledge that the outcome alone cannot capture. The path matters when a future agent might face the same fork.
+
+**Inbox notes** exist for structured multi-section knowledge that cannot fit a single --capture sentence. Architecture decisions with rationale, multi-file change summaries with interconnections, or design tradeoffs with rejected alternatives.
+
+**--capture / conclude** exists for atomic durable conclusions — one sentence, evidence-linked. Prefer this for most captures.
+
+**--domain and --tag** exist so future queries find knowledge by area, not just by word match. Add them when the knowledge clearly belongs to an identifiable architectural boundary.
+
+**knowledge supersede** exists to evolve knowledge without duplicating. When new understanding contradicts or refines an existing atom, supersede it.
+
+**stale** exists to surface atoms whose evidence no longer holds. Consider it after your edits touched code that pack showed as atom-referenced.
+
+**impact** exists to reveal blast radius. Consider it before destructive changes to public interfaces — renames, deletions, signature changes.
+
+**compact** exists to merge redundant knowledge. Consider it when you store something that feels overlapping with what pack already showed.
+
+**scan** exists to refresh maps after structural changes. The root workflow handles this automatically unless you created, deleted, or renamed many files outside of kgraph commands.`;
+
 const DOCTOR_STEP = `Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.`;
 const IMPACT_STEP = `Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when prior work or decisions matter.`;
 const REPAIR_STEP = `Run \`kgraph repair --dry-run\` before cleanup when stale/noisy atom refs need fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.`;
@@ -53,7 +73,9 @@ export function numberedWorkflow(
 13. ${REPAIR_STEP}
 14. ${COMPACT_STEP}
 15. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph locally with PNG export.
-16. ${HISTORY_STEP}`;
+16. ${HISTORY_STEP}
+
+${DECISION_CONTEXT}`;
 }
 
 /**
@@ -79,5 +101,7 @@ export function bulletWorkflow(
 - ${REPAIR_STEP}
 - ${COMPACT_STEP}
 - Run \`kgraph visualize\` to open the interactive dependency graph locally with PNG export.
-- ${HISTORY_STEP}`;
+- ${HISTORY_STEP}
+
+${DECISION_CONTEXT}`;
 }
