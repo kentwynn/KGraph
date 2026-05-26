@@ -1,6 +1,6 @@
 {
   "name": "@kentwynn/kgraph",
-  "version": "0.2.33",
+  "version": "0.2.34",
   "description": "Persistent repo intelligence for AI coding assistants.",
   "type": "module",
   "bin": {
