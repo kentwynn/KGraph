@@ -40,6 +40,7 @@ export const DEFAULT_CONFIG: KGraphConfig = {
     '.windsurf',
     '.clinerules',
     '.github/copilot-instructions.md',
+    '.github/agents',
     '.github/prompts',
     'AGENTS.md',
     'CLAUDE.md',
