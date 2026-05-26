@@ -1,4 +1,5 @@
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -44,9 +45,17 @@ describe('kgraph init', () => {
       );
       await writeText(repo, 'config/app.yml', 'server:\n  port: 3000\n');
       await writeText(repo, 'styles/app.scss', '.button {\n  color: red;\n}\n');
-      await writeText(repo, 'app/Controller.php', '<?php\nclass Controller {}\n');
+      await writeText(
+        repo,
+        'app/Controller.php',
+        '<?php\nclass Controller {}\n',
+      );
       await writeText(repo, 'lib/task.rb', 'class Task\nend\n');
-      await writeText(repo, 'scripts/deploy.sh', 'deploy_app() {\n  echo deploy\n}\n');
+      await writeText(
+        repo,
+        'scripts/deploy.sh',
+        'deploy_app() {\n  echo deploy\n}\n',
+      );
       await writeText(repo, 'db/schema.sql', 'CREATE TABLE users (id uuid);\n');
 
       const result = await runCli(repo, ['init']);
@@ -60,10 +69,16 @@ describe('kgraph init', () => {
       expect(result.stdout).toContain('Java: 1 file, deep built-in extraction');
       expect(result.stdout).toContain('PHP: 1 file, deep built-in extraction');
       expect(result.stdout).toContain('Ruby: 1 file, deep built-in extraction');
-      expect(result.stdout).toContain('Shell: 1 file, deep built-in extraction');
+      expect(result.stdout).toContain(
+        'Shell: 1 file, deep built-in extraction',
+      );
       expect(result.stdout).toContain('SQL: 1 file, deep built-in extraction');
-      expect(result.stdout).toContain('YAML: 1 file, structured file extraction');
-      expect(result.stdout).toContain('SCSS: 1 file, structured file extraction');
+      expect(result.stdout).toContain(
+        'YAML: 1 file, structured file extraction',
+      );
+      expect(result.stdout).toContain(
+        'SCSS: 1 file, structured file extraction',
+      );
       expect(result.stdout).toContain(
         'kgraph "topic"  Run the normal refresh and context workflow',
       );
@@ -86,7 +101,9 @@ describe('kgraph init', () => {
 
       const result = await runCli(repo, ['init', '--integration', 'copilot']);
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain('Configured integrations: copilot:always');
+      expect(result.stdout).toContain(
+        'Configured integrations: copilot:always',
+      );
       expect(result.stdout).toContain('AI integrations');
       expect(result.stdout).toContain('copilot: always');
       expect(result.stdout).not.toContain('none configured');
@@ -95,4 +112,23 @@ describe('kgraph init', () => {
     }
   });
 
+  it('installs Copilot memory entry on init', async () => {
+    const repo = await createTempRepo();
+    try {
+      await writeText(repo, 'src/index.ts', 'export const x = 1;\n');
+      const result = await runCli(repo, ['init']);
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain('Copilot memory rule installed');
+
+      const memoryDir = path.join(
+        os.tmpdir(),
+        'kgraph-memory-test-' + path.basename(repo),
+      );
+      const content = await readFile(path.join(memoryDir, 'kgraph.md'), 'utf8');
+      expect(content).toContain('KGraph is installed');
+      expect(content).toContain('copilot-instructions.md');
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
 });

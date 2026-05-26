@@ -36,11 +36,16 @@ export async function runCli(
   const originalExitCode = process.exitCode;
   const originalDisableMachineDetection =
     process.env.KGRAPH_DISABLE_MACHINE_DETECTION;
+  const originalCopilotMemoryDir = process.env.KGRAPH_COPILOT_MEMORY_DIR;
   let stdout = '';
   let stderr = '';
   process.chdir(repoPath);
   process.exitCode = undefined;
   process.env.KGRAPH_DISABLE_MACHINE_DETECTION = '1';
+  process.env.KGRAPH_COPILOT_MEMORY_DIR = path.join(
+    os.tmpdir(),
+    'kgraph-memory-test-' + path.basename(repoPath),
+  );
   process.stdout.write = ((chunk: string | Uint8Array) => {
     stdout += chunk.toString();
     return true;
@@ -76,6 +81,11 @@ export async function runCli(
     } else {
       process.env.KGRAPH_DISABLE_MACHINE_DETECTION =
         originalDisableMachineDetection;
+    }
+    if (originalCopilotMemoryDir === undefined) {
+      delete process.env.KGRAPH_COPILOT_MEMORY_DIR;
+    } else {
+      process.env.KGRAPH_COPILOT_MEMORY_DIR = originalCopilotMemoryDir;
     }
     process.chdir(originalCwd);
   }

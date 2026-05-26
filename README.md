@@ -253,9 +253,10 @@ kgraph repair
 kgraph uninstall
 kgraph uninstall --yes
 kgraph uninstall --keep-integrations --yes
+kgraph uninstall --yes --memory
 ```
 
-`uninstall` previews repo-local removal and does not delete anything unless `--yes` is passed. `uninstall --yes` removes `.kgraph/` and KGraph-managed integration blocks/files while preserving source files and user-authored text outside managed blocks. Use `--keep-integrations --yes` to remove only `.kgraph/` while leaving AI tool instruction files in place. After uninstalling, `kgraph init` can be run again for a fresh setup.
+`uninstall` previews repo-local removal and does not delete anything unless `--yes` is passed. `uninstall --yes` removes `.kgraph/` and KGraph-managed integration blocks/files while preserving source files and user-authored text outside managed blocks. Use `--keep-integrations --yes` to remove only `.kgraph/` while leaving AI tool instruction files in place. Add `--memory` to also remove the Copilot memory rule that `init` installs; without this flag the memory entry is preserved across uninstalls. After uninstalling, `kgraph init` can be run again for a fresh setup.
 
 ```bash
 kgraph impact "Button"
