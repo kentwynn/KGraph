@@ -3,10 +3,14 @@ import { exec } from 'node:child_process';
 import { createServer } from 'node:http';
 import { loadConfig } from '../../config/config.js';
 import { refreshKnowledgeAtomStatuses } from '../../knowledge/atom-store.js';
+import { readSessionState } from '../../session/session-store.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { mapsExist, readMaps } from '../../storage/map-store.js';
 import { buildGraph } from '../../visualization/graph-builder.js';
-import { renderHtml } from '../../visualization/html-template.js';
+import {
+  renderHtml,
+  type SessionVizData,
+} from '../../visualization/html-template.js';
 import { KGraphError, runCommand } from '../errors.js';
 
 export function registerVisualizeCommand(program: Command): void {
@@ -33,13 +37,48 @@ export function registerVisualizeCommand(program: Command): void {
           );
         }
 
-        const maps = await readMaps(workspace);
+        const [maps, sessionState] = await Promise.all([
+          readMaps(workspace),
+          readSessionState(workspace),
+        ]);
         const { atoms } = await refreshKnowledgeAtomStatuses(workspace, {
           fileMap: maps.fileMap,
           symbolMap: maps.symbolMap,
         });
 
         await loadConfig(workspace); // ensure workspace is valid
+        const contextEvents = sessionState.events.filter(
+          (e) => e.type === 'context',
+        );
+        const sessionVizData: SessionVizData | undefined =
+          sessionState.events.length > 0
+            ? {
+                activeAgents: Object.values(sessionState.active).map(
+                  (a) => a.agent,
+                ),
+                packCallCount: contextEvents.length,
+                totalPackUsedTokens: contextEvents.reduce(
+                  (sum, e) => sum + (e.packUsedTokens ?? 0),
+                  0,
+                ),
+                totalPackOmittedTokens: contextEvents.reduce(
+                  (sum, e) => sum + (e.packOmittedTokens ?? 0),
+                  0,
+                ),
+                readCount: sessionState.events.filter((e) => e.type === 'read')
+                  .length,
+                writeCount: sessionState.events.filter(
+                  (e) => e.type === 'write',
+                ).length,
+                contextEvents: contextEvents.map((e) => ({
+                  agent: e.agent,
+                  packUsedTokens: e.packUsedTokens ?? 0,
+                  packOmittedTokens: e.packOmittedTokens ?? 0,
+                  timestamp: e.timestamp,
+                  captureSource: e.captureSource,
+                })),
+              }
+            : undefined;
         const graphData = buildGraph(
           maps.fileMap,
           maps.symbolMap,
@@ -47,7 +86,7 @@ export function registerVisualizeCommand(program: Command): void {
           maps.relationshipMap,
           atoms,
         );
-        const html = renderHtml(graphData, workspace.rootPath);
+        const html = renderHtml(graphData, workspace.rootPath, sessionVizData);
 
         await serveGraph(html, port, options.open);
       }),

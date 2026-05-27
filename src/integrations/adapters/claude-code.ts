@@ -8,9 +8,16 @@ export const claudeCodeAdapter: IntegrationAdapter = {
   instructions: `## KGraph Workflow
 
 ${numberedWorkflow('claude-code', {
-  sessionQualifier: 'native hooks also report session activity when configured',
+  sessionQualifier: 'native hooks also report session activity automatically',
 })}
 `,
+  configFiles: [
+    {
+      path: '.claude/settings.json',
+      merge: mergeClaudeHooks,
+      remove: removeClaudeHooks,
+    },
+  ],
   commandFiles: [
     {
       path: '.claude/commands/kgraph.md',
@@ -108,6 +115,115 @@ ${numberedWorkflow('claude-code')}
   ],
   obsoleteCommandFiles: [],
 };
+
+type ClaudeHookCommand = { type: string; command: string };
+type ClaudeHookEntry = { matcher?: string; hooks: ClaudeHookCommand[] };
+type ClaudeHooks = Record<string, ClaudeHookEntry[]>;
+
+const KGRAPH_HOOK_MARKER = 'kgraph-session';
+
+const CLAUDE_HOOK_REGISTRATIONS: Array<{
+  event: string;
+  entry: ClaudeHookEntry;
+}> = [
+  {
+    event: 'UserPromptSubmit',
+    entry: {
+      hooks: [
+        {
+          type: 'command',
+          command: 'node .claude/hooks/kgraph-session-start.cjs',
+        },
+      ],
+    },
+  },
+  {
+    event: 'PreToolUse',
+    entry: {
+      matcher: 'Read',
+      hooks: [
+        {
+          type: 'command',
+          command: 'node .claude/hooks/kgraph-session-pre-read.cjs',
+        },
+      ],
+    },
+  },
+  {
+    event: 'PostToolUse',
+    entry: {
+      matcher: 'Write|Edit|MultiEdit',
+      hooks: [
+        {
+          type: 'command',
+          command: 'node .claude/hooks/kgraph-session-post-write.cjs',
+        },
+      ],
+    },
+  },
+  {
+    event: 'Stop',
+    entry: {
+      hooks: [
+        {
+          type: 'command',
+          command: 'node .claude/hooks/kgraph-session-stop.cjs',
+        },
+      ],
+    },
+  },
+];
+
+function mergeClaudeHooks(
+  existing: Record<string, unknown>,
+): Record<string, unknown> {
+  const settings = { ...existing };
+  const hooks: ClaudeHooks =
+    typeof settings.hooks === 'object' && settings.hooks !== null
+      ? { ...(settings.hooks as ClaudeHooks) }
+      : {};
+
+  for (const { event, entry } of CLAUDE_HOOK_REGISTRATIONS) {
+    const entries = (hooks[event] ?? []) as ClaudeHookEntry[];
+    const alreadyPresent = entries.some((e) =>
+      e.hooks.some((h) => h.command.includes(KGRAPH_HOOK_MARKER)),
+    );
+    if (!alreadyPresent) {
+      hooks[event] = [...entries, entry];
+    }
+  }
+
+  settings.hooks = hooks;
+  return settings;
+}
+
+function removeClaudeHooks(
+  existing: Record<string, unknown>,
+): Record<string, unknown> {
+  if (typeof existing.hooks !== 'object' || existing.hooks === null)
+    return existing;
+
+  const settings = { ...existing };
+  const hooks: ClaudeHooks = { ...(settings.hooks as ClaudeHooks) };
+
+  for (const event of Object.keys(hooks)) {
+    hooks[event] = (hooks[event] as ClaudeHookEntry[]).filter(
+      (entry) =>
+        !entry.hooks.some((h) => h.command.includes(KGRAPH_HOOK_MARKER)),
+    );
+    if (hooks[event].length === 0) {
+      delete hooks[event];
+    }
+  }
+
+  if (Object.keys(hooks).length === 0) {
+    const { hooks: _removed, ...rest } = settings;
+    return rest;
+  }
+
+  settings.hooks = hooks;
+  return settings;
+}
 
 function hookScript(event: 'start' | 'read' | 'write' | 'end'): string {
   const pathArg =

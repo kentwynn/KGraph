@@ -11,6 +11,8 @@ export interface SessionEvent {
   path?: string;
   tokenEstimate?: number;
   repeated?: boolean;
+  packUsedTokens?: number;
+  packOmittedTokens?: number;
   captureSource: SessionCaptureSource;
   timestamp: string;
 }
@@ -47,7 +49,14 @@ export interface SessionReport {
   repeatedReadCount: number;
   estimatedReadTokens: number;
   estimatedRepeatedReadTokens: number;
-  topRepeatedReads: Array<{ path: string; count: number; estimatedTokens: number }>;
+  packCallCount: number;
+  totalPackUsedTokens: number;
+  totalPackOmittedTokens: number;
+  topRepeatedReads: Array<{
+    path: string;
+    count: number;
+    estimatedTokens: number;
+  }>;
   recentEvents: SessionEvent[];
   ledger: SessionLedgerEntry[];
 }

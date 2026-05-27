@@ -58,6 +58,8 @@ export async function recordSessionEvent(
     path?: string;
     captureSource: SessionCaptureSource;
     fileMap?: FileMap;
+    packUsedTokens?: number;
+    packOmittedTokens?: number;
   },
 ): Promise<SessionEvent> {
   const now = new Date().toISOString();
@@ -106,6 +108,12 @@ export async function recordSessionEvent(
     ...(normalizedPath ? { path: normalizedPath } : {}),
     ...(tokenEstimate !== undefined ? { tokenEstimate } : {}),
     ...(repeated !== undefined ? { repeated } : {}),
+    ...(input.type === 'context' && input.packUsedTokens !== undefined
+      ? { packUsedTokens: input.packUsedTokens }
+      : {}),
+    ...(input.type === 'context' && input.packOmittedTokens !== undefined
+      ? { packOmittedTokens: input.packOmittedTokens }
+      : {}),
     captureSource: input.captureSource,
     timestamp: now,
   };
@@ -141,6 +149,9 @@ export async function buildSessionReport(
   const readEvents = state.events.filter((event) => event.type === 'read');
   const writeEvents = state.events.filter((event) => event.type === 'write');
   const repeatedReads = readEvents.filter((event) => event.repeated);
+  const contextEvents = state.events.filter(
+    (event) => event.type === 'context',
+  );
   return {
     activeAgents: Object.values(state.active),
     readCount: readEvents.length,
@@ -148,6 +159,15 @@ export async function buildSessionReport(
     repeatedReadCount: repeatedReads.length,
     estimatedReadTokens: sumTokens(readEvents),
     estimatedRepeatedReadTokens: sumTokens(repeatedReads),
+    packCallCount: contextEvents.length,
+    totalPackUsedTokens: contextEvents.reduce(
+      (sum, e) => sum + (e.packUsedTokens ?? 0),
+      0,
+    ),
+    totalPackOmittedTokens: contextEvents.reduce(
+      (sum, e) => sum + (e.packOmittedTokens ?? 0),
+      0,
+    ),
     topRepeatedReads: topRepeatedReads(readEvents),
     recentEvents: state.events.slice(-10),
     ledger: ledger.slice(-10),

@@ -10,9 +10,9 @@ import {
   recordSessionEvent,
   resetSession,
 } from '../../session/session-store.js';
-import type { SessionCaptureSource } from '../../types/session.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import { readMaps } from '../../storage/map-store.js';
+import type { SessionCaptureSource } from '../../types/session.js';
 import { KGraphError, runCommand } from '../errors.js';
 import { normalizeConfidence, normalizeKind } from './conclude.js';
 
@@ -37,14 +37,22 @@ export function registerSessionCommand(program: Command): void {
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
         const report = await buildSessionReport(workspace);
-        console.log(options.json ? JSON.stringify(report, null, 2) : renderSessionReport(report));
+        console.log(
+          options.json
+            ? JSON.stringify(report, null, 2)
+            : renderSessionReport(report),
+        );
       }),
     );
 
   session
     .command('start')
     .option('--agent <name>', 'KGraph integration agent name')
-    .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
+    .option(
+      '--source <source>',
+      'automatic, agent-reported, or manual',
+      'manual',
+    )
     .action((options: SessionOptions, command: Command) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
@@ -60,7 +68,11 @@ export function registerSessionCommand(program: Command): void {
   session
     .command('read <path>')
     .option('--agent <name>', 'KGraph integration agent name')
-    .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
+    .option(
+      '--source <source>',
+      'automatic, agent-reported, or manual',
+      'manual',
+    )
     .action((filePath: string, options: SessionOptions, command: Command) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
@@ -81,7 +93,11 @@ export function registerSessionCommand(program: Command): void {
   session
     .command('write <path>')
     .option('--agent <name>', 'KGraph integration agent name')
-    .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
+    .option(
+      '--source <source>',
+      'automatic, agent-reported, or manual',
+      'manual',
+    )
     .action((filePath: string, options: SessionOptions, command: Command) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
@@ -93,17 +109,27 @@ export function registerSessionCommand(program: Command): void {
           captureSource: normalizeSource(options.source),
           fileMap: maps.fileMap,
         });
-        console.log(`KGraph recorded write: ${event.path}${event.tokenEstimate !== undefined ? ` ~${event.tokenEstimate} tokens` : ''}.`);
+        console.log(
+          `KGraph recorded write: ${event.path}${event.tokenEstimate !== undefined ? ` ~${event.tokenEstimate} tokens` : ''}.`,
+        );
       }),
     );
 
   session
     .command('end')
     .option('--agent <name>', 'KGraph integration agent name')
-    .option('--source <source>', 'automatic, agent-reported, or manual', 'manual')
+    .option(
+      '--source <source>',
+      'automatic, agent-reported, or manual',
+      'manual',
+    )
     .option('--conclude', 'Store a durable typed summary for this session')
     .option('--topic <topic>', 'Conclusion topic when using --conclude')
-    .option('--type <type>', 'finding, decision, gotcha, summary, or relationship', 'summary')
+    .option(
+      '--type <type>',
+      'finding, decision, gotcha, summary, or relationship',
+      'summary',
+    )
     .option('--confidence <level>', 'high, medium, or low', 'medium')
     .option('--note <text>', 'Concise durable conclusion text')
     .action((options: SessionOptions, command: Command) =>
@@ -151,20 +177,62 @@ export function registerSessionCommand(program: Command): void {
     );
 }
 
-export function renderSessionReport(report: Awaited<ReturnType<typeof buildSessionReport>>): string {
+export function renderSessionReport(
+  report: Awaited<ReturnType<typeof buildSessionReport>>,
+): string {
   const lines = ['', 'KGraph Session', ''];
-  lines.push(`Active agents: ${report.activeAgents.length === 0 ? 'none' : report.activeAgents.map((agent) => agent.agent).join(', ')}`);
+  lines.push(
+    `Active agents: ${report.activeAgents.length === 0 ? 'none' : report.activeAgents.map((agent) => agent.agent).join(', ')}`,
+  );
   lines.push(`Reads: ${report.readCount}`);
   lines.push(`Writes: ${report.writeCount}`);
   lines.push(`Repeated reads: ${report.repeatedReadCount}`);
   lines.push(`Estimated read tokens: ${report.estimatedReadTokens}`);
-  lines.push(`Estimated repeated-read tokens: ${report.estimatedRepeatedReadTokens}`);
+  lines.push(
+    `Estimated repeated-read tokens: ${report.estimatedRepeatedReadTokens}`,
+  );
+  lines.push('');
+  lines.push('Pack Usage');
+  lines.push(`  Pack calls: ${report.packCallCount}`);
+  lines.push(`  Tokens used: ${report.totalPackUsedTokens}`);
+  lines.push(`  Tokens filtered: ${report.totalPackOmittedTokens}`);
+  if (report.packCallCount > 0 && report.totalPackOmittedTokens > 0) {
+    const total = report.totalPackUsedTokens + report.totalPackOmittedTokens;
+    const pct = Math.round((report.totalPackOmittedTokens / total) * 100);
+    lines.push(
+      `  Filter rate: ${pct}% of candidate tokens excluded from context`,
+    );
+  }
   lines.push('', 'Top Repeated Reads');
-  lines.push(...formatList(report.topRepeatedReads.map((item) => `- ${item.path} read ${item.count} times (~${item.estimatedTokens} tokens)`)));
+  lines.push(
+    ...formatList(
+      report.topRepeatedReads.map(
+        (item) =>
+          `- ${item.path} read ${item.count} times (~${item.estimatedTokens} tokens)`,
+      ),
+    ),
+  );
   lines.push('', 'Recent Events');
-  lines.push(...formatList(report.recentEvents.map((event) => `- ${event.agent} ${event.type}${event.path ? ` ${event.path}` : ''} [${event.captureSource}]`)));
+  lines.push(
+    ...formatList(
+      report.recentEvents.map((event) => {
+        const packInfo =
+          event.packUsedTokens !== undefined
+            ? ` [used:${event.packUsedTokens} filtered:${event.packOmittedTokens ?? 0}]`
+            : '';
+        return `- ${event.agent} ${event.type}${event.path ? ` ${event.path}` : ''}${packInfo} [${event.captureSource}]`;
+      }),
+    ),
+  );
   lines.push('', 'Recent Ledger');
-  lines.push(...formatList(report.ledger.map((entry) => `- ${entry.agent} ${entry.readCount} reads, ${entry.writeCount} writes, ${entry.repeatedReadCount} repeated`)));
+  lines.push(
+    ...formatList(
+      report.ledger.map(
+        (entry) =>
+          `- ${entry.agent} ${entry.readCount} reads, ${entry.writeCount} writes, ${entry.repeatedReadCount} repeated`,
+      ),
+    ),
+  );
   lines.push('', 'Next');
   lines.push(...sessionNextActions(report));
   return lines.join('\n');
@@ -199,10 +267,16 @@ function findCommandOption(
 }
 
 function normalizeSource(value: string | undefined): SessionCaptureSource {
-  if (value === 'automatic' || value === 'agent-reported' || value === 'manual') {
+  if (
+    value === 'automatic' ||
+    value === 'agent-reported' ||
+    value === 'manual'
+  ) {
     return value;
   }
-  throw new KGraphError('--source must be automatic, agent-reported, or manual.');
+  throw new KGraphError(
+    '--source must be automatic, agent-reported, or manual.',
+  );
 }
 
 function formatList(items: string[]): string[] {
@@ -212,7 +286,11 @@ function formatList(items: string[]): string[] {
 function sessionNextActions(
   report: Awaited<ReturnType<typeof buildSessionReport>>,
 ): string[] {
-  if (report.readCount === 0 && report.writeCount === 0) {
+  if (
+    report.packCallCount === 0 &&
+    report.readCount === 0 &&
+    report.writeCount === 0
+  ) {
     return [
       '- Start tracking with `kgraph session start --agent <name>`.',
       '- Record meaningful reads/writes with `kgraph session read <path> --agent <name>` and `kgraph session write <path> --agent <name>`.',

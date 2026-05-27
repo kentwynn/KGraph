@@ -73,6 +73,13 @@ describe('kgraph integrate', () => {
       await access(
         path.join(repo, '.claude', 'hooks', 'kgraph-session-start.cjs'),
       );
+      const settings = JSON.parse(
+        await readFile(path.join(repo, '.claude', 'settings.json'), 'utf8'),
+      );
+      expect(settings.hooks?.UserPromptSubmit).toBeDefined();
+      expect(settings.hooks?.PreToolUse).toBeDefined();
+      expect(settings.hooks?.PostToolUse).toBeDefined();
+      expect(settings.hooks?.Stop).toBeDefined();
       await access(path.join(repo, '.claude', 'commands', 'kgraph-compact.md'));
       await access(path.join(repo, '.claude', 'commands', 'kgraph-pack.md'));
       await access(
@@ -137,7 +144,9 @@ describe('kgraph integrate', () => {
       const gemini = await readFile(path.join(repo, 'GEMINI.md'), 'utf8');
       expect(gemini).toContain('Existing Gemini guidance');
       expect(gemini).toContain('BEGIN KGRAPH gemini');
-      expect(gemini).toContain('Every chat in this repository must use the correct KGraph command');
+      expect(gemini).toContain(
+        'Every chat in this repository must use the correct KGraph command',
+      );
       expect(gemini).toContain('Command routing comes first');
       expect(gemini).toContain('kgraph history "<topic>"');
       expect(gemini).toContain('kgraph update');

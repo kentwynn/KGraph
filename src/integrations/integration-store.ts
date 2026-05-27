@@ -20,6 +20,7 @@ import {
   removeManagedBlock,
   upsertManagedBlock,
 } from './instruction-blocks.js';
+import type { IntegrationConfigFile } from './integration-registry.js';
 import { getIntegrationAdapter } from './integration-registry.js';
 
 export interface IntegrationStatus {
@@ -79,6 +80,10 @@ export async function addIntegrations(
         workspace.rootPath,
         adapter.commandFiles ?? [],
       );
+      await removeIntegrationConfigFiles(
+        workspace.rootPath,
+        adapter.configFiles ?? [],
+      );
     } else {
       await writeIntegrationInstructions(
         workspace.rootPath,
@@ -99,6 +104,10 @@ export async function addIntegrations(
       for (const file of adapter.commandFiles ?? []) {
         writtenCommandFiles.add(file.path);
       }
+      await upsertIntegrationConfigFiles(
+        workspace.rootPath,
+        adapter.configFiles ?? [],
+      );
     }
     await removeIntegrationCommandFiles(
       workspace.rootPath,
@@ -159,6 +168,10 @@ export async function removeIntegrations(
     await removeIntegrationCommandFiles(
       workspace.rootPath,
       adapter.obsoleteCommandFiles ?? [],
+    );
+    await removeIntegrationConfigFiles(
+      workspace.rootPath,
+      adapter.configFiles ?? [],
     );
     removed.push(adapter.name);
   }
@@ -228,7 +241,10 @@ async function removeIntegrationCommandFiles(
   }
 }
 
-async function pruneEmptyParents(rootPath: string, startDir: string): Promise<void> {
+async function pruneEmptyParents(
+  rootPath: string,
+  startDir: string,
+): Promise<void> {
   let dir = startDir;
   while (dir !== rootPath && dir.startsWith(rootPath)) {
     try {
@@ -238,6 +254,55 @@ async function pruneEmptyParents(rootPath: string, startDir: string): Promise<vo
       dir = path.dirname(dir);
     } catch {
       break;
+    }
+  }
+}
+
+async function upsertIntegrationConfigFiles(
+  rootPath: string,
+  configFiles: IntegrationConfigFile[],
+): Promise<void> {
+  for (const configFile of configFiles) {
+    const fullPath = path.join(rootPath, configFile.path);
+    let existing: Record<string, unknown> = {};
+    if (await pathExists(fullPath)) {
+      try {
+        existing = JSON.parse(await readFile(fullPath, 'utf8')) as Record<
+          string,
+          unknown
+        >;
+      } catch {
+        existing = {};
+      }
+    }
+    const next = configFile.merge(existing);
+    await mkdir(path.dirname(fullPath), { recursive: true });
+    await writeFile(fullPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  }
+}
+
+async function removeIntegrationConfigFiles(
+  rootPath: string,
+  configFiles: IntegrationConfigFile[],
+): Promise<void> {
+  for (const configFile of configFiles) {
+    const fullPath = path.join(rootPath, configFile.path);
+    if (!(await pathExists(fullPath))) continue;
+    let existing: Record<string, unknown> = {};
+    try {
+      existing = JSON.parse(await readFile(fullPath, 'utf8')) as Record<
+        string,
+        unknown
+      >;
+    } catch {
+      continue;
+    }
+    const next = configFile.remove(existing);
+    if (Object.keys(next).length === 0) {
+      await rm(fullPath, { force: true });
+      await pruneEmptyParents(rootPath, path.dirname(fullPath));
+    } else {
+      await writeFile(fullPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
     }
   }
 }

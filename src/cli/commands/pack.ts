@@ -46,19 +46,25 @@ export function registerPackCommand(program: Command): void {
           options.agent ??
           (command.getOptionValue('agent') as string | undefined) ??
           findCommandOption(command, 'agent');
-        if (agent) {
-          await recordSessionEvent(workspace, {
-            agent: assertSessionAgent(agent),
-            type: 'context',
-            captureSource: 'automatic',
-          });
-        }
         const [config, maps] = await Promise.all([
           loadConfig(workspace),
           readMaps(workspace),
         ]);
         const response = await queryContext(workspace, config, maps, task);
         const pack = buildContextPack(response, budget, workspace.rootPath);
+        if (agent) {
+          const omittedTokens = pack.omitted.reduce(
+            (sum, item) => sum + item.tokenEstimate,
+            0,
+          );
+          await recordSessionEvent(workspace, {
+            agent: assertSessionAgent(agent),
+            type: 'context',
+            captureSource: 'automatic',
+            packUsedTokens: pack.usedTokens,
+            packOmittedTokens: omittedTokens,
+          });
+        }
         const pendingInboxFiles = (await listInboxNotes(workspace)).map(
           (file) =>
             path.relative(workspace.rootPath, file).split(path.sep).join('/'),

@@ -92,7 +92,7 @@ export function renderContextPolicy(
     case 'always':
       return `Every chat in this repository must use the correct KGraph command before answering or exploring files. ${routing} For normal repo context, code navigation, debugging, review, or edits, run \`${packCommand}\`. If that pack reports pending inbox notes, run \`${rootCommand}\` or \`kgraph update\` before relying on history or newly captured atoms. Infer the topic from the user's message. This records a lightweight KGraph session context event for the agent. ${useResultBoundary}`;
     case 'manual':
-      return 'Do not run KGraph automatically. Run `kgraph pack "<topic>" --budget 8000 --json` only when the user explicitly asks for KGraph context, invokes KGraph, or needs a machine-readable repo-memory pack. If the user explicitly asks for KGraph history, inbox/update, knowledge, or doctor, run that specific KGraph command instead of pack.';
+      return `Do not run KGraph automatically. Run \`${packCommand}\` only when the user explicitly asks for KGraph context, invokes KGraph, or needs a machine-readable repo-memory pack. If the user explicitly asks for KGraph history, inbox/update, knowledge, or doctor, run that specific KGraph command instead of pack.`;
     case 'off':
       return 'KGraph is disabled for this integration.';
     case 'smart':
