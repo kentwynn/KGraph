@@ -21,13 +21,17 @@ const DECISION_CONTEXT = `## Feature intent — choose based on the situation
 
 **compact** exists to merge redundant knowledge. Consider it when you store something that feels overlapping with what pack already showed.
 
-**scan** exists to refresh maps after structural changes. The root workflow handles this automatically unless you created, deleted, or renamed many files outside of kgraph commands.`;
+**scan** exists to refresh maps after structural changes. The root workflow handles this automatically unless you created, deleted, or renamed many files outside of kgraph commands.
+
+**history** exists to answer "what did we do" and "when did this happen" questions. Use \`kgraph history "<topic>"\` when the user asks about prior work, decisions, or the sequence of changes — it covers the full timeline regardless of whether knowledge was captured via \`conclude\`, \`--capture\`, or inbox notes. Use \`kgraph knowledge list\` when the user wants the structured claim and evidence for an atom. Use \`kgraph pack\` when the user needs context to start or continue coding work. These three serve different intents: timeline vs. structured memory vs. coding context.
+
+**budget** exists to control how much source context pack delivers. On large or complex projects, raise \`--budget\` (e.g. \`--budget 16000\`) when pack omits files or symbols that feel relevant — the default 8000 was tuned for small projects. When pack includes file items with a \`content\` field, the budget was already spent delivering that source inline; do not re-read those files.`;
 
 const DOCTOR_STEP = `Run \`kgraph doctor\` when setup, maps, inbox processing, or integrations look wrong. Run \`kgraph doctor --quality\` when context shows stale/noisy cognition references.`;
-const IMPACT_STEP = `Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when prior work or decisions matter.`;
+const IMPACT_STEP = `Run \`kgraph impact "<file-or-symbol>"\` when the user asks what a change may affect. Run \`kgraph history "<topic>"\` when the user asks what was done before, who made a decision, or what the sequence of changes was.`;
 const REPAIR_STEP = `Run \`kgraph repair --dry-run\` before cleanup when stale/noisy atom refs need fixing. Run \`kgraph repair\` only when the user asks to apply that cleanup.`;
 const COMPACT_STEP = `Run \`kgraph compact --dry-run\` when cognition looks duplicated, noisy, or stale. Run \`kgraph compact\` only when the user asks to merge/archive cognition.`;
-const HISTORY_STEP = `Run \`kgraph history\` or \`kgraph history "<topic>"\` to review past cognition sessions with git author attribution.`;
+const HISTORY_STEP = `Run \`kgraph history "<topic>"\` when the user asks what was done, decided, or changed — it covers the full timeline including notes captured via \`conclude\`, \`--capture\`, and inbox. Prefer history over \`knowledge list\` when the question is about sequence, timing, or authorship rather than atom details.`;
 const KNOWLEDGE_STEP = `Run \`kgraph knowledge list --topic "<topic>"\` or \`kgraph knowledge get <atom-id>\` when the user asks what KGraph remembers or atom provenance/lifecycle matters.`;
 const STALE_STEP = `Run \`kgraph stale\` when changed or deleted code may have invalidated durable knowledge. Run \`kgraph blame <atom-id>\` when provenance or evidence for a memory matters.`;
 const EXPLORATION_BOUNDARY_STEP = `Keep exploration bounded by the task. For simple edits, use KGraph to identify the likely file, then read only that file or a narrow range and make the edit. Do not keep searching after the target file is found, do not retry malformed shell commands with broader variants, and do not run broad \`find\`, recursive \`grep\`, or repeated full-file dumps after KGraph already returned candidate files.`;
@@ -57,7 +61,7 @@ export function numberedWorkflow(
 ): string {
   return `1. Infer the topic from the user's request.
 2. {{KGRAPH_CONTEXT_POLICY}}
-3. When the pack includes a symbol with an \`excerpt\` field, you already have the source code — do not read that file again for that symbol. Items in the \`omitted\` array were evaluated and excluded — do not manually search for them unless the user explicitly asks.
+3. When a pack item includes an \`excerpt\` field (symbol) or a \`content\` field (file), you already have the source code inline — do not read that file separately. Items in the \`omitted\` array were evaluated and excluded — do not manually search for them unless the user explicitly asks.
 4. ${EXPLORATION_BOUNDARY_STEP}
 5. ${VERIFY_EDIT_STEP}
 6. ${smartRootStep(agentName)}
@@ -87,7 +91,7 @@ export function bulletWorkflow(
   options: WorkflowOptions = {},
 ): string {
   return `- {{KGRAPH_CONTEXT_POLICY}}
-- When the pack includes a symbol with an \`excerpt\` field, you already have the source code — do not read that file again for that symbol. Items in the \`omitted\` array were evaluated and excluded — do not manually search for them unless the user explicitly asks.
+- When a pack item includes an \`excerpt\` field (symbol) or a \`content\` field (file), you already have the source code inline — do not read that file separately. Items in the \`omitted\` array were evaluated and excluded — do not manually search for them unless the user explicitly asks.
 - ${EXPLORATION_BOUNDARY_STEP}
 - ${VERIFY_EDIT_STEP}
 - ${smartRootStep(agentName)}

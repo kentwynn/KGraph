@@ -168,6 +168,14 @@ export function renderPackText(pack: ContextPack): string {
     }
   }
 
+  if (pack.warnings.length > 0) {
+    lines.push('● Warnings');
+    for (const warning of pack.warnings) {
+      lines.push(`  ⚠ ${warning}`);
+    }
+    lines.push('');
+  }
+
   lines.push(
     '',
     '● Next',
@@ -189,6 +197,12 @@ function appendGroup(
   for (const item of items.slice(0, 6)) {
     lines.push(`  ● ${item.title} (~${item.tokenEstimate} tokens)`);
     lines.push(`    because ${formatReasons(item.reasons)}`);
+    if (item.kind === 'file') {
+      const data = item.data as { path?: string; content?: string };
+      if (data.content !== undefined) {
+        lines.push(`    content inline (~${item.tokenEstimate} tokens)`);
+      }
+    }
     if (item.kind === 'file-range') {
       const data = item.data as {
         path?: string;

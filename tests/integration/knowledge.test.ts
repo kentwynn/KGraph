@@ -414,9 +414,7 @@ Pack should warn when inbox notes are pending because history does not see them 
       );
 
       const historyBefore = await runCli(repo, ['history', 'History Routing']);
-      expect(historyBefore.stdout).toContain(
-        'No processed cognition notes found',
-      );
+      expect(historyBefore.stdout).toContain('No cognition history found');
 
       const text = await runCli(repo, [
         'pack',

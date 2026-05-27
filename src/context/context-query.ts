@@ -1,14 +1,15 @@
 import {
+  atomToCognitionNote,
+  refreshKnowledgeAtomStatuses,
+} from '../knowledge/atom-store.js';
+import {
+  getCurrentCommit,
   getRecentlyCommittedFiles,
   getWorkingTreeChangesDetailed,
   isGitRepo,
 } from '../scanner/git-utils.js';
-import { readDomainRecords } from '../storage/cognition-store.js';
 import { readSessionState } from '../session/session-store.js';
-import {
-  atomToCognitionNote,
-  refreshKnowledgeAtomStatuses,
-} from '../knowledge/atom-store.js';
+import { readDomainRecords } from '../storage/cognition-store.js';
 import type { ContextResponse, GitContextChange } from '../types/cognition.js';
 import type { KGraphConfig, KGraphWorkspace } from '../types/config.js';
 import type { KnowledgeAtom } from '../types/knowledge.js';
@@ -20,8 +21,7 @@ import type {
   RelationshipMap,
   SymbolMap,
 } from '../types/maps.js';
-import { rankByFields, type Ranked } from './ranking.js';
-import { tokenize } from './ranking.js';
+import { rankByFields, tokenize, type Ranked } from './ranking.js';
 
 export async function queryContext(
   workspace: KGraphWorkspace,
@@ -54,6 +54,7 @@ export async function queryContext(
   // Collect git changes before file ranking so dirty files can influence ranking,
   // not just appear later as a low-token pack item.
   const knownFilePaths = new Set(maps.fileMap.files.map((f) => f.path));
+  const warnings: string[] = [];
   const gitChanges: GitContextChange[] = [];
   if (await isGitRepo(workspace.rootPath)) {
     const workingTreeChanges = await getWorkingTreeChangesDetailed(
@@ -88,6 +89,18 @@ export async function queryContext(
         status: 'recent-commit',
         reason: 'changed in recent commits',
       });
+    }
+    const currentCommit = await getCurrentCommit(workspace.rootPath);
+    if (
+      currentCommit &&
+      maps.fileMap.scannedAtCommit &&
+      currentCommit !== maps.fileMap.scannedAtCommit
+    ) {
+      const shortCurrent = currentCommit.slice(0, 7);
+      const shortScanned = maps.fileMap.scannedAtCommit.slice(0, 7);
+      warnings.push(
+        `Structural maps were last scanned at commit ${shortScanned}; HEAD is now ${shortCurrent}. Run \`kgraph scan\` to refresh file and symbol relationships.`,
+      );
     }
   }
   const gitChangedPaths = new Set(gitChanges.map((change) => change.path));
@@ -341,11 +354,13 @@ export async function queryContext(
     nearbySymbolExplanations,
     gitChanges,
     staleReferences,
-    warnings: [],
+    warnings,
   };
 }
 
-function applyFileRankAdjustments<T extends { path: string; tokenEstimate?: number }>(
+function applyFileRankAdjustments<
+  T extends { path: string; tokenEstimate?: number },
+>(
   ranked: Ranked<T>,
   context: {
     query: string;
@@ -355,7 +370,8 @@ function applyFileRankAdjustments<T extends { path: string; tokenEstimate?: numb
   },
 ): Ranked<T> {
   const reasons = [...ranked.reasons];
-  let score = ranked.score - Math.floor((ranked.item.tokenEstimate ?? 0) / 2000);
+  let score =
+    ranked.score - Math.floor((ranked.item.tokenEstimate ?? 0) / 2000);
 
   if (context.sessionTouchedPaths.has(ranked.item.path)) {
     score += 3;
@@ -380,7 +396,9 @@ function applyFileRankAdjustments<T extends { path: string; tokenEstimate?: numb
   const strongMatches = strongTokens.filter((token) => pathTokens.has(token));
   if (strongMatches.length > 0) {
     score += strongMatches.length * 3;
-    reasons.push(`path matched specific query token(s): ${strongMatches.join(', ')}`);
+    reasons.push(
+      `path matched specific query token(s): ${strongMatches.join(', ')}`,
+    );
   } else if (strongTokens.length > 0) {
     score -= 6;
     reasons.push('generic path-only match penalty');
@@ -473,7 +491,9 @@ function explainRelationships(
   });
 }
 
-function applyAtomRankAdjustments(ranked: Ranked<KnowledgeAtom>): Ranked<KnowledgeAtom> {
+function applyAtomRankAdjustments(
+  ranked: Ranked<KnowledgeAtom>,
+): Ranked<KnowledgeAtom> {
   const reasons = [...ranked.reasons];
   let score = ranked.score;
   if (ranked.item.confidence === 'high') {
