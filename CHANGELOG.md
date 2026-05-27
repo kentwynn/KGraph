@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.36](https://github.com/kentwynn/KGraph/compare/v0.2.35...v0.2.36) (2026-05-27)
+
+### ### Added
+
+* fix history for conclude-flow notes, embed file content in pack, add scan drift warning ([809252e](https://github.com/kentwynn/KGraph/commit/809252e7a67a3a7e39e2dc1708d670fabe708c5f))
+
+### ### Fixed
+
+* exclude .github/agents from scan so generated files don't appear in visualization ([39d388a](https://github.com/kentwynn/KGraph/commit/39d388a8b4dae838770353803c4c77269a3378e2))
+
 ## [0.2.35](https://github.com/kentwynn/KGraph/compare/v0.2.34...v0.2.35) (2026-05-26)
 
 ### ### Added
