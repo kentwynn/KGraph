@@ -33,7 +33,8 @@ describe('parseTimestampFromFilename', () => {
 describe('renderHistory', () => {
   it('shows empty message when no entries', () => {
     const output = renderHistory([], false);
-    expect(output).toContain('No processed cognition notes found');
+    expect(output).toContain('No cognition history found');
+    expect(output).toContain('kgraph conclude');
     expect(output).toContain('kgraph update');
   });
 

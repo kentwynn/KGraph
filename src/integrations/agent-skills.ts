@@ -48,7 +48,7 @@ name: kgraph-pack
 description: Build a budget-aware KGraph context pack
 ---
 
-Run \`kgraph pack "<topic>" --budget 8000 --json --agent $AGENT\` to build a machine-readable context pack and record lightweight session context. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons. When a symbol item includes an \`excerpt\` field, you already have the source — do not read that file for the symbol.
+Run \`kgraph pack "<topic>" --budget 8000 --json --agent $AGENT\` to build a machine-readable context pack and record lightweight session context. Summarize token use, included files, symbols, relationships, git changes, session history, atoms, and omitted items with the inclusion reasons. When a symbol item includes an \`excerpt\` field or a file item includes a \`content\` field, you already have the source inline — do not read that file separately.
 `,
   },
   {

@@ -74,7 +74,7 @@ export function renderContextPolicy(
   agentName?: string,
 ): string {
   const useResultBoundary =
-    'Use the returned KGraph ContextPack items as the first-pass source of truth. Prefer source ranges, atoms, git changes, and inclusion reasons from the pack before broad repository search. Do not rerun the same KGraph query just to tail or reformat output, do not continue broad repository search after the target file or range is identified, do not retry malformed shell commands with broader variants, and do not run broad `find`, recursive `grep`, or repeated full-file dumps after KGraph has narrowed the target.';
+    'Use the returned KGraph ContextPack items as the first-pass source of truth. Prefer source ranges, atoms, git changes, and inclusion reasons from the pack before broad repository search. When a file item includes a `content` field or a symbol item includes an `excerpt` field, that IS the source — do not read the file separately. Do not rerun the same KGraph query just to tail or reformat output, do not continue broad repository search after the target file or range is identified, do not retry malformed shell commands with broader variants, and do not run broad `find`, recursive `grep`, or repeated full-file dumps after KGraph has narrowed the target.';
   const packCommand = agentName
     ? `kgraph pack "<topic>" --budget 8000 --json --agent ${agentName}`
     : 'kgraph pack "<topic>" --budget 8000 --json';

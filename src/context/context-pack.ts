@@ -79,6 +79,22 @@ export function buildContextPack(
     }
   }
 
+  // Enrich selected file items with inline content so agents have the source without
+  // a second read. This mirrors how symbol and file-range items already embed excerpts.
+  // Only files that passed the budget check are read — omitted files are left as metadata.
+  if (rootPath) {
+    for (const item of items) {
+      if (item.kind !== 'file') continue;
+      const data = item.data as { path: string };
+      try {
+        const content = readFileSync(path.join(rootPath, data.path), 'utf8');
+        item.data = { ...data, content };
+      } catch {
+        // best-effort — leave as metadata-only if file cannot be read
+      }
+    }
+  }
+
   return {
     task: response.query,
     budget,
