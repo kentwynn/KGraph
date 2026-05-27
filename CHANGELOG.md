@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.37](https://github.com/kentwynn/KGraph/compare/v0.2.36...v0.2.37) (2026-05-27)
+
+### ### Added
+
+* session token metrics, claude-code hooks, and session panel in visualize ([1f7bfec](https://github.com/kentwynn/KGraph/commit/1f7bfecb19ec99597fadd805bbe06f67fd7c7465))
+
 ## [0.2.36](https://github.com/kentwynn/KGraph/compare/v0.2.35...v0.2.36) (2026-05-27)
 
 ### ### Added
