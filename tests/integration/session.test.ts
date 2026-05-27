@@ -1,8 +1,16 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { cleanupTempRepo, copyFixture, readJson, runCli } from '../fixtures/helpers.js';
-import type { SessionLedgerEntry, SessionState } from '../../src/types/session.js';
+import type {
+  SessionLedgerEntry,
+  SessionState,
+} from '../../src/types/session.js';
+import {
+  cleanupTempRepo,
+  copyFixture,
+  readJson,
+  runCli,
+} from '../fixtures/helpers.js';
 
 describe('kgraph session', () => {
   it('records start/read/write/end events with agent attribution', async () => {
@@ -11,10 +19,42 @@ describe('kgraph session', () => {
       await runCli(repo, ['init']);
       await runCli(repo, ['scan']);
 
-      expect((await runCli(repo, ['session', 'start', '--agent', 'codex'])).code).toBe(0);
-      expect((await runCli(repo, ['session', 'read', 'src/auth.ts', '--agent', 'codex'])).stdout).toContain('recorded read');
-      expect((await runCli(repo, ['session', 'read', 'src/auth.ts', '--agent', 'codex'])).stdout).toContain('repeated');
-      expect((await runCli(repo, ['session', 'write', 'src/auth.ts', '--agent', 'codex'])).stdout).toContain('recorded write');
+      expect(
+        (await runCli(repo, ['session', 'start', '--agent', 'codex'])).code,
+      ).toBe(0);
+      expect(
+        (
+          await runCli(repo, [
+            'session',
+            'read',
+            'src/auth.ts',
+            '--agent',
+            'codex',
+          ])
+        ).stdout,
+      ).toContain('recorded read');
+      expect(
+        (
+          await runCli(repo, [
+            'session',
+            'read',
+            'src/auth.ts',
+            '--agent',
+            'codex',
+          ])
+        ).stdout,
+      ).toContain('repeated');
+      expect(
+        (
+          await runCli(repo, [
+            'session',
+            'write',
+            'src/auth.ts',
+            '--agent',
+            'codex',
+          ])
+        ).stdout,
+      ).toContain('recorded write');
 
       const status = await runCli(repo, ['session']);
       expect(status.stdout).toContain('KGraph Session');
@@ -25,13 +65,21 @@ describe('kgraph session', () => {
       const json = await runCli(repo, ['session', '--json']);
       expect(JSON.parse(json.stdout).repeatedReadCount).toBe(1);
 
-      expect((await runCli(repo, ['session', 'end', '--agent', 'codex'])).code).toBe(0);
-      const ledger = await readJson<SessionLedgerEntry[]>(repo, '.kgraph/sessions/ledger.json');
+      expect(
+        (await runCli(repo, ['session', 'end', '--agent', 'codex'])).code,
+      ).toBe(0);
+      const ledger = await readJson<SessionLedgerEntry[]>(
+        repo,
+        '.kgraph/sessions/ledger.json',
+      );
       expect(ledger[0].agent).toBe('codex');
       expect(ledger[0].repeatedReadCount).toBe(1);
 
       expect((await runCli(repo, ['session', 'reset'])).code).toBe(0);
-      const state = await readJson<SessionState>(repo, '.kgraph/sessions/current.json').catch(() => undefined);
+      const state = await readJson<SessionState>(
+        repo,
+        '.kgraph/sessions/current.json',
+      ).catch(() => undefined);
       expect(state).toBeUndefined();
     } finally {
       await cleanupTempRepo(repo);
@@ -65,6 +113,8 @@ describe('kgraph session', () => {
           captureSource: 'automatic',
         },
       ]);
+      expect(state.events[0].packUsedTokens).toBeGreaterThanOrEqual(0);
+      expect(state.events[0].packOmittedTokens).toBeGreaterThanOrEqual(0);
 
       const root = await runCli(repo, ['auth refresh', '--agent', 'codex']);
       expect(root.code).toBe(0);
@@ -74,23 +124,24 @@ describe('kgraph session', () => {
         repo,
         '.kgraph/sessions/current.json',
       );
-      expect(state.events.filter((event) => event.type === 'context')).toHaveLength(2);
+      expect(
+        state.events.filter((event) => event.type === 'context'),
+      ).toHaveLength(2);
       expect(state.events.some((event) => event.type === 'read')).toBe(false);
 
       const status = await runCli(repo, ['session']);
       expect(status.stdout).toContain('Active agents: codex');
+      expect(status.stdout).toContain('Pack calls: 2');
       expect(status.stdout).toContain('codex context [automatic]');
+      expect(status.stdout).toContain('used:');
+      expect(status.stdout).toContain('filtered:');
 
-      expect((await runCli(repo, ['session', 'end', '--agent', 'codex'])).code).toBe(0);
-      const ledger = await readJson<SessionLedgerEntry[]>(
-        repo,
-        '.kgraph/sessions/ledger.json',
+      const sessionJson = JSON.parse(
+        (await runCli(repo, ['session', '--json'])).stdout,
       );
-      expect(ledger[0]).toMatchObject({
-        agent: 'codex',
-        readCount: 0,
-        writeCount: 0,
-      });
+      expect(sessionJson.packCallCount).toBe(2);
+      expect(typeof sessionJson.totalPackUsedTokens).toBe('number');
+      expect(typeof sessionJson.totalPackOmittedTokens).toBe('number');
     } finally {
       await cleanupTempRepo(repo);
     }
@@ -102,8 +153,20 @@ describe('kgraph session', () => {
       await runCli(repo, ['init']);
       await runCli(repo, ['scan']);
       await runCli(repo, ['session', 'start', '--agent', 'codex']);
-      await runCli(repo, ['session', 'read', 'src/auth.ts', '--agent', 'codex']);
-      await runCli(repo, ['session', 'write', 'src/session.ts', '--agent', 'codex']);
+      await runCli(repo, [
+        'session',
+        'read',
+        'src/auth.ts',
+        '--agent',
+        'codex',
+      ]);
+      await runCli(repo, [
+        'session',
+        'write',
+        'src/session.ts',
+        '--agent',
+        'codex',
+      ]);
 
       const result = await runCli(repo, [
         'session',
@@ -152,7 +215,13 @@ describe('kgraph session', () => {
       );
 
       await runCli(repo, ['session', 'start', '--agent', 'codex']);
-      await runCli(repo, ['session', 'read', 'src/auth.ts', '--agent', 'codex']);
+      await runCli(repo, [
+        'session',
+        'read',
+        'src/auth.ts',
+        '--agent',
+        'codex',
+      ]);
       await runCli(repo, ['session', 'end', '--agent', 'codex']);
 
       await runCli(repo, ['session', 'start', '--agent', 'codex']);

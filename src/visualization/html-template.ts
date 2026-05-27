@@ -1,13 +1,36 @@
 import type { GraphData } from './graph-builder.js';
 
-export function renderHtml(graphData: GraphData, rootPath: string): string {
+export interface SessionVizData {
+  activeAgents: string[];
+  packCallCount: number;
+  totalPackUsedTokens: number;
+  totalPackOmittedTokens: number;
+  readCount: number;
+  writeCount: number;
+  contextEvents: Array<{
+    agent: string;
+    packUsedTokens: number;
+    packOmittedTokens: number;
+    timestamp: string;
+    captureSource: string;
+  }>;
+}
+
+export function renderHtml(
+  graphData: GraphData,
+  rootPath: string,
+  sessionData?: SessionVizData,
+): string {
   const repoName = escAttr(rootPath.split(/[\\/]/).pop() ?? 'Repository');
   const { meta } = graphData;
   // Prevent </script> tag injection from embedded JSON
   const safeData = JSON.stringify(graphData).replace(
     /<\/script>/gi,
-    '<\\/script>',
+    '<\/script>',
   );
+  const safeSessionData = sessionData
+    ? JSON.stringify(sessionData).replace(/<\/script>/gi, '<\/script>')
+    : null;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -52,6 +75,31 @@ select:hover,button:hover{background:#475569}
 .li-dia{width:10px;height:10px;transform:rotate(45deg);flex-shrink:0;display:inline-block}
 .li-sep{width:1px;height:14px;background:#334155;flex-shrink:0}
 .li-head{font-size:11px;color:#475569;font-weight:700;letter-spacing:.04em}
+#session-panel{width:310px;background:#1e293b;border-left:1px solid #334155;display:none;flex-direction:column;overflow:hidden;flex-shrink:0}
+#session-panel.open{display:flex}
+#btn-session{color:#7dd3fc;border-color:#3b82f6}
+#btn-session.active,#btn-session:hover{background:#1e3a5f!important;color:#7dd3fc;border-color:#3b82f6}
+#sp-head{display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid #334155;gap:8px;flex-shrink:0}
+#sp-title{font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7dd3fc;flex-shrink:0}
+#sp-agents{color:#475569;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sp-close2{background:none!important;border:none!important;color:#64748b;font-size:17px;line-height:1;cursor:pointer;padding:0 2px;flex-shrink:0;box-shadow:none}
+#sp-close2:hover{color:#e2e8f0}
+#sp-body{padding:14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px}
+.sp-summary{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sp-metric{background:#0f172a;border:1px solid #334155;border-radius:5px;padding:8px 10px}
+.sp-metric-val{font-size:18px;font-weight:700;color:#f1f5f9;line-height:1;font-variant-numeric:tabular-nums}
+.sp-metric-val.accent{color:#7dd3fc}
+.sp-metric-lbl{font-size:10px;color:#64748b;margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
+.sp-group-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#475569;padding-bottom:6px;margin-bottom:2px;border-bottom:1px solid #1e293b}
+.sp-call-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #0f172a}
+.sp-call-row:last-child{border-bottom:none}
+.sp-call-time{font-size:10px;color:#475569;flex-shrink:0;width:44px}
+.sp-call-bar-wrap{flex:1;background:#0f172a;border-radius:2px;height:6px;overflow:hidden}
+.sp-call-bar{background:#3b82f6;height:100%;border-radius:2px;min-width:2px}
+.sp-call-toks{font-size:11px;color:#94a3b8;flex-shrink:0;width:60px;text-align:right}
+.sp-io-row{display:flex;gap:6px}
+.sp-io-box{flex:1;background:#0f172a;border:1px solid #334155;border-radius:5px;padding:8px 10px;text-align:center}
+.sp-io-val{font-size:18px;font-weight:700;color:#f1f5f9}.sp-io-lbl{font-size:10px;color:#64748b;margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
 </style>
 </head>
 <body>
@@ -69,6 +117,7 @@ select:hover,button:hover{background:#475569}
     </select>
     <button id="btn-fit" title="Fit graph to viewport">\u229f Fit</button>
     <button id="btn-png" title="Download as PNG">\u2193 PNG</button>
+${sessionData ? `    <button id="btn-session" title="View session stats">\u26a1 Session</button>` : ''}
   </div>
 </div>
 <div id="main">
@@ -80,6 +129,18 @@ select:hover,button:hover{background:#475569}
     </div>
     <div id="sb-body"></div>
   </div>
+${
+  sessionData
+    ? `  <div id="session-panel">
+    <div id="sp-head">
+      <span id="sp-title">\u26a1 Session</span>
+      <span id="sp-agents">${sessionData.activeAgents.length ? sessionData.activeAgents.join(' \xb7 ') : 'session recorded'}</span>
+      <button id="sp-close2" title="Close">\u00d7</button>
+    </div>
+    <div id="sp-body"></div>
+  </div>`
+    : ''
+}
 </div>
 <div id="legend">
   <span class="li-head">Files</span>
@@ -300,6 +361,8 @@ select:hover,button:hover{background:#475569}
     document.getElementById('sb-type').textContent = d.type === 'atom' ? 'Knowledge Atom' : 'File';
     document.getElementById('sb-body').innerHTML = d.type === 'atom' ? renderAtomPanel(d) : renderFilePanel(d);
     document.getElementById('sidebar').classList.add('open');
+    var sp = document.getElementById('session-panel');
+    if (sp) { sp.classList.remove('open'); var sb = document.getElementById('btn-session'); if (sb) { sb.classList.remove('active'); sessionPanelOpen = false; } }
   });
 
   cy.on('tap', function (evt) {
@@ -343,6 +406,85 @@ select:hover,button:hover{background:#475569}
     a.click();
     document.body.removeChild(a);
   });
+${
+  safeSessionData
+    ? `
+  var SESSION_DATA = ${safeSessionData};
+  var sessionRendered = false;
+  var sessionPanelOpen = false;
+
+  function fmt(n) {
+    return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+  }
+
+  function renderSessionPanel() {
+    var d = SESSION_DATA;
+    var total = d.totalPackUsedTokens + d.totalPackOmittedTokens;
+    var filterRate = total > 0 ? Math.round((d.totalPackOmittedTokens / total) * 100) : 0;
+    var avgToks = d.packCallCount > 0 ? Math.round(d.totalPackUsedTokens / d.packCallCount) : 0;
+    var filterCell = filterRate > 0
+      ? '<div class="sp-metric"><div class="sp-metric-val accent">' + filterRate + '%</div><div class="sp-metric-lbl">Filtered</div></div>'
+      : '<div class="sp-metric"><div class="sp-metric-val" style="font-size:11px;color:#475569;line-height:1.4">None</div><div class="sp-metric-lbl">Filtered</div></div>';
+    var summaryHtml =
+      '<div class="sp-summary">' +
+      '<div class="sp-metric"><div class="sp-metric-val">' + d.packCallCount + '</div><div class="sp-metric-lbl">Pack calls</div></div>' +
+      '<div class="sp-metric"><div class="sp-metric-val accent">' + fmt(d.totalPackUsedTokens) + '</div><div class="sp-metric-lbl">Tokens used</div></div>' +
+      '<div class="sp-metric"><div class="sp-metric-val">' + fmt(avgToks) + '</div><div class="sp-metric-lbl">Avg / call</div></div>' +
+      filterCell +
+      '</div>';
+    var maxUsed = 0;
+    d.contextEvents.forEach(function (e) { if ((e.packUsedTokens || 0) > maxUsed) maxUsed = e.packUsedTokens || 0; });
+    var callRows = '';
+    if (d.contextEvents.length > 0) {
+      callRows = '<div><div class="sp-group-lbl">Pack calls (' + d.contextEvents.length + ')</div>';
+      d.contextEvents.forEach(function (e) {
+        var used = e.packUsedTokens || 0;
+        var filt = e.packOmittedTokens || 0;
+        var barPct = maxUsed > 0 ? Math.round(used / maxUsed * 100) : 100;
+        var ts = e.timestamp ? new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        var filtLabel = filt > 0 ? ' <span style="color:#ef4444">-' + fmt(filt) + '</span>' : '';
+        callRows +=
+          '<div class="sp-call-row">' +
+          '<span class="sp-call-time">' + esc(ts) + '</span>' +
+          '<div class="sp-call-bar-wrap"><div class="sp-call-bar" style="width:' + barPct + '%"></div></div>' +
+          '<span class="sp-call-toks">' + fmt(used) + filtLabel + '</span>' +
+          '</div>';
+      });
+      callRows += '</div>';
+    }
+    var ioHtml =
+      '<div><div class="sp-group-lbl">File access</div>' +
+      '<div class="sp-io-row">' +
+      '<div class="sp-io-box"><div class="sp-io-val">' + d.readCount + '</div><div class="sp-io-lbl">Reads</div></div>' +
+      '<div class="sp-io-box"><div class="sp-io-val">' + d.writeCount + '</div><div class="sp-io-lbl">Writes</div></div>' +
+      '</div></div>';
+    document.getElementById('sp-body').innerHTML = summaryHtml + callRows + ioHtml;
+  }
+
+  document.getElementById('btn-session').addEventListener('click', function () {
+    var panel = document.getElementById('session-panel');
+    sessionPanelOpen = !sessionPanelOpen;
+    if (sessionPanelOpen) {
+      panel.classList.add('open');
+      this.classList.add('active');
+      if (!sessionRendered) {
+        renderSessionPanel();
+        sessionRendered = true;
+      }
+    } else {
+      panel.classList.remove('open');
+      this.classList.remove('active');
+    }
+  });
+
+  document.getElementById('sp-close2').addEventListener('click', function () {
+    document.getElementById('session-panel').classList.remove('open');
+    document.getElementById('btn-session').classList.remove('active');
+    sessionPanelOpen = false;
+  });
+`
+    : ''
+}
 })();
 </script>
 </body>

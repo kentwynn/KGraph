@@ -13,12 +13,22 @@ export interface IntegrationAdapter {
   targetPath: string;
   instructions: string;
   commandFiles?: IntegrationCommandFile[];
+  configFiles?: IntegrationConfigFile[];
   obsoleteCommandFiles?: string[];
 }
 
 export interface IntegrationCommandFile {
   path: string;
   content: string;
+}
+
+export interface IntegrationConfigFile {
+  /** Repo-relative path to a JSON config file (e.g. `.claude/settings.json`). */
+  path: string;
+  /** Merge KGraph entries into the existing parsed JSON object and return the result. */
+  merge: (existing: Record<string, unknown>) => Record<string, unknown>;
+  /** Remove KGraph entries from the existing parsed JSON and return the result. */
+  remove: (existing: Record<string, unknown>) => Record<string, unknown>;
 }
 
 const ADAPTERS: IntegrationAdapter[] = [
