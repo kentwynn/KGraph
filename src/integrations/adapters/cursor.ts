@@ -1,3 +1,4 @@
+import { agentSkillFiles } from '../agent-skills.js';
 import type { IntegrationAdapter } from '../integration-registry.js';
 import { bulletWorkflow } from '../workflow-steps.js';
 
@@ -14,5 +15,6 @@ alwaysApply: true
 
 ${bulletWorkflow('cursor')}
 `,
+  commandFiles: agentSkillFiles('cursor'),
   obsoleteCommandFiles: ['.cursor/rules/kgraph-commands.mdc'],
 };

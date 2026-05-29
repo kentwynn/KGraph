@@ -3,6 +3,7 @@ import path from 'node:path';
 import { loadConfig } from '../../config/config.js';
 import { buildContextPack } from '../../context/context-pack.js';
 import { queryContext } from '../../context/context-query.js';
+import { getCurrentCommit, isGitRepo } from '../../scanner/git-utils.js';
 import {
   assertSessionAgent,
   recordSessionEvent,
@@ -52,6 +53,45 @@ export function registerPackCommand(program: Command): void {
         ]);
         const response = await queryContext(workspace, config, maps, task);
         const pack = buildContextPack(response, budget, workspace.rootPath);
+
+        // P4: warn when maps are behind HEAD (user edited files without re-scanning)
+        if (await isGitRepo(workspace.rootPath)) {
+          const head = await getCurrentCommit(workspace.rootPath);
+          if (
+            head &&
+            maps.fileMap.scannedAtCommit &&
+            maps.fileMap.scannedAtCommit !== head
+          ) {
+            pack.warnings = [
+              `Maps are behind HEAD — run \`kgraph scan\` or \`kgraph "${task}"${agent ? ` --agent ${agent}` : ''}\` for accurate atom status. Knowledge freshness may be reduced.`,
+              ...pack.warnings,
+            ];
+          }
+        }
+
+        // P1: warn when needs-review or stale atoms are served in context
+        const degradedAtoms = pack.items.filter(
+          (item) =>
+            item.kind === 'atom' &&
+            ((item.data as { status?: string }).status === 'needs-review' ||
+              (item.data as { status?: string }).status === 'stale'),
+        );
+        if (degradedAtoms.length > 0) {
+          const needsReview = degradedAtoms.filter(
+            (item) =>
+              (item.data as { status?: string }).status === 'needs-review',
+          ).length;
+          const stale = degradedAtoms.filter(
+            (item) => (item.data as { status?: string }).status === 'stale',
+          ).length;
+          const parts: string[] = [];
+          if (needsReview > 0) parts.push(`${needsReview} needs-review`);
+          if (stale > 0) parts.push(`${stale} stale`);
+          pack.warnings = [
+            ...pack.warnings,
+            `${parts.join(', ')} atom(s) in context may reflect outdated knowledge — run \`kgraph stale\` to inspect, or \`kgraph "${task}" --final${agent ? ` --agent ${agent}` : ''}\` to resolve.`,
+          ];
+        }
         if (agent) {
           const omittedTokens = pack.omitted.reduce(
             (sum, item) => sum + item.tokenEstimate,
