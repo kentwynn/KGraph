@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.38](https://github.com/kentwynn/KGraph/compare/v0.2.37...v0.2.38) (2026-05-29)
+
+### ### Fixed
+
+* **ranking:** replace 60% prefix stem with 4-char + half-length stems ([f39a1cd](https://github.com/kentwynn/KGraph/commit/f39a1cd3a1252bdf7caa4956d9f5444420c6ae20))
+
 ## [0.2.37](https://github.com/kentwynn/KGraph/compare/v0.2.36...v0.2.37) (2026-05-27)
 
 ### ### Added
