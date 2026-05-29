@@ -27,9 +27,22 @@ describe('integration registry', () => {
     expect(getIntegrationAdapter('cline').targetPath).toBe(
       '.clinerules/kgraph.md',
     );
-    expect(getIntegrationAdapter('gemini').commandFiles).toBeUndefined();
-    expect(getIntegrationAdapter('windsurf').commandFiles).toBeUndefined();
-    expect(getIntegrationAdapter('cline').commandFiles).toBeUndefined();
+    // All three now include skill files for parity with copilot/codex
+    const sharedSkills = [
+      '.agents/skills/kgraph/SKILL.md',
+      '.agents/skills/kgraph-doctor/SKILL.md',
+      '.agents/skills/kgraph-pack/SKILL.md',
+      '.agents/skills/kgraph-stale/SKILL.md',
+    ];
+    expect(
+      getIntegrationAdapter('gemini').commandFiles?.map((f) => f.path),
+    ).toEqual(expect.arrayContaining(sharedSkills));
+    expect(
+      getIntegrationAdapter('windsurf').commandFiles?.map((f) => f.path),
+    ).toEqual(expect.arrayContaining(sharedSkills));
+    expect(
+      getIntegrationAdapter('cline').commandFiles?.map((f) => f.path),
+    ).toEqual(expect.arrayContaining(sharedSkills));
   });
 
   it('defines command files for integrations that support reusable commands', () => {

@@ -7,9 +7,9 @@ export interface Ranked<T> {
 export function tokenize(query: string): string[] {
   return expandTokens(
     query
-    .toLowerCase()
-    .split(/[^a-z0-9_$./-]+/)
-    .map((token) => token.trim())
+      .toLowerCase()
+      .split(/[^a-z0-9_$./-]+/)
+      .map((token) => token.trim())
       .filter(Boolean),
   );
 }
@@ -30,7 +30,10 @@ export function rankByFields<T>(
       for (const field of fields) {
         const value = field.value(item);
         const values = Array.isArray(value) ? value : value ? [value] : [];
-        const haystack = values.flatMap((value) => [value, splitIdentifier(value).join(' ')]).join(' ').toLowerCase();
+        const haystack = values
+          .flatMap((value) => [value, splitIdentifier(value).join(' ')])
+          .join(' ')
+          .toLowerCase();
         for (const token of tokens) {
           if (haystack.includes(token)) {
             const baseScore =
@@ -41,7 +44,9 @@ export function rankByFields<T>(
                   : 1;
             const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const wordBoundary = new RegExp(`\\b${escaped}\\b`).test(haystack);
-            const exactValue = values.some((value) => value.toLowerCase() === token);
+            const exactValue = values.some(
+              (value) => value.toLowerCase() === token,
+            );
             score += baseScore + (wordBoundary ? 2 : 0) + (exactValue ? 4 : 0);
             reasons.push(
               `${field.name} matched "${token}"${wordBoundary || exactValue ? ' (exact)' : ''}`,
@@ -56,7 +61,26 @@ export function rankByFields<T>(
 }
 
 function expandTokens(tokens: string[]): string[] {
-  return [...new Set(tokens.flatMap((token) => [token, ...splitIdentifier(token)]))];
+  return [
+    ...new Set(
+      tokens.flatMap((token) => {
+        const parts = [token, ...splitIdentifier(token)];
+        // Add prefix stems so "authentication" also matches "auth",
+        // "configuration" matches "config", etc. Only for longer tokens
+        // to avoid over-matching short words.
+        // Use a short 4-char stem (catches root prefixes like "auth", "conf", "init")
+        // and a half-length stem (catches "config" from "configuration", "authent" from
+        // "authentication"). Both are narrower than the full token so they find real matches
+        // without over-fetching.
+        if (token.length >= 8) {
+          parts.push(token.slice(0, 4));
+          const half = Math.floor(token.length * 0.5);
+          if (half > 4) parts.push(token.slice(0, half));
+        }
+        return parts;
+      }),
+    ),
+  ];
 }
 
 function splitIdentifier(value: string): string[] {

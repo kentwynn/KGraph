@@ -152,6 +152,15 @@ describe('kgraph integrate', () => {
       expect(gemini).toContain('kgraph update');
       await access(path.join(repo, '.windsurf', 'rules', 'kgraph.md'));
       await access(path.join(repo, '.clinerules', 'kgraph.md'));
+      // skill files written for all three
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-pack', 'SKILL.md'),
+      );
+      await access(
+        path.join(repo, '.agents', 'skills', 'kgraph-doctor', 'SKILL.md'),
+      );
+      // gemini uses numbered workflow
+      expect(gemini).toMatch(/\d+\.\s/); // contains numbered steps
 
       const remove = await runCli(repo, [
         'integrate',

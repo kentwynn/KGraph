@@ -233,6 +233,24 @@ const filePath = payload?.tool_input?.file_path || payload?.toolInput?.file_path
 if (!filePath) process.exit(0);
 args.push(filePath);`
       : '';
+
+  // On session end: run stale check first (refreshes atom statuses against current
+  // maps without needing a topic), then end the session with --conclude so any
+  // pending knowledge is captured. Both run regardless of each other's exit code.
+  if (event === 'end') {
+    return `#!/usr/bin/env node
+const { spawnSync } = require('node:child_process');
+
+// P3: refresh atom statuses against current maps so needs-review/stale atoms
+// are up to date before the session ends. Output ignored — hook is silent.
+spawnSync('kgraph', ['stale', '--json'], { stdio: 'ignore' });
+
+// P2: end the session and trigger conclude so durable knowledge is captured.
+const result = spawnSync('kgraph', ['session', 'end', '--agent', 'claude-code', '--conclude', '--source', 'automatic'], { stdio: 'ignore' });
+process.exit(result.status || 0);
+`;
+  }
+
   return `#!/usr/bin/env node
 const { spawnSync } = require('node:child_process');
 
