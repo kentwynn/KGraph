@@ -5,7 +5,7 @@ KGraph is a free, local-first repository intelligence layer for AI coding tools.
 The official npm package is `@kentwynn/kgraph`.
 The official repository is `github.com/kentwynn/KGraph`.
 
-KGraph helps coding agents reuse repo structure, symbols, relationships, and durable knowledge atoms instead of rediscovering the same codebase every session.
+KGraph gives AI coding tools a local repo memory: file maps, symbols, relationships, and durable knowledge atoms stored under `.kgraph/`.
 
 ## Start Here
 
@@ -25,18 +25,12 @@ KGraph helps coding agents reuse repo structure, symbols, relationships, and dur
 - No cloud service requirement
 - No source-code upload
 
-## Quick Install
+## Quick Start
 
 ```bash
 npm install -g @kentwynn/kgraph@latest
-kgraph --version
-```
-
-Or run without installing:
-
-```bash
-npx @kentwynn/kgraph@latest init
-npx @kentwynn/kgraph@latest "auth token refresh"
+kgraph init
+kgraph "auth token refresh"
 ```
 
 KGraph requires Node.js 20 or newer.
