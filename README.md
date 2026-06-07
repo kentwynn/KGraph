@@ -2,7 +2,7 @@
 
 <img src="media/logo.svg" alt="KGraph Atom Core Logo" width="140" height="140">
 
-# KGraph: Persistent repository intelligence for AI coding tools.
+# KGraph: Local repo memory for AI coding tools.
 
 <strong>atoms · evidence · context packs</strong>
 
@@ -35,9 +35,19 @@
 
 </div>
 
-KGraph gives Codex, GitHub Copilot, Cursor, Claude Code, Gemini CLI, Windsurf, and Cline a local knowledge layer for your repo: file maps, symbols, imports, relationships, and durable knowledge atoms from previous AI sessions. The goal is simple: your assistant should not spend every session re-learning the same codebase.
+KGraph gives AI coding tools a local repo memory: file maps, symbols, imports, relationships, and durable knowledge atoms stored under `.kgraph/`. The goal is simple: stop re-learning the same codebase every session.
 
 The CLI presents this as **Atom Core**: lightweight local atoms plus deterministic repo maps, context packs, and session history that remain inspectable under `.kgraph/`.
+
+## Try It in 30 Seconds
+
+```bash
+npm install -g @kentwynn/kgraph@latest
+kgraph init
+kgraph "auth token refresh"
+```
+
+That gets you a local scan, a focused context response, and durable memory under `.kgraph/` for the next session.
 
 ## The Workflow
 
@@ -148,18 +158,20 @@ From the root of a repository:
 # 1. Create the local KGraph workspace and run the first scan
 kgraph init
 
-# 2. Optional: accept detected AI tool recommendations during init,
-# or add integrations later when you want KGraph-managed instructions
-kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
-
-# 3. Run the normal workflow for a topic
+# 2. Ask for focused context on a real repo topic
 kgraph "auth token refresh"
 
-# 4. Verify the setup and use doctor as the quality gate
+# 3. Optional: verify the workspace and saved intelligence
 kgraph doctor
 ```
 
 `kgraph init` scans once, prints repo language coverage, detects likely local AI tools, and recommends matching integrations. Integrations are still optional: they only write local instruction files so tools know when to run KGraph. They do not start background agents or call AI providers.
+
+If you already know exactly which integrations you want, you can add them later:
+
+```bash
+kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
+```
 
 After useful AI work, assistants save durable runtime-capture notes into `.kgraph/inbox/`. These notes are not project documentation; they are KGraph input files that the next `kgraph` run processes automatically. You can also process them directly with `kgraph update`.
 
