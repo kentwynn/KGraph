@@ -76,7 +76,7 @@
     "tree-sitter-scala": "^0.24.0",
     "tree-sitter-wasms": "^0.1.13",
     "tsx": "^4.19.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.8"
   },
   "engines": {
     "node": ">=20"
