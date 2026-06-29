@@ -27,11 +27,13 @@ kgraph integrate add copilot --mcp
 
 KGraph writes a `KGraph` server entry to VS Code's MCP config for the current repository and prints the config path. Reload VS Code after this command so Copilot can start the server.
 
-On macOS, VS Code's user MCP config is usually:
+KGraph's VS Code MCP config writer supports the normal VS Code stable user config path on macOS, Windows, and Linux:
 
-```text
-~/Library/Application Support/Code/User/mcp.json
-```
+| OS      | VS Code MCP config path |
+| ------- | ----------------------- |
+| macOS   | `~/Library/Application Support/Code/User/mcp.json` |
+| Windows | `%APPDATA%\Code\User\mcp.json`, usually `C:\Users\<you>\AppData\Roaming\Code\User\mcp.json` |
+| Linux   | `~/.config/Code/User/mcp.json` |
 
 The generated server entry is equivalent to:
 
@@ -56,7 +58,7 @@ MCP setup edits editor/client configuration outside the repository, so KGraph on
 
 ## Other Clients
 
-Codex, Cursor, Claude Code, VS Code, and other MCP clients each have their own MCP config location. The current `--mcp` setup targets VS Code/Copilot. For other clients, point the client at:
+Codex, Cursor, Claude Code, VS Code Insiders, VSCodium, Windsurf, and other MCP clients each have their own MCP config location. The current `--mcp` setup targets VS Code stable with Copilot on macOS, Windows, and Linux. For other clients, point the client at:
 
 ```bash
 kgraph mcp --root /path/to/repo
