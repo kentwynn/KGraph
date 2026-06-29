@@ -13,7 +13,7 @@ KGraph's roadmap stays focused on practical repo intelligence for AI coding work
 
 ## Integrations
 
-- Optional MCP support
+- More MCP client setup targets beyond VS Code/Copilot
 - More editor/tool-call integration surfaces
 - Better session capture for agents that support hooks or tool commands
 

@@ -6,6 +6,7 @@ import {
   removeIntegrations,
   setIntegrationMode,
 } from '../../integrations/integration-store.js';
+import { installVSCodeMcpServer } from '../../integrations/vscode-mcp.js';
 import { assertWorkspace } from '../../storage/kgraph-paths.js';
 import type { IntegrationMode } from '../../types/config.js';
 import { KGraphError, runCommand } from '../errors.js';
@@ -40,7 +41,11 @@ export function registerIntegrateCommand(program: Command): void {
     .description('Add AI tool integrations')
     .argument('<names...>')
     .option('--mode <mode>', 'always, smart, manual, or off', 'always')
-    .action((names: string[], options: { mode: string }) =>
+    .option(
+      '--mcp',
+      'Configure the VS Code/Copilot MCP server for this repository',
+    )
+    .action((names: string[], options: { mode: string; mcp?: boolean }) =>
       runCommand(async () => {
         const workspace = await assertWorkspace(process.cwd());
         const normalized = normalizeIntegrationNames(names);
@@ -52,6 +57,13 @@ export function registerIntegrateCommand(program: Command): void {
         console.log(
           `Configured integrations: ${changed.map((item) => `${item.name}:${item.mode}`).join(', ')}`,
         );
+        if (options.mcp) {
+          const result = await installVSCodeMcpServer(workspace);
+          console.log(
+            `${result.changed ? 'Configured' : 'Verified'} VS Code MCP server: ${result.serverName} (${result.configPath})`,
+          );
+          console.log('Reload VS Code so it starts the KGraph MCP server.');
+        }
       }),
     );
 

@@ -32,6 +32,10 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'init --integrations codex,gemini',
       'Optional: initialize and connect named AI tools',
     ),
+    command(
+      'init --integrations copilot --mcp',
+      'Optional: also register KGraph as a VS Code MCP server',
+    ),
     '',
     sectionTitle(theme, `${accent} Daily workflow`),
     command('kgraph', 'Refresh scan maps and process pending capture notes'),
@@ -99,6 +103,7 @@ export function renderRootHelp(useColor = supportsColor()): string {
       'Interactive dependency graph at http://localhost:4242',
     ),
     command('history "blog button"', 'Search processed cognition sessions'),
+    command('mcp', 'Start the local MCP server over stdio'),
     '',
     sectionTitle(theme, `${accent} Integrations`),
     command('integrate list', 'Show configured AI tool integrations'),
@@ -109,6 +114,10 @@ export function renderRootHelp(useColor = supportsColor()): string {
     command(
       'integrate add copilot --mode smart',
       'Run KGraph for repo-specific Copilot work only',
+    ),
+    command(
+      'integrate add copilot --mcp',
+      'Also register the KGraph MCP server in VS Code',
     ),
     command(
       'integrate set copilot --mode manual',

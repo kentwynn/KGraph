@@ -13,6 +13,7 @@ import { registerImpactCommand } from './commands/impact.js';
 import { registerInitCommand } from './commands/init.js';
 import { registerIntegrateCommand } from './commands/integrate.js';
 import { registerKnowledgeCommand } from './commands/knowledge.js';
+import { registerMcpCommand } from './commands/mcp.js';
 import { registerPackCommand } from './commands/pack.js';
 import { registerRepairCommand } from './commands/repair.js';
 import { registerScanCommand } from './commands/scan.js';
@@ -102,6 +103,7 @@ export function createProgram(): Command {
   registerContextCommand(program);
   registerPackCommand(program);
   registerKnowledgeCommand(program);
+  registerMcpCommand(program);
   registerStaleCommand(program);
   registerBlameCommand(program);
   registerImpactCommand(program);

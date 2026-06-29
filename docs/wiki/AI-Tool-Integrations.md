@@ -23,6 +23,17 @@ New integrations default to `always` mode, so every chat in the repository start
 
 Generated instructions teach agents to use the atom-native workflow: `context`, `pack`, `knowledge`, `stale`, `blame`, `conclude`, `compact`, `repair`, `impact`, `history`, and `session` where supported.
 
+## MCP
+
+For VS Code/Copilot, add `--mcp` when initializing or adding the Copilot integration:
+
+```bash
+kgraph init --integrations copilot --mcp
+kgraph integrate add copilot --mcp
+```
+
+This registers KGraph as a VS Code MCP server for the current repository. See [MCP Setup](MCP-Setup) for client behavior and setup details.
+
 ## Managed Files
 
 | Tool           | Files KGraph manages                                   |
