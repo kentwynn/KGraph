@@ -1,4 +1,5 @@
-import { access, readFile } from 'node:fs/promises';
+import { access, readFile, realpath } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import YAML from 'yaml';
@@ -48,4 +49,38 @@ describe('kgraph init integrations', () => {
       await cleanupTempRepo(repo);
     }
   });
+
+  it('can configure VS Code MCP during init', async () => {
+    const repo = await createTempRepo();
+    try {
+      const result = await runCli(repo, [
+        'init',
+        '--integrations',
+        'copilot',
+        '--mcp',
+      ]);
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain('Configured integrations: copilot:always');
+      expect(result.stdout).toContain('Configured VS Code MCP server: KGraph');
+
+      const mcp = JSON.parse(
+        await readFile(vscodeMcpConfigPath(repo), 'utf8'),
+      );
+      expect(mcp.servers.KGraph).toEqual({
+        command: 'kgraph',
+        args: ['mcp', '--root', await realpath(repo)],
+        type: 'stdio',
+      });
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
 });
+
+function vscodeMcpConfigPath(repo: string): string {
+  return path.join(
+    os.tmpdir(),
+    'kgraph-vscode-mcp-test-' + path.basename(repo),
+    'mcp.json',
+  );
+}

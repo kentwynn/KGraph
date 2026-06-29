@@ -384,6 +384,13 @@ kgraph history --json
 
 Show processed capture history. Add a query to find historical work by title, summary, file, symbol, or note body.
 
+```bash
+kgraph mcp
+kgraph mcp --root /path/to/repo
+```
+
+Start the local KGraph MCP server over stdio. You normally do not run this command by hand; MCP clients such as VS Code start it automatically after KGraph is registered in that client's MCP config. MCP clients can call typed `kgraph_*` tools for orchestration, context packs, impact analysis, capture, health checks, and command-compatible access to the full CLI surface. Prefer MCP tools when the client exposes them; otherwise use the normal CLI commands.
+
 ## AI Tool Integrations
 
 KGraph integrations are local files. They do not start background agents, call AI providers, or send data anywhere.
@@ -393,14 +400,18 @@ You do not need integrations to use KGraph manually. They are useful when you wa
 `kgraph init` detects likely local tools and recommends integrations when possible. You can also manage them explicitly:
 
 ```bash
+kgraph init --integrations copilot --mcp
 kgraph integrate add codex copilot cursor claude-code gemini windsurf cline
+kgraph integrate add copilot --mcp
 kgraph integrate add copilot --mode smart
 kgraph integrate set copilot --mode manual
 kgraph integrate list
 kgraph integrate remove cursor
 ```
 
-New integrations default to `always` mode, so every chat in the repository starts with the matching KGraph command. Use `--mode smart` to run KGraph only for repo-specific work, or `--mode manual` to run only when explicitly asked.
+New integrations default to `always` mode, so every chat in the repository starts with the matching KGraph command. Use `--mode smart` to run KGraph only for repo-specific work, or `--mode manual` to run only when explicitly asked. Plain `kgraph init` stays repo-local; add `--mcp` only when you want KGraph to write editor/client MCP config.
+
+Add `--mcp` when configuring Copilot from VS Code. KGraph writes a `KGraph` stdio server entry to the VS Code MCP config for this repository and prints the config path; reload VS Code afterward so Copilot can start the server. If an AI client exposes MCP tools named `kgraph_*`, use those tools for KGraph orchestration and context. If MCP is unavailable, use the CLI commands generated in the integration instructions. MCP changes the transport, not the `always`, `smart`, `manual`, or `off` policy. See the [MCP setup wiki page](docs/wiki/MCP-Setup.md) for details.
 
 | Mode     | Behavior                                                                                                                                                                                                |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -557,5 +568,5 @@ The release workflow builds, tests, packs, publishes the npm package on version 
 - Smarter cross-file symbol and call relationship inference.
 - Stronger TypeScript path alias and package export resolution.
 - Richer graph filtering for large repositories.
-- Optional MCP and editor integration.
+- More MCP client setup targets beyond VS Code/Copilot.
 - Team-friendly shared knowledge workflows that stay local-first.

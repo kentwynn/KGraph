@@ -11,6 +11,7 @@ KGraph gives AI coding tools a local repo memory: file maps, symbols, relationsh
 
 - [Command Guide](Command-Guide)
 - [AI Tool Integrations](AI-Tool-Integrations)
+- [MCP Setup](MCP-Setup)
 - [Local-First Design](Local-First-Design)
 - [Roadmap](Roadmap)
 - [Contributing](Contributing)

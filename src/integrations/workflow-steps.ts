@@ -34,6 +34,7 @@ const COMPACT_STEP = `Run \`kgraph compact --dry-run\` when cognition looks dupl
 const HISTORY_STEP = `Run \`kgraph history "<topic>"\` when the user asks what was done, decided, or changed — it covers the full timeline including notes captured via \`conclude\`, \`--capture\`, and inbox. Prefer history over \`knowledge list\` when the question is about sequence, timing, or authorship rather than atom details.`;
 const KNOWLEDGE_STEP = `Run \`kgraph knowledge list --topic "<topic>"\` or \`kgraph knowledge get <atom-id>\` when the user asks what KGraph remembers or atom provenance/lifecycle matters.`;
 const STALE_STEP = `Run \`kgraph stale\` when changed or deleted code may have invalidated durable knowledge. Run \`kgraph blame <atom-id>\` when provenance or evidence for a memory matters.`;
+const MCP_ROUTING_STEP = `If MCP tools named \`kgraph_*\` are available in this client, prefer those tools for KGraph orchestration and context. If MCP is not available, use the normal CLI commands shown here. MCP changes the transport, not the memory policy.`;
 const EXPLORATION_BOUNDARY_STEP = `Keep exploration bounded by the task. For simple edits, use KGraph to identify the likely file, then read only that file or a narrow range and make the edit. Do not keep searching after the target file is found, do not retry malformed shell commands with broader variants, and do not run broad \`find\`, recursive \`grep\`, or repeated full-file dumps after KGraph already returned candidate files.`;
 const VERIFY_EDIT_STEP = `After editing, verify the change actually landed before claiming completion. Prefer a narrow read of the changed range or \`git diff -- <path>\`; if there is no diff or the expected text is missing, say the edit did not apply and fix it before summarizing.`;
 const SCAN_STEP = `After bulk file creation, deletion, or rename (3+ files), run \`kgraph scan\` before the next \`kgraph pack\` so maps stay accurate.`;
@@ -60,24 +61,25 @@ export function numberedWorkflow(
   options: WorkflowOptions = {},
 ): string {
   return `1. Infer the topic from the user's request.
-2. {{KGRAPH_CONTEXT_POLICY}}
-3. When a pack item includes an \`excerpt\` field (symbol) or a \`content\` field (file), you already have the source code inline — do not read that file separately. Items in the \`omitted\` array were evaluated and excluded — do not manually search for them unless the user explicitly asks.
-4. ${EXPLORATION_BOUNDARY_STEP}
-5. ${VERIFY_EDIT_STEP}
-6. ${smartRootStep(agentName)}
-7. ${KNOWLEDGE_STEP}
-8. ${DOCTOR_STEP}
-9. ${STALE_STEP}
-10. ${SCAN_STEP}
-11. ${sessionStep(agentName, options.sessionQualifier)}
-12. ${IMPACT_STEP}
+2. ${MCP_ROUTING_STEP}
+3. {{KGRAPH_CONTEXT_POLICY}}
+4. When a pack item includes an \`excerpt\` field (symbol) or a \`content\` field (file), you already have the source code inline — do not read that file separately. Items in the \`omitted\` array were evaluated and excluded — do not manually search for them unless the user explicitly asks.
+5. ${EXPLORATION_BOUNDARY_STEP}
+6. ${VERIFY_EDIT_STEP}
+7. ${smartRootStep(agentName)}
+8. ${KNOWLEDGE_STEP}
+9. ${DOCTOR_STEP}
+10. ${STALE_STEP}
+11. ${SCAN_STEP}
+12. ${sessionStep(agentName, options.sessionQualifier)}
+13. ${IMPACT_STEP}
 
 {{KGRAPH_CAPTURE_POLICY}}
 
-13. ${REPAIR_STEP}
-14. ${COMPACT_STEP}
-15. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph locally with PNG export.
-16. ${HISTORY_STEP}
+14. ${REPAIR_STEP}
+15. ${COMPACT_STEP}
+16. Run \`kgraph visualize\` when the user wants to inspect the dependency graph — opens an interactive graph locally with PNG export.
+17. ${HISTORY_STEP}
 
 ${DECISION_CONTEXT}`;
 }
@@ -90,7 +92,8 @@ export function bulletWorkflow(
   agentName: string,
   options: WorkflowOptions = {},
 ): string {
-  return `- {{KGRAPH_CONTEXT_POLICY}}
+  return `- ${MCP_ROUTING_STEP}
+- {{KGRAPH_CONTEXT_POLICY}}
 - When a pack item includes an \`excerpt\` field (symbol) or a \`content\` field (file), you already have the source code inline — do not read that file separately. Items in the \`omitted\` array were evaluated and excluded — do not manually search for them unless the user explicitly asks.
 - ${EXPLORATION_BOUNDARY_STEP}
 - ${VERIFY_EDIT_STEP}

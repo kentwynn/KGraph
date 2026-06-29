@@ -125,3 +125,23 @@ kgraph visualize --no-open
 ```
 
 The graph shows files, imports, relationship edges, and canonical knowledge atoms. Symbols are shown in the file detail panel for performance.
+
+## `kgraph mcp`
+
+Starts the local KGraph MCP server over stdio.
+
+```bash
+kgraph mcp
+kgraph mcp --root /path/to/repo
+```
+
+MCP clients start this command automatically after KGraph is registered in that client's MCP config; you normally do not run it directly in a terminal. MCP clients can call typed `kgraph_*` tools for orchestration, context packs, impact analysis, capture, health checks, session tracking, and command-compatible access to the full CLI surface. If MCP tools are not available in the client, use the normal CLI commands.
+
+For VS Code/Copilot, register KGraph automatically while initializing or adding the Copilot integration:
+
+```bash
+kgraph init --integrations copilot --mcp
+kgraph integrate add copilot --mcp
+```
+
+Plain `kgraph init` stays repo-local and does not edit editor config. Add `--mcp` only when you want KGraph to write the VS Code MCP entry for this repository. Reload VS Code after KGraph prints the MCP config path. See [MCP Setup](MCP-Setup) for the full guide.

@@ -37,6 +37,8 @@ export async function runCli(
   const originalDisableMachineDetection =
     process.env.KGRAPH_DISABLE_MACHINE_DETECTION;
   const originalCopilotMemoryDir = process.env.KGRAPH_COPILOT_MEMORY_DIR;
+  const originalVSCodeMcpConfig = process.env.KGRAPH_VSCODE_MCP_CONFIG;
+  const originalMcpCommand = process.env.KGRAPH_MCP_COMMAND;
   let stdout = '';
   let stderr = '';
   process.chdir(repoPath);
@@ -46,6 +48,12 @@ export async function runCli(
     os.tmpdir(),
     'kgraph-memory-test-' + path.basename(repoPath),
   );
+  process.env.KGRAPH_VSCODE_MCP_CONFIG = path.join(
+    os.tmpdir(),
+    'kgraph-vscode-mcp-test-' + path.basename(repoPath),
+    'mcp.json',
+  );
+  process.env.KGRAPH_MCP_COMMAND = 'kgraph';
   process.stdout.write = ((chunk: string | Uint8Array) => {
     stdout += chunk.toString();
     return true;
@@ -86,6 +94,16 @@ export async function runCli(
       delete process.env.KGRAPH_COPILOT_MEMORY_DIR;
     } else {
       process.env.KGRAPH_COPILOT_MEMORY_DIR = originalCopilotMemoryDir;
+    }
+    if (originalVSCodeMcpConfig === undefined) {
+      delete process.env.KGRAPH_VSCODE_MCP_CONFIG;
+    } else {
+      process.env.KGRAPH_VSCODE_MCP_CONFIG = originalVSCodeMcpConfig;
+    }
+    if (originalMcpCommand === undefined) {
+      delete process.env.KGRAPH_MCP_COMMAND;
+    } else {
+      process.env.KGRAPH_MCP_COMMAND = originalMcpCommand;
     }
     process.chdir(originalCwd);
   }

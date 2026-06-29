@@ -7,6 +7,7 @@ import {
 import { installCopilotMemory } from '../../integrations/copilot-memory.js';
 import { normalizeIntegrationNames } from '../../integrations/integration-registry.js';
 import { addIntegrations } from '../../integrations/integration-store.js';
+import { installVSCodeMcpServer } from '../../integrations/vscode-mcp.js';
 import { ensureKnowledgeStore } from '../../knowledge/atom-store.js';
 import { scanRepository } from '../../scanner/repo-scanner.js';
 import { ensureWorkspace } from '../../storage/kgraph-paths.js';
@@ -30,6 +31,7 @@ interface InitOptions {
   integration?: string[];
   integrations?: string;
   mode: string;
+  mcp?: boolean;
 }
 
 export function registerInitCommand(program: Command): void {
@@ -50,6 +52,10 @@ export function registerInitCommand(program: Command): void {
       '--mode <mode>',
       'Integration mode: always, smart, manual, or off',
       'always',
+    )
+    .option(
+      '--mcp',
+      'Configure the VS Code/Copilot MCP server for this repository',
     )
     .action((options: InitOptions) =>
       runCommand(async () => {
@@ -72,6 +78,14 @@ export function registerInitCommand(program: Command): void {
           console.log(
             `Configured integrations: ${changed.map((item) => `${item.name}:${item.mode}`).join(', ')}`,
           );
+        }
+
+        if (options.mcp) {
+          const result = await installVSCodeMcpServer(workspace);
+          console.log(
+            `${result.changed ? 'Configured' : 'Verified'} VS Code MCP server: ${result.serverName} (${result.configPath})`,
+          );
+          console.log('Reload VS Code so it starts the KGraph MCP server.');
         }
 
         let config = await loadConfig(workspace);
