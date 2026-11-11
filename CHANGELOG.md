@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.41](https://github.com/kentwynn/KGraph/compare/v0.2.40...v0.2.41) (2026-11-11)
+
+### Fixed
+
+* Re-scan staged, unstaged, untracked, and previously dirty files to keep memory references accurate.
+* Resolve TypeScript path aliases, dotted filenames, barrel re-exports, and guessed call targets.
+* Improve query ranking and exact-symbol impact analysis, and reduce context expansion through barrels.
+
 ## [0.2.40](https://github.com/kentwynn/KGraph/compare/v0.2.39...v0.2.40) (2026-06-29)
 
 ## [0.2.39](https://github.com/kentwynn/KGraph/compare/v0.2.38...v0.2.39) (2026-06-29)
