@@ -61,8 +61,14 @@ export function buildContextPack(
     })),
   ];
 
-  const orderedCandidates = candidates.sort(comparePackCandidates);
-  const strongPaths = strongPackPaths(candidates);
+  const relevantPaths = new Set([
+    ...response.relevantFiles.map((ranked) => ranked.item.path),
+    ...response.relevantSymbols.map((ranked) => ranked.item.filePath),
+  ]);
+  const orderedCandidates = candidates.sort((left, right) =>
+    comparePackCandidates(left, right, relevantPaths),
+  );
+  const strongPaths = strongPackPaths(candidates, relevantPaths);
   const items: ContextPackItem[] = [];
   const omitted: ContextPackItem[] = [];
   let usedTokens = 0;
@@ -108,14 +114,29 @@ export function buildContextPack(
 function comparePackCandidates(
   left: ContextPackItem,
   right: ContextPackItem,
+  relevantPaths: Set<string>,
 ): number {
-  return packPriority(right) - packPriority(left);
+  return packPriority(right, relevantPaths) - packPriority(left, relevantPaths);
 }
 
-function packPriority(item: ContextPackItem): number {
+/** A git change only matters to this task when it touches a file the query matched. */
+function isRelevantGitChange(item: ContextPackItem, relevantPaths: Set<string>): boolean {
+  const pathValue = candidatePath(item);
+  return pathValue !== undefined && relevantPaths.has(pathValue);
+}
+
+function hasQueryMatch(item: ContextPackItem): boolean {
+  return item.reasons.some(
+    (reason) => /matched "/.test(reason) || reason.startsWith('defines matched symbol'),
+  );
+}
+
+function packPriority(item: ContextPackItem, relevantPaths: Set<string>): number {
   let score = 0;
   if (item.kind === 'atom') score += 1000;
-  if (item.kind === 'git-change') score += 900;
+  if (item.kind === 'git-change') {
+    score += isRelevantGitChange(item, relevantPaths) ? 900 : 50;
+  }
   if (item.kind === 'file-range') score += 800;
   if (item.kind === 'symbol') score += 300;
   if (item.kind === 'file') score += 200;
@@ -136,10 +157,16 @@ function packPriority(item: ContextPackItem): number {
   return score;
 }
 
-function strongPackPaths(candidates: ContextPackItem[]): Set<string> {
+function strongPackPaths(
+  candidates: ContextPackItem[],
+  relevantPaths: Set<string>,
+): Set<string> {
   const paths = new Set<string>();
   for (const candidate of candidates) {
-    if (candidate.kind === 'file-range' || candidate.kind === 'git-change') {
+    if (
+      candidate.kind === 'file-range' ||
+      (candidate.kind === 'git-change' && isRelevantGitChange(candidate, relevantPaths))
+    ) {
       const pathValue = candidatePath(candidate);
       if (pathValue) paths.add(pathValue);
     }
@@ -168,6 +195,7 @@ function isLowSignalCandidate(
     return false;
   }
   if (hasStrongReason(candidate)) return false;
+  if (hasQueryMatch(candidate)) return false;
   if (candidateTouchesStrongPath(candidate, strongPaths)) return false;
   return (
     candidate.kind === 'file' ||

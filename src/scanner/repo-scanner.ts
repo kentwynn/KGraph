@@ -2,6 +2,7 @@ import fg from 'fast-glob';
 import crypto from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import ts from 'typescript';
 import { estimateTokens } from '../session/token-estimator.js';
 import type { KGraphConfig } from '../types/config.js';
 import type {
@@ -26,6 +27,7 @@ import {
 import {
   getChangedFilesSince,
   getGitIgnoredFiles,
+  getUncommittedFiles,
   isGitRepo,
 } from './git-utils.js';
 import { extractGoSymbols } from './go-symbol-extractor.js';
@@ -36,7 +38,7 @@ import { extractRubySymbols } from './ruby-symbol-extractor.js';
 import { extractRustSymbols } from './rust-symbol-extractor.js';
 import { extractShellSymbols } from './shell-symbol-extractor.js';
 import { extractSqlSymbols } from './sql-symbol-extractor.js';
-import { extractTsSymbols } from './ts-symbol-extractor.js';
+import { extractTsSymbols, resolveLocalImport } from './ts-symbol-extractor.js';
 
 const C_EXTS = new Set(['.c', '.h', '.cpp', '.cc', '.cxx', '.hpp', '.hxx']);
 const JVM_EXTS = new Set(['.java', '.kt', '.kts']);
@@ -137,15 +139,17 @@ export async function scanRepository(
   // Build git-changed-file set for fast incremental skip bypassing stat() calls.
   // Only used when the previous scan stored a commit hash and we are in a git repo.
   let gitChangedFiles: Set<string> | null = null;
-  if (previous?.scannedAtCommit && (await isGitRepo(rootPath))) {
-    const changed = await getChangedFilesSince(
-      rootPath,
-      previous.scannedAtCommit,
-    );
-    // Also include working-tree dirty files so uncommitted edits are always re-scanned.
-    // getChangedFilesSince returns committed changes; we complement with a stat check
-    // fallback below for uncommitted edits to keep correctness.
-    gitChangedFiles = new Set(changed);
+  let uncommittedFiles = new Set<string>();
+  if (await isGitRepo(rootPath)) {
+    const uncommitted = await getUncommittedFiles(rootPath);
+    uncommittedFiles = new Set(uncommitted ?? []);
+    if (previous?.scannedAtCommit && uncommitted) {
+      const changed = await getChangedFilesSince(
+        rootPath,
+        previous.scannedAtCommit,
+      );
+      gitChangedFiles = new Set([...changed, ...uncommitted]);
+    }
   }
 
   const files: RepositoryFile[] = [];
@@ -165,9 +169,11 @@ export async function scanRepository(
       const prevFile = prevFileByPath.get(repoPath);
 
       // Fast git-based skip: if we have a git-changed set and this file is NOT in it,
-      // carry forward directly without touching the filesystem.
+      // carry forward directly without touching the filesystem. A file that was dirty
+      // at the last scan may since have been reverted, so it is always re-checked.
       if (
         prevFile &&
+        !prevFile.uncommitted &&
         gitChangedFiles !== null &&
         !gitChangedFiles.has(repoPath)
       ) {
@@ -196,7 +202,11 @@ export async function scanRepository(
         prevFile.sizeBytes === info.size &&
         prevFile.modifiedAt === info.mtime.toISOString()
       ) {
-        files.push({ ...prevFile, modifiedAt: info.mtime.toISOString() });
+        files.push({
+          ...prevFile,
+          modifiedAt: info.mtime.toISOString(),
+          uncommitted: uncommittedFiles.has(repoPath) || undefined,
+        });
         const prevSyms = prevSymbolsByFile.get(repoPath);
         if (prevSyms) symbols.push(...prevSyms);
         const prevDeps = prevDepsByFile.get(repoPath);
@@ -232,6 +242,7 @@ export async function scanRepository(
         scanStatus: isPreciseLanguage(repoPath, config) ? 'mapped' : 'generic',
         warnings: [],
       };
+      if (uncommittedFiles.has(repoPath)) file.uncommitted = true;
 
       if (isPreciseLanguage(repoPath, config)) {
         const extracted = await extractSymbols(text, repoPath);
@@ -262,7 +273,8 @@ export async function scanRepository(
     }
   }
 
-  resolveLocalDependencies(dependencies, files);
+  resolveLocalDependencies(dependencies, files, await readTsPathAliases(rootPath));
+  correctGuessedCallTargets(dependencies, relationships);
   relationships.push(...buildImportRelationships(dependencies));
   relationships.push(
     ...detectMovedFiles(
@@ -316,21 +328,115 @@ const SOURCE_EXTENSIONS = [
   '.scala',
 ] as const;
 
+export interface TsPathAlias {
+  /** Alias without a trailing `*`, for example `@app/common` or `@app/elf/`. */
+  prefix: string;
+  wildcard: boolean;
+  /** Repository-relative targets, `*` still in place. */
+  targets: string[];
+}
+
+/** `compilerOptions.paths` from the root `tsconfig.base.json` and `tsconfig.json`. */
+export async function readTsPathAliases(rootPath: string): Promise<TsPathAlias[]> {
+  const aliases: TsPathAlias[] = [];
+  for (const name of ['tsconfig.base.json', 'tsconfig.json']) {
+    let text: string;
+    try {
+      text = await readFile(path.join(rootPath, name), 'utf8');
+    } catch {
+      continue;
+    }
+    const parsed = ts.parseConfigFileTextToJson(name, text);
+    const options = parsed.config?.compilerOptions ?? {};
+    const paths: Record<string, string[]> = options.paths ?? {};
+    const baseUrl = path.posix.normalize(String(options.baseUrl ?? '.'));
+    for (const [pattern, targets] of Object.entries(paths)) {
+      if (!Array.isArray(targets)) continue;
+      const wildcard = pattern.endsWith('*');
+      aliases.push({
+        prefix: wildcard ? pattern.slice(0, -1) : pattern,
+        wildcard,
+        targets: targets.map((target) => path.posix.normalize(path.posix.join(baseUrl, target))),
+      });
+    }
+  }
+  // Longest prefix first, so `@app/elf/*` wins over `@app/elf`.
+  return aliases.sort((a, b) => b.prefix.length - a.prefix.length);
+}
+
 function resolveLocalDependencies(
   dependencies: Dependency[],
   files: RepositoryFile[],
+  aliases: TsPathAlias[] = [],
 ): void {
   const filePaths = new Set(files.map((file) => file.path));
 
   for (const dependency of dependencies) {
-    if (dependency.kind !== 'local') {
+    if (dependency.specifier.startsWith('.')) {
+      if (dependency.kind === 'local') {
+        dependency.resolvedFile = resolveLocalDependencyPath(
+          dependency.fromFile,
+          dependency.specifier,
+          filePaths,
+        );
+      }
       continue;
     }
-    dependency.resolvedFile = resolveLocalDependencyPath(
-      dependency.fromFile,
-      dependency.specifier,
-      filePaths,
-    );
+    const aliased = resolveAliasPath(dependency.specifier, aliases, filePaths);
+    if (aliased) {
+      dependency.kind = 'local';
+      dependency.resolvedFile = aliased;
+    } else if (dependency.kind === 'local') {
+      dependency.resolvedFile = undefined;
+    }
+  }
+}
+
+function resolveAliasPath(
+  specifier: string,
+  aliases: TsPathAlias[],
+  filePaths: Set<string>,
+): string | undefined {
+  for (const alias of aliases) {
+    const matches = alias.wildcard
+      ? specifier.startsWith(alias.prefix)
+      : specifier === alias.prefix;
+    if (!matches) continue;
+    const rest = alias.wildcard ? specifier.slice(alias.prefix.length) : '';
+    for (const target of alias.targets) {
+      const resolved = resolveCandidates(target.replace('*', rest), filePaths);
+      if (resolved) return resolved;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The extractor guesses import paths before the file list is known (`./user.model` becomes
+ * `user.model`, `./Header` becomes `Header.ts`); point call targets at the resolved file.
+ */
+function correctGuessedCallTargets(
+  dependencies: Dependency[],
+  relationships: Relationship[],
+): void {
+  const resolved = new Map<string, string>();
+  for (const dependency of dependencies) {
+    if (!dependency.resolvedFile) continue;
+    const guess = resolveLocalImport(dependency.fromFile, dependency.specifier);
+    if (guess && guess !== dependency.resolvedFile) {
+      resolved.set(`${dependency.fromFile}|${guess}`, dependency.resolvedFile);
+    }
+  }
+  if (resolved.size === 0) return;
+  for (const relationship of relationships) {
+    if (relationship.relationshipType !== 'calls') continue;
+    const hash = relationship.targetId.lastIndexOf('#');
+    if (hash < 0) continue;
+    const fromFile = relationship.sourceId.split('#')[0];
+    const target = resolved.get(`${fromFile}|${relationship.targetId.slice(0, hash)}`);
+    if (target) {
+      relationship.targetId = `${target}${relationship.targetId.slice(hash)}`;
+    }
   }
 }
 
@@ -350,14 +456,22 @@ function resolveLocalDependencyPath(
   const base = path.posix.normalize(
     path.posix.join(path.posix.dirname(fromFile), specifier),
   );
-  const candidates = path.posix.extname(base)
-    ? [base]
-    : [
-        ...SOURCE_EXTENSIONS.map((extension) => `${base}${extension}`),
-        ...SOURCE_EXTENSIONS.map((extension) =>
-          path.posix.join(base, `index${extension}`),
-        ),
-      ];
+  return resolveCandidates(base, filePaths);
+}
+
+/** The file an import path names: as written, with a source extension, or as a folder index. */
+function resolveCandidates(
+  base: string,
+  filePaths: Set<string>,
+): string | undefined {
+  // Always try added extensions: `user.model` and `useX.hook` name `user.model.ts`.
+  const candidates = [
+    base,
+    ...SOURCE_EXTENSIONS.map((extension) => `${base}${extension}`),
+    ...SOURCE_EXTENSIONS.map((extension) =>
+      path.posix.join(base, `index${extension}`),
+    ),
+  ];
 
   return candidates.find((candidate) => filePaths.has(candidate));
 }

@@ -2,6 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { rankByFields, tokenize } from '../../src/context/ranking.js';
 
 describe('ranking', () => {
+  it('ranks a whole identifier above paths that only share its prefix stem', () => {
+    const ranked = rankByFields(
+      'consumeReturnUrl',
+      [{ path: 'src/constants/search-constants.ts' }, { path: 'src/auth/consumeReturnUrl.ts' }],
+      [{ name: 'path', value: (item) => item.path }],
+    );
+    expect(ranked[0].item.path).toBe('src/auth/consumeReturnUrl.ts');
+    const stemOnly = ranked.find((r) => r.item.path.includes('constants'));
+    expect(stemOnly?.score ?? 0).toBeLessThanOrEqual(1);
+  });
+
   it('scores exact field matches', () => {
     const ranked = rankByFields(
       'auth token',

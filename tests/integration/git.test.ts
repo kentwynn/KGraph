@@ -118,6 +118,40 @@ describe('git-aware scan optimization', () => {
     }
   });
 
+  it('re-scans uncommitted edits and their revert while HEAD stays the same', async () => {
+    const repo = await createTempRepo();
+    try {
+      await gitInit(repo);
+      await writeText(repo, 'src/a.ts', 'export function a() { return 1; }\n');
+      await writeText(repo, 'src/b.ts', 'export function b() { return 2; }\n');
+      await gitCommitAll(repo, 'initial');
+      const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: repo });
+      const commit = stdout.trim();
+      const hashOf = (scan: Awaited<ReturnType<typeof scanRepository>>, file: string) =>
+        scan.files.find((f) => f.path === file)?.contentHash;
+
+      const first = await scanRepository(repo, DEFAULT_CONFIG);
+      const original = await import('node:fs/promises').then((fs) =>
+        fs.readFile(path.join(repo, 'src/b.ts'), 'utf8'),
+      );
+      await writeFile(path.join(repo, 'src/b.ts'), 'export function renamed() { return 3; }\n', 'utf8');
+      await writeText(repo, 'src/new.ts', 'export function brandNew() {}\n');
+
+      const edited = await scanRepository(repo, DEFAULT_CONFIG, { ...first, scannedAtCommit: commit });
+      expect(hashOf(edited, 'src/b.ts')).not.toBe(hashOf(first, 'src/b.ts'));
+      expect(edited.files.find((f) => f.path === 'src/b.ts')?.uncommitted).toBe(true);
+      expect(edited.symbols.map((s) => s.name)).toEqual(expect.arrayContaining(['renamed', 'brandNew']));
+      expect(edited.skippedFiles).toBe(1);
+
+      await writeFile(path.join(repo, 'src/b.ts'), original, 'utf8');
+      const reverted = await scanRepository(repo, DEFAULT_CONFIG, { ...edited, scannedAtCommit: commit });
+      expect(hashOf(reverted, 'src/b.ts')).toBe(hashOf(first, 'src/b.ts'));
+      expect(reverted.files.find((f) => f.path === 'src/b.ts')?.uncommitted).toBeUndefined();
+    } finally {
+      await cleanupTempRepo(repo);
+    }
+  });
+
   it('falls back to mtime-based skip when not in a git repo', async () => {
     const repo = await createTempRepo();
     try {
