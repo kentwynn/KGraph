@@ -80,6 +80,15 @@ export function extractTsSymbols(sourceText: string, filePath: string): SymbolEx
     if (ts.isExportDeclaration(node)) {
       const name = node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : "export";
       addSymbol(name, "export", node, true);
+      if (node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+        dependencies.push({
+          fromFile: filePath,
+          specifier: name,
+          resolvedFile: resolveLocalImport(filePath, name),
+          kind: name.startsWith(".") ? "local" : "package",
+          reexport: true
+        });
+      }
     }
 
     if (ts.isFunctionDeclaration(node) && node.name) {
@@ -224,7 +233,8 @@ function isExported(node: ts.Node): boolean {
   return ts.canHaveModifiers(node) && Boolean(ts.getModifiers(node)?.some((mod) => mod.kind === ts.SyntaxKind.ExportKeyword));
 }
 
-function resolveLocalImport(fromFile: string, specifier: string): string | undefined {
+/** Path guess made without the file list; the scanner corrects it once all files are known. */
+export function resolveLocalImport(fromFile: string, specifier: string): string | undefined {
   if (!specifier.startsWith(".")) {
     return undefined;
   }

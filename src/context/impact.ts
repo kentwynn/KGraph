@@ -31,16 +31,26 @@ export function analyzeImpact(
   cognition: CognitionNote[],
   max = 8,
 ): ImpactResponse {
-  const files = rankByFields(query, maps.fileMap.files, [
+  let files = rankByFields(query, maps.fileMap.files, [
     { name: 'path', value: (file) => file.path },
     { name: 'language', value: (file) => file.language },
   ]).slice(0, max);
-  const symbols = rankByFields(query, maps.symbolMap.symbols, [
+  let symbols = rankByFields(query, maps.symbolMap.symbols, [
     { name: 'name', value: (symbol) => symbol.name },
     { name: 'path', value: (symbol) => symbol.filePath },
     { name: 'kind', value: (symbol) => symbol.kind },
     { name: 'parent', value: (symbol) => symbol.parentName },
   ]).slice(0, max);
+  // Impact of a named symbol is about that symbol, not others sharing one of its words.
+  const exact = symbols.filter((symbol) => symbol.item.name.toLowerCase() === query.trim().toLowerCase());
+  if (exact.length > 0) {
+    symbols = exact;
+    files = [];
+  }
+  // Paths that only share a stem are noise once a symbol really matched.
+  if (symbols.some((symbol) => !symbol.stemOnly)) {
+    files = files.filter((file) => !file.stemOnly);
+  }
 
   const filePaths = new Set([
     ...files.map((file) => file.item.path),
@@ -48,17 +58,39 @@ export function analyzeImpact(
   ]);
   const symbolIds = new Set(symbols.map((symbol) => symbol.item.id));
   const symbolNames = new Set(symbols.map((symbol) => symbol.item.name));
+  // Static and instance calls are recorded as written: `AuthService.consumeReturnUrl`.
+  const qualifiedNames = new Set(
+    symbols
+      .filter((symbol) => symbol.item.parentName)
+      .map((symbol) => `${symbol.item.parentName}.${symbol.item.name}`),
+  );
   const importHints = new Set([
     ...[...filePaths].map((file) => basenameWithoutExtension(file).toLowerCase()),
     ...[...symbolNames].map((name) => name.toLowerCase()),
   ]);
 
+  const callers = maps.relationshipMap.relationships
+    .filter(
+      (rel) =>
+        rel.relationshipType === 'calls' &&
+        (symbolIds.has(rel.targetId) ||
+          symbolNames.has(rel.targetId) ||
+          qualifiedNames.has(rel.targetId) ||
+          [...symbolNames].some((name) => rel.targetId.endsWith(`#${name}`))),
+    )
+    .slice(0, max);
+  const callerFiles = new Set(callers.map((rel) => rel.sourceId.split('#')[0]));
+
+  const barrels = barrelsExporting(filePaths, maps.dependencyMap.dependencies);
   const importedBy = unique(
     maps.dependencyMap.dependencies
       .filter(
         (dep) =>
-          (dep.resolvedFile && filePaths.has(dep.resolvedFile)) ||
-          [...importHints].some((hint) => hint && dep.specifier.toLowerCase().includes(hint)),
+          !dep.reexport &&
+          ((dep.resolvedFile && filePaths.has(dep.resolvedFile)) ||
+            // Through a barrel only when the importer really uses the symbol.
+            (dep.resolvedFile && barrels.has(dep.resolvedFile) && callerFiles.has(dep.fromFile)) ||
+            [...importHints].some((hint) => hint && dep.specifier.toLowerCase().includes(hint))),
       )
       .map((dep) => dep.fromFile),
   ).slice(0, max);
@@ -68,13 +100,6 @@ export function analyzeImpact(
       (rel) =>
         rel.relationshipType === 'calls' &&
         (symbolIds.has(rel.sourceId) || symbolNames.has(rel.sourceId)),
-    )
-    .slice(0, max);
-  const callers = maps.relationshipMap.relationships
-    .filter(
-      (rel) =>
-        rel.relationshipType === 'calls' &&
-        (symbolIds.has(rel.targetId) || symbolNames.has(rel.targetId) || [...symbolNames].some((name) => rel.targetId.endsWith(`#${name}`))),
     )
     .slice(0, max);
   const ownership = maps.relationshipMap.relationships
@@ -118,6 +143,26 @@ export function analyzeImpact(
 
 function unique<T>(items: T[]): T[] {
   return [...new Set(items)];
+}
+
+/** Barrel files that re-export any of the given files, directly or through other barrels. */
+function barrelsExporting(
+  files: Set<string>,
+  dependencies: DependencyMap['dependencies'],
+): Set<string> {
+  const barrels = new Set<string>();
+  let frontier = new Set(files);
+  for (let depth = 0; depth < 4 && frontier.size > 0; depth++) {
+    const next = new Set<string>();
+    for (const dep of dependencies) {
+      if (dep.reexport && dep.resolvedFile && frontier.has(dep.resolvedFile) && !barrels.has(dep.fromFile)) {
+        barrels.add(dep.fromFile);
+        next.add(dep.fromFile);
+      }
+    }
+    frontier = next;
+  }
+  return barrels;
 }
 
 function basenameWithoutExtension(filePath: string): string {

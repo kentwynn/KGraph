@@ -59,6 +59,34 @@ export async function getChangedFilesSince(
 }
 
 /**
+ * Returns staged, unstaged and untracked paths from one `git status`, or null if git fails
+ * (callers must then fall back to checking every file).
+ */
+export async function getUncommittedFiles(
+  rootPath: string,
+): Promise<string[] | null> {
+  try {
+    const { stdout } = await execFileAsync(
+      'git',
+      ['status', '--porcelain', '-z', '--untracked-files=all'],
+      { cwd: rootPath, maxBuffer: 64 * 1024 * 1024 },
+    );
+    const entries = stdout.split('\0');
+    const paths: string[] = [];
+    for (let index = 0; index < entries.length; index++) {
+      const entry = entries[index];
+      if (entry.length < 4) continue;
+      paths.push(entry.slice(3));
+      // A rename or copy is followed by its original path.
+      if (entry[0] === 'R' || entry[0] === 'C') index++;
+    }
+    return paths;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Returns the subset of paths ignored by Git, including nested .gitignore rules.
  * Falls back to an empty set when Git is unavailable or the directory is not a repo.
  */

@@ -164,6 +164,27 @@ export async function queryContext(
     { name: 'parent', value: (symbol) => symbol.parentName },
   ]).slice(0, max);
 
+  // The file that defines a matched symbol beats files that only share a word in their path.
+  const filesByPath = new Map(maps.fileMap.files.map((file) => [file.path, file]));
+  const topSymbolScore = relevantSymbols[0]?.score ?? 0;
+  for (const symbol of relevantSymbols.slice(0, 3)) {
+    if (symbol.score < topSymbolScore / 2) continue;
+    const file = filesByPath.get(symbol.item.filePath);
+    if (!file) continue;
+    const reason = `defines matched symbol "${symbol.item.name}"`;
+    const existing = relevantFiles.find((ranked) => ranked.item.path === file.path);
+    if (existing) {
+      existing.score = Math.max(existing.score, symbol.score + 10);
+      existing.reasons.push(reason);
+    } else {
+      relevantFiles.push({ item: file, score: symbol.score + 10, reasons: [reason] });
+    }
+  }
+  if (relevantSymbols.length > 0 || relevantFiles.some((ranked) => !ranked.stemOnly)) {
+    relevantFiles = relevantFiles.filter((ranked) => !ranked.stemOnly);
+  }
+  relevantFiles.sort((a, b) => b.score - a.score);
+
   // Inject files linked by matched cognition notes/domains that didn't score on name alone
   const rankedFilePaths = new Set(relevantFiles.map((f) => f.item.path));
   const cognitionLinkedMap = new Map<string, string[]>();
@@ -230,10 +251,15 @@ export async function queryContext(
       ...domain.item.symbols,
     ]),
   ]);
+  // Barrel files (index.ts re-exporting a library) connect to every importer of the library,
+  // so expanding through them would pull most of a monorepo into the context.
+  const barrelFiles = new Set(
+    maps.dependencyMap.dependencies.filter((dep) => dep.reexport).map((dep) => dep.fromFile),
+  );
   for (const relationship of maps.relationshipMap.relationships) {
     if (
-      relatedIds.has(relationship.sourceId) ||
-      relatedIds.has(relationship.targetId)
+      (relatedIds.has(relationship.sourceId) && !barrelFiles.has(relationship.sourceId)) ||
+      (relatedIds.has(relationship.targetId) && !barrelFiles.has(relationship.targetId))
     ) {
       relatedIds.add(relationship.sourceId);
       relatedIds.add(relationship.targetId);
@@ -248,6 +274,7 @@ export async function queryContext(
       { name: 'type', value: (relationship) => relationship.relationshipType },
     ],
   );
+  const seenRelationships = new Set<string>();
   const relationships = [
     ...maps.relationshipMap.relationships.filter(
       (relationship) =>
@@ -255,15 +282,12 @@ export async function queryContext(
         relatedIds.has(relationship.targetId),
     ),
     ...rankedRelationships.map((relationship) => relationship.item),
-  ].filter(
-    (relationship, index, all) =>
-      all.findIndex(
-        (candidate) =>
-          candidate.sourceId === relationship.sourceId &&
-          candidate.targetId === relationship.targetId &&
-          candidate.relationshipType === relationship.relationshipType,
-      ) === index,
-  );
+  ].filter((relationship) => {
+    const key = relationshipKey(relationship);
+    if (seenRelationships.has(key)) return false;
+    seenRelationships.add(key);
+    return true;
+  });
   const relationshipExplanations = explainRelationships(relationships, {
     rankedRelationships,
     relevantFiles,

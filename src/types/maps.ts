@@ -29,6 +29,8 @@ export interface RepositoryFile {
   tokenEstimate?: number;
   scanStatus: ScanStatus;
   warnings: string[];
+  /** Had staged, unstaged or untracked changes when scanned. */
+  uncommitted?: boolean;
 }
 
 export interface CodeSymbol {
@@ -47,6 +49,8 @@ export interface Dependency {
   specifier: string;
   resolvedFile?: string;
   kind: DependencyKind;
+  /** `export ... from`: the file passes the target's exports on (a barrel). */
+  reexport?: boolean;
 }
 
 export interface Relationship {
